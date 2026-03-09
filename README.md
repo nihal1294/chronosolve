@@ -1,6 +1,14 @@
-# ChronoSolve
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-animated.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-animated-light.svg" />
+    <img src="assets/logo-animated.svg" alt="ChronoSolve" width="200" />
+  </picture>
+</p>
 
-A generalized university course timetable scheduling solver powered by constraint optimization.
+<h1 align="center">ChronoSolve</h1>
+
+<p align="center">A generalized university course timetable scheduling solver powered by constraint optimization.</p>
 
 ## What It Does
 
