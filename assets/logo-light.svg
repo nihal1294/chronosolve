@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- ChronoSolve Logo — Light Mode (dark path for light backgrounds) -->
+
+  <!-- Row 1 — Indigo -->
+  <rect x="12" y="16" width="40" height="18" rx="4" fill="#4338CA" />
+
+  <!-- Row 2 — Teal -->
+  <rect x="28" y="41" width="44" height="18" rx="4" fill="#0F766E" />
+
+  <!-- Row 3 — Amber -->
+  <rect x="48" y="66" width="40" height="18" rx="4" fill="#D97706" />
+
+  <!-- Optimization Path (black for light backgrounds) -->
+  <path
+    d="M 20 25 H 34 A 8 8 0 0 1 42 33 V 42 A 8 8 0 0 0 50 50 H 52 A 8 8 0 0 1 60 58 V 67 A 8 8 0 0 0 68 75 H 80"
+    stroke="#000000"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>
