@@ -1,0 +1,259 @@
+# VTU CS Department — 4th semester, 3 sections, ~15 subjects, Saturday half-day
+time_structure:
+  days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+  slots_per_day: 8
+  slot_overrides:
+    Saturday: 4
+  slot_labels:
+    1: "9:00 - 9:55"
+    2: "10:00 - 10:55"
+    3: "11:00 - 11:55"
+    4: "12:00 - 12:55"
+    5: "13:30 - 14:25"
+    6: "14:30 - 15:25"
+    7: "15:30 - 16:25"
+    8: "16:30 - 17:25"
+
+teachers:
+  - id: prof_anand
+    name: Prof. Anand Kumar
+    preferences:
+      max_hours_per_day: 6
+      schedule_style: compact
+  - id: prof_meera
+    name: Prof. Meera Nair
+    unavailable:
+      Saturday: [1, 2, 3, 4]
+    preferences:
+      min_free_days: 1
+  - id: prof_ravi
+    name: Prof. Ravi Shankar
+    preferences:
+      slot_preferences:
+        Monday: { 1: preferred, 2: preferred }
+        Tuesday: { 1: preferred, 2: preferred }
+      consecutive_hours: prefer
+      max_consecutive: 3
+  - id: prof_deepa
+    name: Prof. Deepa Hegde
+  - id: prof_suresh
+    name: Prof. Suresh Patil
+    preferences:
+      leave_early:
+        Friday: 6
+  - id: prof_kavitha
+    name: Prof. Kavitha Rao
+    unavailable:
+      Wednesday: [7, 8]
+  - id: prof_mohan
+    name: Prof. Mohan Das
+    preferences:
+      max_hours_per_day: 5
+  - id: prof_sneha
+    name: Prof. Sneha Kulkarni
+
+student_groups:
+  - id: cs4a
+    name: CS 4th Sem Section A
+    size: 60
+    max_hours_per_day: 7
+  - id: cs4b
+    name: CS 4th Sem Section B
+    size: 55
+    max_hours_per_day: 7
+  - id: cs4c
+    name: CS 4th Sem Section C
+    size: 58
+    max_hours_per_day: 7
+
+rooms:
+  - id: lh1
+    name: Lecture Hall 1
+    capacity: 70
+    type: lecture
+  - id: lh2
+    name: Lecture Hall 2
+    capacity: 65
+    type: lecture
+  - id: lh3
+    name: Lecture Hall 3
+    capacity: 70
+    type: lecture
+  - id: clab1
+    name: Computer Lab 1
+    capacity: 35
+    type: lab
+  - id: clab2
+    name: Computer Lab 2
+    capacity: 35
+    type: lab
+
+subjects:
+  # --- Section A ---
+  - id: daa_a
+    name: Design & Analysis of Algorithms
+    short_name: DAA
+    hours_per_week: 4
+    teacher_ids: [prof_anand]
+    group_ids: [cs4a]
+    preferred_room_type: lecture
+  - id: os_a
+    name: Operating Systems
+    short_name: OS
+    hours_per_week: 4
+    teacher_ids: [prof_meera]
+    group_ids: [cs4a]
+    preferred_room_type: lecture
+  - id: dbms_a
+    name: Database Management Systems
+    short_name: DBMS
+    hours_per_week: 3
+    teacher_ids: [prof_ravi]
+    group_ids: [cs4a]
+  - id: lad_a
+    name: Linear Algebra & Diff. Equations
+    short_name: LAD
+    hours_per_week: 4
+    teacher_ids: [prof_deepa]
+    group_ids: [cs4a]
+  - id: cn_a
+    name: Computer Networks
+    short_name: CN
+    hours_per_week: 3
+    teacher_ids: [prof_suresh]
+    group_ids: [cs4a]
+  - id: daa_lab_a
+    name: DAA Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [prof_anand]
+    group_ids: [cs4a]
+    consecutive_hours: 2
+    preferred_room_type: lab
+  - id: os_lab_a
+    name: OS Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [prof_meera]
+    group_ids: [cs4a]
+    consecutive_hours: 2
+    preferred_room_type: lab
+
+  # --- Section B ---
+  - id: daa_b
+    name: Design & Analysis of Algorithms
+    short_name: DAA
+    hours_per_week: 4
+    teacher_ids: [prof_anand]
+    group_ids: [cs4b]
+    preferred_room_type: lecture
+  - id: os_b
+    name: Operating Systems
+    short_name: OS
+    hours_per_week: 4
+    teacher_ids: [prof_kavitha]
+    group_ids: [cs4b]
+  - id: dbms_b
+    name: Database Management Systems
+    short_name: DBMS
+    hours_per_week: 3
+    teacher_ids: [prof_ravi]
+    group_ids: [cs4b]
+  - id: lad_b
+    name: Linear Algebra & Diff. Equations
+    short_name: LAD
+    hours_per_week: 4
+    teacher_ids: [prof_mohan]
+    group_ids: [cs4b]
+  - id: cn_b
+    name: Computer Networks
+    short_name: CN
+    hours_per_week: 3
+    teacher_ids: [prof_suresh]
+    group_ids: [cs4b]
+  - id: daa_lab_b
+    name: DAA Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [prof_sneha]
+    group_ids: [cs4b]
+    consecutive_hours: 2
+    preferred_room_type: lab
+  - id: os_lab_b
+    name: OS Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [prof_kavitha]
+    group_ids: [cs4b]
+    consecutive_hours: 2
+    preferred_room_type: lab
+
+  # --- Section C ---
+  - id: daa_c
+    name: Design & Analysis of Algorithms
+    short_name: DAA
+    hours_per_week: 4
+    teacher_ids: [prof_sneha]
+    group_ids: [cs4c]
+  - id: os_c
+    name: Operating Systems
+    short_name: OS
+    hours_per_week: 4
+    teacher_ids: [prof_meera]
+    group_ids: [cs4c]
+  - id: dbms_c
+    name: Database Management Systems
+    short_name: DBMS
+    hours_per_week: 3
+    teacher_ids: [prof_deepa]
+    group_ids: [cs4c]
+  - id: lad_c
+    name: Linear Algebra & Diff. Equations
+    short_name: LAD
+    hours_per_week: 4
+    teacher_ids: [prof_mohan]
+    group_ids: [cs4c]
+  - id: cn_c
+    name: Computer Networks
+    short_name: CN
+    hours_per_week: 3
+    teacher_ids: [prof_suresh]
+    group_ids: [cs4c]
+  - id: daa_lab_c
+    name: DAA Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [prof_sneha]
+    group_ids: [cs4c]
+    consecutive_hours: 2
+    preferred_room_type: lab
+  - id: os_lab_c
+    name: OS Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [prof_kavitha]
+    group_ids: [cs4c]
+    consecutive_hours: 2
+    preferred_room_type: lab
+
+pre_assignments:
+  # Assembly slot — DAA Section A always Monday period 1
+  - subject_id: daa_a
+    day: Monday
+    slot: 1
+
+constraints:
+  hard:
+    teacher_no_clash: true
+    group_no_clash: true
+    room_no_clash: true
+    respect_availability: true
+    required_hours: true
+  soft:
+    minimize_student_gaps: 80
+    minimize_teacher_gaps: 60
+    spread_subjects: 50
+    teacher_time_preferences: 70
+    compact_schedules: 40
+    avoid_consecutive_hours: 30
+    workload_balance: 50
