@@ -78,6 +78,12 @@ def _room_type_violations(
     found: list[str] = []
     for entry in schedule:
         if entry.room_id is None:
+            # Solver channeling assigns a room to every scheduled hour, so a
+            # missing room is itself a hard violation when rooms are defined.
+            found.append(
+                f"Entry for {entry.subject_id!r} on {entry.day} slot {entry.slot} "
+                f"has no room assigned"
+            )
             continue
         room = rooms.get(entry.room_id)
         if room is None:

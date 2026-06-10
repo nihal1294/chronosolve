@@ -133,6 +133,11 @@ class TestHardViolations:
         unknown = score_schedule(problem, [_entry("lab", "Monday", 1, room="ghost")])
         assert any("unknown room" in v for v in unknown.hard_violations)
 
+        # Omitting the room entirely is also a violation when rooms are defined,
+        # matching the solver's one-room-per-scheduled-hour channeling.
+        roomless = score_schedule(problem, [_entry("lab", "Monday", 1)])
+        assert any("no room assigned" in v for v in roomless.hard_violations)
+
     def test_max_per_day_violation_reported(
         self, two_subject_problem: TimetableProblem
     ) -> None:

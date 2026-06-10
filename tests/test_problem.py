@@ -138,6 +138,17 @@ class TestTimetableProblem:
     def test_with_rooms_valid(self, problem_with_rooms: TimetableProblem) -> None:
         assert len(problem_with_rooms.rooms) == 2
 
+    def test_multipurpose_room_satisfies_specific_preference(
+        self, minimal_time_structure: TimeStructure
+    ) -> None:
+        """An "any"-typed room must satisfy a 'lab' preference, like the solver does."""
+        problem = _problem(
+            minimal_time_structure,
+            subjects=[_subject(preferred_room_type="lab")],
+            rooms=[Room(id="r1", name="Multipurpose", capacity=50, type="any")],
+        )
+        assert problem.subjects[0].preferred_room_type == "lab"
+
     def test_invalid_room_type_rejected(
         self, minimal_time_structure: TimeStructure
     ) -> None:

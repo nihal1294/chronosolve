@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from timetable_solver.models.constraints import ConstraintsConfig
 from timetable_solver.models.pre_assignment import PreAssignment
-from timetable_solver.models.room import Room
+from timetable_solver.models.room import Room, room_type_matches
 from timetable_solver.models.student_group import StudentGroup
 from timetable_solver.models.subject import Subject
 from timetable_solver.models.teacher import Teacher
@@ -141,10 +141,18 @@ def _check_room_references(
     room_ids: set[str],
     errors: list[str],
 ) -> None:
-    """Verify subject preferred_room_type can be satisfied by available rooms."""
-    room_types = {r.type for r in problem.rooms} | {"any"}
+    """Verify subject preferred_room_type can be satisfied by available rooms.
+
+    Uses the same compatibility predicate as solver variable creation, so
+    multipurpose ("any") rooms satisfy every preference here too.
+    """
     for subj in problem.subjects:
-        if subj.preferred_room_type and subj.preferred_room_type not in room_types:
+        if subj.preferred_room_type is None:
+            continue
+        if not any(
+            room_type_matches(room.type, subj.preferred_room_type)
+            for room in problem.rooms
+        ):
             errors.append(
                 f"Subject {subj.id!r}: preferred_room_type {subj.preferred_room_type!r} "
                 f"has no matching rooms"
