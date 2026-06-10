@@ -1,6 +1,7 @@
 """Hard constraint violation detection for arbitrary schedules."""
 
 from timetable_solver.models.problem import TimetableProblem
+from timetable_solver.models.room import room_type_matches
 from timetable_solver.models.schedule import ScheduleEntry
 from timetable_solver.scoring.grid import entity_day_slots
 
@@ -25,12 +26,15 @@ def find_hard_violations(
         violations += _clashes(schedule, "group_ids", "Group")
     if hard.room_no_clash:
         violations += _room_clashes(schedule)
+    if problem.rooms:
+        violations += _room_type_violations(problem, schedule)
     if hard.respect_availability:
         violations += _availability_violations(problem, schedule)
     if hard.required_hours:
         violations += _hour_violations(problem, schedule)
     violations += _block_violations(problem, schedule)
     violations += _max_per_day_violations(problem, schedule)
+    violations += _group_hours_violations(problem, schedule)
     return violations
 
 
@@ -57,6 +61,33 @@ def _room_clashes(schedule: list[ScheduleEntry]) -> list[str]:
         if key in seen:
             found.append(f"Room {entry.room_id!r} double-booked on {entry.day} slot {entry.slot}")
         seen.add(key)
+    return found
+
+
+def _room_type_violations(
+    problem: TimetableProblem, schedule: list[ScheduleEntry]
+) -> list[str]:
+    """Entries placed in unknown rooms or rooms incompatible with the subject.
+
+    The solver treats room type compatibility as hard (only compatible room
+    variables exist), so externally supplied schedules must be held to the
+    same rule, independent of the room_no_clash toggle.
+    """
+    rooms = {r.id: r for r in problem.rooms}
+    preferences = {s.id: s.preferred_room_type for s in problem.subjects}
+    found: list[str] = []
+    for entry in schedule:
+        if entry.room_id is None:
+            continue
+        room = rooms.get(entry.room_id)
+        if room is None:
+            found.append(f"Entry for {entry.subject_id!r} uses unknown room {entry.room_id!r}")
+        elif not room_type_matches(room.type, preferences.get(entry.subject_id)):
+            found.append(
+                f"Subject {entry.subject_id!r} needs a "
+                f"{preferences.get(entry.subject_id)!r} room but is in "
+                f"{entry.room_id!r} ({room.type})"
+            )
     return found
 
 
@@ -134,6 +165,21 @@ def _max_per_day_violations(
             found.append(
                 f"Subject {subject_id!r} has {sessions} sessions on {day} "
                 f"(max_per_day={subject.max_per_day})"
+            )
+    return found
+
+
+def _group_hours_violations(
+    problem: TimetableProblem, schedule: list[ScheduleEntry]
+) -> list[str]:
+    """Groups whose daily class hours exceed StudentGroup.max_hours_per_day."""
+    caps = {g.id: g.max_hours_per_day for g in problem.student_groups}
+    found: list[str] = []
+    for (group_id, day), slots in entity_day_slots(schedule, "group_ids").items():
+        cap = caps.get(group_id)
+        if cap is not None and len(slots) > cap:
+            found.append(
+                f"Group {group_id!r} has {len(slots)}h on {day} (max_hours_per_day={cap})"
             )
     return found
 

@@ -56,8 +56,11 @@ def _check_group_hours_feasibility(
         for gid in subj.group_ids:
             group_hours[gid] = group_hours.get(gid, 0) + subj.hours_per_week
 
+    day_count = len(problem.time_structure.days)
     for group in problem.student_groups:
         available = _available_slots_for_entity(problem, group.unavailable)
+        if group.max_hours_per_day is not None:
+            available = min(available, group.max_hours_per_day * day_count)
         required = group_hours.get(group.id, 0)
         if required > available:
             issues.append(ValidationIssue(

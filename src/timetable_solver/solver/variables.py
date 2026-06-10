@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from ortools.sat.python import cp_model
 
 from timetable_solver.models.problem import TimetableProblem
-from timetable_solver.models.room import Room
+from timetable_solver.models.room import Room, room_type_matches
 from timetable_solver.models.subject import Subject
 
 AssignKey = tuple[str, int, int]  # (subject_id, day_index, slot)
@@ -41,10 +41,7 @@ def compatible_rooms(subject: Subject, rooms: list[Room]) -> list[Room]:
     Capacity is deliberately not filtered here — it is a soft concern
     (validator warning), matching the validation contract.
     """
-    preference = subject.preferred_room_type
-    if preference is None or preference == "any":
-        return rooms
-    return [r for r in rooms if r.type in (preference, "any")]
+    return [r for r in rooms if room_type_matches(r.type, subject.preferred_room_type)]
 
 
 def create_variables(model: cp_model.CpModel, problem: TimetableProblem) -> SolverVariables:

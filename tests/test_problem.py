@@ -96,6 +96,25 @@ class TestTimetableProblem:
         )
         assert problem.pre_assignments[0].slot == 3
 
+    def test_duplicate_subject_id_rejected(
+        self, minimal_time_structure: TimeStructure
+    ) -> None:
+        """Solver variables key on subject IDs, so duplicates must be rejected."""
+        with pytest.raises(ValidationError, match="Duplicate Subject id 's1'"):
+            _problem(
+                minimal_time_structure,
+                subjects=[_subject(), _subject(hours_per_week=3)],
+            )
+
+    def test_duplicate_teacher_id_rejected(
+        self, minimal_time_structure: TimeStructure
+    ) -> None:
+        with pytest.raises(ValidationError, match="Duplicate Teacher id 't1'"):
+            _problem(
+                minimal_time_structure,
+                teachers=[Teacher(id="t1", name="Smith"), Teacher(id="t1", name="Jones")],
+            )
+
     def test_unavailable_unknown_day_rejected(
         self, minimal_time_structure: TimeStructure
     ) -> None:

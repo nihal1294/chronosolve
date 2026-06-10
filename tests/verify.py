@@ -16,6 +16,7 @@ def assert_hard_constraints(problem: TimetableProblem, schedule: list[ScheduleEn
     assert_required_hours(problem, schedule)
     assert_blocks_contiguous(problem, schedule)
     assert_max_per_day(problem, schedule)
+    assert_group_max_hours(problem, schedule)
 
 
 def assert_no_entity_clash(schedule: list[ScheduleEntry], attr: str) -> None:
@@ -89,6 +90,22 @@ def assert_blocks_contiguous(problem: TimetableProblem, schedule: list[ScheduleE
                 )
                 rooms = {e.room_id for e in chunk}
                 assert len(rooms) == 1, f"{subject.id} on {day}: block spans rooms {rooms}"
+
+
+def assert_group_max_hours(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> None:
+    """No group exceeds its max_hours_per_day cap on any day."""
+    hours: dict[tuple[str, str], int] = {}
+    for entry in schedule:
+        for gid in entry.group_ids:
+            hours[(gid, entry.day)] = hours.get((gid, entry.day), 0) + 1
+    for group in problem.student_groups:
+        if group.max_hours_per_day is None:
+            continue
+        for (gid, day), count in hours.items():
+            if gid == group.id:
+                assert count <= group.max_hours_per_day, (
+                    f"{gid} has {count}h on {day} > cap {group.max_hours_per_day}"
+                )
 
 
 def assert_max_per_day(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> None:

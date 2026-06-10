@@ -173,6 +173,27 @@ class TestConsecutiveBlocks:
             assert slots[1] == slots[0] + 1
 
 
+class TestGroupMaxHours:
+    def _problem(self, days: list[str]) -> TimetableProblem:
+        """A 2-hour subject for a group capped at 1 class hour per day."""
+        return TimetableProblem(
+            time_structure=TimeStructure(days=days, slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T")],
+            student_groups=[
+                StudentGroup(id="g1", name="A", size=10, max_hours_per_day=1)
+            ],
+            subjects=[_subject("s1", "t1", "g1", hours=2)],
+        )
+
+    def test_cap_forces_split_across_days(self) -> None:
+        result = solve(self._problem(["Mon", "Tue"]), time_limit=5)
+        assert result.status == "optimal"
+        assert len({e.day for e in result.schedule}) == 2
+
+    def test_cap_makes_single_day_infeasible(self) -> None:
+        assert solve(self._problem(["Mon"]), time_limit=5).status == "infeasible"
+
+
 class TestMaxPerDay:
     def test_theory_hours_spread_across_days(self) -> None:
         """max_per_day=1 forces 3 hours onto 3 distinct days."""

@@ -113,6 +113,26 @@ def add_max_per_day(
                 model.add(sum(session_vars) <= subject.max_per_day)
 
 
+def add_group_max_hours(
+    model: cp_model.CpModel, variables: SolverVariables, problem: TimetableProblem
+) -> None:
+    """Cap each group's total class hours per day (StudentGroup.max_hours_per_day)."""
+    for group in problem.student_groups:
+        cap = group.max_hours_per_day
+        if cap is None:
+            continue
+        subject_ids = [s.id for s in problem.subjects if group.id in s.group_ids]
+        for day_idx, day in enumerate(problem.time_structure.days):
+            slots = problem.time_structure.get_slots_for_day(day)
+            day_vars = [
+                variables.assignments[(sid, day_idx, slot)]
+                for sid in subject_ids
+                for slot in range(1, slots + 1)
+            ]
+            if len(day_vars) > cap:
+                model.add(sum(day_vars) <= cap)
+
+
 def add_pre_assignments(
     model: cp_model.CpModel, variables: SolverVariables, problem: TimetableProblem
 ) -> None:

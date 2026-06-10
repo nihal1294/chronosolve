@@ -14,6 +14,7 @@ from timetable_solver.solver.extractor import extract_solution
 from timetable_solver.solver.hard import (
     add_availability,
     add_consecutive_blocks,
+    add_group_max_hours,
     add_group_no_clash,
     add_max_per_day,
     add_pre_assignments,
@@ -31,6 +32,7 @@ _HARD_CONSTRAINT_BUILDERS = (
     add_availability,
     add_consecutive_blocks,
     add_max_per_day,
+    add_group_max_hours,
     add_room_constraints,
     add_pre_assignments,
 )

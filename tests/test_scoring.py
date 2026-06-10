@@ -108,6 +108,31 @@ class TestHardViolations:
         report = score_schedule(problem, schedule)
         assert any("Room 'r1' double-booked" in v for v in report.hard_violations)
 
+    def test_incompatible_room_type_reported(self) -> None:
+        """A lab subject placed in a lecture room is a hard violation."""
+        problem = TimetableProblem(
+            time_structure=TimeStructure(days=["Monday"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T")],
+            student_groups=[StudentGroup(id="g1", name="G", size=20)],
+            subjects=[
+                Subject(id="lab", name="Lab", hours_per_week=1, type="lab",
+                        teacher_ids=["t1"], group_ids=["g1"],
+                        preferred_room_type="lab"),
+            ],
+            rooms=[
+                Room(id="lh1", name="Hall", capacity=60, type="lecture"),
+                Room(id="lab1", name="Lab", capacity=30, type="lab"),
+            ],
+        )
+        report = score_schedule(problem, [_entry("lab", "Monday", 1, room="lh1")])
+        assert any("needs a 'lab' room" in v for v in report.hard_violations)
+
+        ok = score_schedule(problem, [_entry("lab", "Monday", 1, room="lab1")])
+        assert ok.hard_violations == []
+
+        unknown = score_schedule(problem, [_entry("lab", "Monday", 1, room="ghost")])
+        assert any("unknown room" in v for v in unknown.hard_violations)
+
     def test_max_per_day_violation_reported(
         self, two_subject_problem: TimetableProblem
     ) -> None:
@@ -121,6 +146,16 @@ class TestHardViolations:
         ]
         report = score_schedule(problem, schedule)
         assert any("max_per_day" in v for v in report.hard_violations)
+
+    def test_group_daily_cap_violation_reported(
+        self, two_subject_problem: TimetableProblem
+    ) -> None:
+        """Two same-day hours for a group capped at 1/day is flagged."""
+        problem = two_subject_problem.model_copy(deep=True)
+        problem.student_groups[0].max_hours_per_day = 1
+        schedule = [_entry("s1", "Monday", 1), _entry("s2", "Monday", 2)]
+        report = score_schedule(problem, schedule)
+        assert any("max_hours_per_day=1" in v for v in report.hard_violations)
 
     def test_broken_lab_block_reported(self) -> None:
         problem = TimetableProblem(

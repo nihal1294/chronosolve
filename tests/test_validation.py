@@ -61,6 +61,31 @@ class TestGroupHoursFeasibility:
         assert len(group_errors) == 1
         assert "7 hours" in group_errors[0].message
 
+    def test_group_daily_cap_limits_available_hours(self) -> None:
+        """Cap of 1h/day across 3 days leaves 3 usable slots; 4 hours must error."""
+        problem = TimetableProblem(
+            time_structure=TimeStructure(days=["Mon", "Tue", "Wed"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T1")],
+            student_groups=[
+                StudentGroup(id="g1", name="G1", size=30, max_hours_per_day=1)
+            ],
+            subjects=[
+                Subject(
+                    id="s1",
+                    name="Subject",
+                    hours_per_week=4,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                )
+            ],
+        )
+        issues = validate_problem(problem)
+        group_errors = [
+            i for i in issues if i.severity == Severity.ERROR and "g1" in i.message
+        ]
+        assert len(group_errors) == 1
+        assert "only has 3" in group_errors[0].message
+
     def test_group_near_capacity_warns(self) -> None:
         """Group uses >90% of slots — should warn."""
         problem = TimetableProblem(

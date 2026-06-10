@@ -50,6 +50,8 @@ def _collect_reference_errors(problem: "TimetableProblem") -> list[str]:
     days = set(problem.time_structure.days)
     errors: list[str] = []
 
+    _check_duplicate_ids(problem, errors)
+
     for subj in problem.subjects:
         for tid in subj.teacher_ids:
             if tid not in teacher_ids:
@@ -86,6 +88,22 @@ def _collect_reference_errors(problem: "TimetableProblem") -> list[str]:
         _check_room_references(problem, room_ids, errors)
 
     return errors
+
+
+def _check_duplicate_ids(problem: "TimetableProblem", errors: list[str]) -> None:
+    """Reject duplicate IDs — solver variables and lookups key on them."""
+    entity_lists = [
+        ("Teacher", problem.teachers),
+        ("StudentGroup", problem.student_groups),
+        ("Subject", problem.subjects),
+        ("Room", problem.rooms),
+    ]
+    for label, entities in entity_lists:
+        seen: set[str] = set()
+        for entity in entities:
+            if entity.id in seen:
+                errors.append(f"Duplicate {label} id {entity.id!r}")
+            seen.add(entity.id)
 
 
 def _check_availability_days(
