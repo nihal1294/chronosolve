@@ -1,0 +1,20 @@
+# Minimal valid input — 1 teacher, 1 group, 1 subject, 3 days × 4 slots
+time_structure:
+  days: ["Monday", "Tuesday", "Wednesday"]
+  slots_per_day: 4
+
+teachers:
+  - id: t1
+    name: Dr. Smith
+
+student_groups:
+  - id: g1
+    name: Section A
+    size: 30
+
+subjects:
+  - id: math101
+    name: Mathematics I
+    hours_per_week: 3
+    teacher_ids: [t1]
+    group_ids: [g1]

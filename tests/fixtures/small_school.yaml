@@ -1,0 +1,116 @@
+# Small school — 3 teachers, 2 groups, 8 subjects, 5 days × 6 slots
+time_structure:
+  days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  slots_per_day: 6
+  slot_labels:
+    1: "9:00 - 9:55"
+    2: "10:00 - 10:55"
+    3: "11:00 - 11:55"
+    4: "12:00 - 12:55"
+    5: "14:00 - 14:55"
+    6: "15:00 - 15:55"
+
+teachers:
+  - id: t_alice
+    name: Alice Johnson
+    preferences:
+      max_hours_per_day: 5
+      schedule_style: compact
+  - id: t_bob
+    name: Bob Williams
+    unavailable:
+      Friday: [5, 6]
+    preferences:
+      slot_preferences:
+        Monday: { 1: preferred, 2: preferred }
+      min_free_days: 1
+  - id: t_carol
+    name: Carol Davis
+    preferences:
+      consecutive_hours: avoid
+
+student_groups:
+  - id: sec_a
+    name: Section A
+    size: 40
+  - id: sec_b
+    name: Section B
+    size: 35
+
+rooms:
+  - id: r101
+    name: Room 101
+    capacity: 50
+    type: lecture
+  - id: r102
+    name: Room 102
+    capacity: 45
+    type: lecture
+  - id: lab1
+    name: Computer Lab
+    capacity: 30
+    type: lab
+
+subjects:
+  # Section A subjects
+  - id: math_a
+    name: Mathematics
+    hours_per_week: 4
+    teacher_ids: [t_alice]
+    group_ids: [sec_a]
+    preferred_room_type: lecture
+  - id: eng_a
+    name: English
+    hours_per_week: 3
+    teacher_ids: [t_bob]
+    group_ids: [sec_a]
+  - id: sci_a
+    name: Science
+    hours_per_week: 3
+    teacher_ids: [t_carol]
+    group_ids: [sec_a]
+  - id: lab_a
+    name: Science Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [t_carol]
+    group_ids: [sec_a]
+    consecutive_hours: 2
+    preferred_room_type: lab
+
+  # Section B subjects
+  - id: math_b
+    name: Mathematics
+    hours_per_week: 4
+    teacher_ids: [t_alice]
+    group_ids: [sec_b]
+    preferred_room_type: lecture
+  - id: eng_b
+    name: English
+    hours_per_week: 3
+    teacher_ids: [t_bob]
+    group_ids: [sec_b]
+  - id: sci_b
+    name: Science
+    hours_per_week: 3
+    teacher_ids: [t_carol]
+    group_ids: [sec_b]
+  - id: lab_b
+    name: Science Lab
+    hours_per_week: 2
+    type: lab
+    teacher_ids: [t_carol]
+    group_ids: [sec_b]
+    consecutive_hours: 2
+    preferred_room_type: lab
+
+pre_assignments:
+  - subject_id: math_a
+    day: Monday
+    slot: 1
+
+constraints:
+  soft:
+    minimize_student_gaps: 70
+    teacher_time_preferences: 50
+    compact_schedules: 40
