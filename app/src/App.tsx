@@ -18,11 +18,24 @@ export default function App() {
   const [result, setResult] = useState<SolveResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ScheduleEntry | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  // Design-system global shortcut: Cmd/Ctrl+Enter = Start Optimization.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        solve();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   const parsed = useMemo(() => {
     if (!yamlText.trim()) return { problem: null, entities: null, yamlError: null };
@@ -38,15 +51,19 @@ export default function App() {
 
   const { phase, elapsed, summary, metrics, unresolved } = usePhase({ busy, solveError, result, entities });
 
+  // A template fetch failure is an editor problem, not a solve outcome —
+  // it must not light up the Inspector's "Solver Error" card.
   const loadTemplate = async () => {
+    setTemplateError(null);
     try {
       setYamlText(await solverClient.template());
     } catch (problem) {
-      setSolveError(String(problem));
+      setTemplateError(`Template load failed: ${problem instanceof Error ? problem.message : String(problem)}`);
     }
   };
 
   const solve = async () => {
+    if (busy || problem === null) return; // button is disabled, but keep the invariant explicit
     setBusy(true);
     setSolveError(null);
     setResult(null);
@@ -97,21 +114,18 @@ export default function App() {
     if (!selected) return null;
     const teacherNames = new Map((entities?.teachers ?? []).map((teacher) => [teacher.id, teacher.name]));
     const roomNames = new Map((entities?.rooms ?? []).map((room) => [room.id, room.name]));
+    const locked = lockedKeys.has(`${selected.subject_id}|${selected.day}|${selected.slot}`);
     return {
       code: selected.subject_id,
       name: subjectNames.get(selected.subject_id) ?? selected.subject_id,
       day: selected.day,
       slotLabel: entities?.slotLabels[selected.slot] ?? `Slot ${selected.slot}`,
+      locked,
       rows: [
         ["Instructor", selected.teacher_ids.map((id) => teacherNames.get(id) ?? id).join(", ") || "—"],
         ["Room", selected.room_id ? (roomNames.get(selected.room_id) ?? selected.room_id) : "—"],
         ["Groups", selected.group_ids.join(", ") || "—"],
-        [
-          "Placement",
-          lockedKeys.has(`${selected.subject_id}|${selected.day}|${selected.slot}`)
-            ? "Locked (pre-assigned)"
-            : "Solver assigned",
-        ],
+        ["Placement", locked ? "Locked (pre-assigned)" : "Solver assigned"],
       ],
     };
   }, [selected, entities, subjectNames, lockedKeys]);
@@ -132,7 +146,7 @@ export default function App() {
         />
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-neutral-50 dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
           {view === "editor" && (
-            <EditorView yamlText={yamlText} onChange={setYamlText} yamlError={yamlError} onLoadTemplate={loadTemplate} />
+            <EditorView yamlText={yamlText} onChange={setYamlText} hint={yamlError ?? templateError} onLoadTemplate={loadTemplate} />
           )}
           {view === "table" &&
             (entities ? (

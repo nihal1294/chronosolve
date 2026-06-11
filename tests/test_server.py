@@ -24,6 +24,27 @@ class TestHealth:
         assert response.json()["status"] == "ok"
 
 
+class TestCors:
+    """Every webview origin the app ships with must pass CORS preflight."""
+
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            "http://localhost:1420",  # vite dev
+            "tauri://localhost",  # packaged macOS/Linux
+            "http://tauri.localhost",  # packaged Windows
+            "https://tauri.localhost",
+        ],
+    )
+    def test_allowed_origins(self, origin: str) -> None:
+        response = client.get("/health", headers={"Origin": origin})
+        assert response.headers.get("access-control-allow-origin") == origin
+
+    def test_foreign_origin_rejected(self) -> None:
+        response = client.get("/health", headers={"Origin": "https://evil.example"})
+        assert "access-control-allow-origin" not in response.headers
+
+
 class TestValidate:
     def test_valid_problem_returns_no_errors(self, minimal_payload: dict) -> None:
         response = client.post("/validate", json={"problem": minimal_payload})

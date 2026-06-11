@@ -1,4 +1,4 @@
-import { Calendar } from "lucide-react";
+import { Calendar, Lock } from "lucide-react";
 import { SolverStateCard, type SolverPhase } from "./SolverStateCard";
 
 /** Pre-resolved details for the selected session block. */
@@ -7,6 +7,8 @@ export interface SessionDetails {
   name: string;
   day: string;
   slotLabel: string;
+  /** Pre-assigned sessions render the indigo "locked" language. */
+  locked: boolean;
   rows: [label: string, value: string][];
 }
 
@@ -46,9 +48,19 @@ function SessionPanel({ session }: { session: SessionDetails }) {
         <div className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">{session.code}</div>
       </div>
 
-      <div className="p-2.5 rounded-lg border border-teal-500/30 bg-teal-500/10">
-        <div className="text-[10px] text-teal-600 dark:text-teal-400 font-medium flex items-center gap-1">
-          <Calendar size={10} /> Scheduled
+      {/* Chip hue mirrors the timeline's state language: teal placed, indigo locked. */}
+      <div
+        className={`p-2.5 rounded-lg border ${
+          session.locked ? "border-indigo-500/30 bg-indigo-500/10" : "border-teal-500/30 bg-teal-500/10"
+        }`}
+      >
+        <div
+          className={`text-[10px] font-medium flex items-center gap-1 ${
+            session.locked ? "text-indigo-600 dark:text-indigo-400" : "text-teal-600 dark:text-teal-400"
+          }`}
+        >
+          {session.locked ? <Lock size={10} /> : <Calendar size={10} />}
+          {session.locked ? "Locked" : "Scheduled"}
         </div>
         <div className="text-xs mt-1">
           {session.day} • {session.slotLabel}

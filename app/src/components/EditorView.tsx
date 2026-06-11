@@ -3,12 +3,13 @@ import { Info } from "lucide-react";
 interface EditorViewProps {
   yamlText: string;
   onChange: (text: string) => void;
-  yamlError: string | null;
+  /** Editor-scoped notice: YAML parse hint or template-load failure. */
+  hint: string | null;
   onLoadTemplate: () => void;
 }
 
 /** Center workspace: the YAML problem definition editor. */
-export function EditorView({ yamlText, onChange, yamlError, onLoadTemplate }: EditorViewProps) {
+export function EditorView({ yamlText, onChange, hint, onLoadTemplate }: EditorViewProps) {
   return (
     <div className="flex-1 flex flex-col p-6 gap-4 min-h-0">
       <div className="flex items-center justify-between gap-4">
@@ -26,10 +27,10 @@ export function EditorView({ yamlText, onChange, yamlError, onLoadTemplate }: Ed
         </button>
       </div>
 
-      {yamlError && (
+      {hint && (
         <span className="self-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-500/30">
           <Info size={14} />
-          {yamlError}
+          {hint}
         </span>
       )}
 

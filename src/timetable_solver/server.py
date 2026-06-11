@@ -28,9 +28,11 @@ from timetable_solver.validation.validator import Severity
 VERSION = "0.1.0"
 
 app = FastAPI(title="ChronoSolve Solver", version=VERSION)
+# Origins: vite dev (localhost:1420), packaged Tauri webviews — macOS/Linux use
+# tauri://localhost, Windows uses http(s)://tauri.localhost.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:\d+)?|tauri://localhost)$",
+    allow_origin_regex=r"^(https?://((tauri\.)?localhost|127\.0\.0\.1)(:\d+)?|tauri://localhost)$",
     allow_methods=["*"],
     allow_headers=["*"],
 )
