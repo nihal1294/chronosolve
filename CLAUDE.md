@@ -38,3 +38,5 @@ The solver is a standalone Python library usable via CLI or API. The desktop app
 - **Python tests:** `uv run pytest tests/ --cov=. --cov-report=term-missing`
 - **Run CLI:** `uv run python -m timetable_solver.cli`
 - **Run sidecar server:** `uv run python -m timetable_solver.server`
+- **Desktop app (dev):** `cd app && npm run tauri dev` (needs Rust + uv on PATH)
+- **Frontend tests:** `cd app && npm run test`

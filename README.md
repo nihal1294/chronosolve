@@ -74,6 +74,19 @@ print(result.status, result.quality_score)
 
 Tests: `uv run pytest tests/ --cov=src`
 
+### Desktop app (development)
+
+Requires Node 20+, Rust (via [rustup](https://rustup.rs)), and `uv` on PATH —
+the app spawns the solver sidecar with `uv run` and discovers its port
+automatically:
+
+```bash
+cd app
+npm install
+npm run tauri dev   # opens the ChronoSolve window
+npm run test        # frontend unit tests (Vitest)
+```
+
 ## Status
 
 Python solver complete: CP-SAT core (hard + 10 weighted soft constraints, room

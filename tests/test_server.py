@@ -24,6 +24,27 @@ class TestHealth:
         assert response.json()["status"] == "ok"
 
 
+class TestCors:
+    """Every webview origin the app ships with must pass CORS preflight."""
+
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            "http://localhost:1420",  # vite dev
+            "tauri://localhost",  # packaged macOS/Linux
+            "http://tauri.localhost",  # packaged Windows
+            "https://tauri.localhost",
+        ],
+    )
+    def test_allowed_origins(self, origin: str) -> None:
+        response = client.get("/health", headers={"Origin": origin})
+        assert response.headers.get("access-control-allow-origin") == origin
+
+    def test_foreign_origin_rejected(self) -> None:
+        response = client.get("/health", headers={"Origin": "https://evil.example"})
+        assert "access-control-allow-origin" not in response.headers
+
+
 class TestValidate:
     def test_valid_problem_returns_no_errors(self, minimal_payload: dict) -> None:
         response = client.post("/validate", json={"problem": minimal_payload})
@@ -87,6 +108,34 @@ class TestScore:
         body = response.json()
         assert body["hard_violations"] == []
         assert body["overall_score"] > 0
+
+
+class TestParentWatchdog:
+    def test_server_exits_when_stdin_closes(self) -> None:
+        """Sidecar lifecycle: --parent-watchdog must end the process on stdin EOF.
+
+        This is what prevents orphaned solver processes when the desktop app
+        dies without cleanly killing its child (regression for the leak found
+        during M1 smoke testing).
+        """
+        import subprocess
+        import sys
+
+        process = subprocess.Popen(
+            [sys.executable, "-m", "timetable_solver.server", "--parent-watchdog"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        try:
+            assert process.stdout is not None
+            assert process.stdout.readline().startswith(b"PORT=")
+            assert process.stdin is not None
+            process.stdin.close()  # simulate the parent app dying
+            assert process.wait(timeout=10) == 0
+        finally:
+            if process.poll() is None:
+                process.kill()
 
 
 class TestTemplate:
