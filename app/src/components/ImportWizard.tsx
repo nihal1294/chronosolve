@@ -117,7 +117,7 @@ export function ImportWizard({ doc, onApply, onClose }: ImportWizardProps) {
                 className="block w-full text-sm text-neutral-500 dark:text-neutral-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-indigo-600 file:text-white file:text-sm file:font-medium hover:file:bg-indigo-700 file:transition-colors"
               />
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
-                First row must be column headers — they are auto-matched to ChronoSolve fields next.
+                First row must be column headers - they are auto-matched to ChronoSolve fields next.
               </p>
             </div>
           </div>
@@ -185,7 +185,7 @@ function ValidationSummary({ staged }: { staged: StagedImport }) {
       ))}
       {report !== null && report.errors.length === 0 && rowErrors.length === 0 && (
         <p className="flex items-center gap-2 text-teal-600 dark:text-teal-400 font-medium">
-          <CheckCircle2 size={14} /> No validation issues — ready to import.
+          <CheckCircle2 size={14} /> No validation issues - ready to import.
         </p>
       )}
     </div>

@@ -21,9 +21,9 @@ export function buildSessionDetails(
     slotLabel: entities?.slotLabels[selected.slot] ?? `Slot ${selected.slot}`,
     locked,
     rows: [
-      ["Instructor", selected.teacher_ids.map((id) => teacherNames.get(id) ?? id).join(", ") || "—"],
-      ["Room", selected.room_id ? (roomNames.get(selected.room_id) ?? selected.room_id) : "—"],
-      ["Groups", selected.group_ids.join(", ") || "—"],
+      ["Instructor", selected.teacher_ids.map((id) => teacherNames.get(id) ?? id).join(", ") || "-"],
+      ["Room", selected.room_id ? (roomNames.get(selected.room_id) ?? selected.room_id) : "-"],
+      ["Groups", selected.group_ids.join(", ") || "-"],
       ["Placement", locked ? "Locked (pre-assigned)" : "Solver assigned"],
     ],
   };

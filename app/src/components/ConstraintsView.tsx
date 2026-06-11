@@ -103,7 +103,7 @@ interface ConstraintsViewProps {
     "Minimize Penalty" cards). */
 export function ConstraintsView({ doc, onEdit }: ConstraintsViewProps) {
   if (!doc) {
-    return <EmptyHint label="No problem loaded — define one in the Problem Definition editor first." />;
+    return <EmptyHint label="No problem loaded - define one in the Problem Definition editor first." />;
   }
   const hard = groupValues(doc, "hard");
   const soft = groupValues(doc, "soft");

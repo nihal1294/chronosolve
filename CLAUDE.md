@@ -37,9 +37,9 @@ The solver is a standalone Python library usable via CLI or API. The desktop app
 
 Task runner: `just` (recipes wrap `scripts/workflow.sh`). Most useful:
 
-- **All CI gates locally:** `just check` (mirrors .github/workflows/ci.yml — run before pushing)
+- **All CI gates locally:** `just check` (mirrors .github/workflows/ci.yml - run before pushing)
 - **Format / lint everything:** `just format`, `just lint` (ruff + prettier/eslint + cargo)
-- **Tests:** `just test` — or directly: `uv run pytest tests/ --cov=. --cov-report=term-missing`, `cd app && npm run test`
+- **Tests:** `just test` - or directly: `uv run pytest tests/ --cov=. --cov-report=term-missing`, `cd app && npm run test`
 - **Browser dev mode:** `just web` (starts sidecar, points Vite at it via app/.env.development.local)
 - **Desktop app (dev):** `just dev` = `cd app && npm run tauri dev` (needs Rust + uv on PATH)
 - **Sidecar server alone:** `just server` = `uv run python -m timetable_solver.server`
