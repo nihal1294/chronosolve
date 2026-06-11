@@ -22,8 +22,12 @@ ONE_SLOT_DAY = TimeStructure(days=["Monday"], slots_per_day=1)
 
 def _subject(sid: str, teacher: str, group: str, hours: int = 1) -> Subject:
     return Subject(
-        id=sid, name=sid, hours_per_week=hours, max_per_day=hours,
-        teacher_ids=[teacher], group_ids=[group],
+        id=sid,
+        name=sid,
+        hours_per_week=hours,
+        max_per_day=hours,
+        teacher_ids=[teacher],
+        group_ids=[group],
     )
 
 
@@ -141,8 +145,15 @@ class TestConsecutiveBlocks:
             teachers=[Teacher(id="t1", name="T")],
             student_groups=[StudentGroup(id="g1", name="A", size=10)],
             subjects=[
-                Subject(id="lab", name="Lab", hours_per_week=2, type="lab",
-                        teacher_ids=["t1"], group_ids=["g1"], consecutive_hours=2),
+                Subject(
+                    id="lab",
+                    name="Lab",
+                    hours_per_week=2,
+                    type="lab",
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    consecutive_hours=2,
+                ),
             ],
         )
         result = solve(problem, time_limit=5)
@@ -158,8 +169,15 @@ class TestConsecutiveBlocks:
             teachers=[Teacher(id="t1", name="T")],
             student_groups=[StudentGroup(id="g1", name="A", size=10)],
             subjects=[
-                Subject(id="lab", name="Lab", hours_per_week=4, type="lab",
-                        teacher_ids=["t1"], group_ids=["g1"], consecutive_hours=2),
+                Subject(
+                    id="lab",
+                    name="Lab",
+                    hours_per_week=4,
+                    type="lab",
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    consecutive_hours=2,
+                ),
             ],
         )
         result = solve(problem, time_limit=5)
@@ -179,9 +197,7 @@ class TestGroupMaxHours:
         return TimetableProblem(
             time_structure=TimeStructure(days=days, slots_per_day=4),
             teachers=[Teacher(id="t1", name="T")],
-            student_groups=[
-                StudentGroup(id="g1", name="A", size=10, max_hours_per_day=1)
-            ],
+            student_groups=[StudentGroup(id="g1", name="A", size=10, max_hours_per_day=1)],
             subjects=[_subject("s1", "t1", "g1", hours=2)],
         )
 
@@ -202,8 +218,14 @@ class TestMaxPerDay:
             teachers=[Teacher(id="t1", name="T")],
             student_groups=[StudentGroup(id="g1", name="A", size=10)],
             subjects=[
-                Subject(id="s1", name="S", hours_per_week=3, max_per_day=1,
-                        teacher_ids=["t1"], group_ids=["g1"]),
+                Subject(
+                    id="s1",
+                    name="S",
+                    hours_per_week=3,
+                    max_per_day=1,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                ),
             ],
         )
         result = solve(problem, time_limit=5)

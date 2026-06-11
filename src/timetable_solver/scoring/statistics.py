@@ -1,4 +1,4 @@
-"""Schedule statistics — workload, utilization, and gap summaries."""
+"""Schedule statistics - workload, utilization, and gap summaries."""
 
 from dataclasses import dataclass, field
 
@@ -60,9 +60,7 @@ def _entity_totals(grid: dict[tuple[str, str], list[int]]) -> dict[str, int]:
     return totals
 
 
-def _room_utilization(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> dict[str, float]:
+def _room_utilization(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> dict[str, float]:
     """Occupied fraction of the full weekly slot grid for each room."""
     if not problem.rooms:
         return {}

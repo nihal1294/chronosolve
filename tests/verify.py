@@ -1,4 +1,4 @@
-"""Schedule verification helpers — independent re-checks of every hard constraint.
+"""Schedule verification helpers - independent re-checks of every hard constraint.
 
 Used by solver tests so a buggy solver can't grade its own homework.
 """
@@ -40,9 +40,7 @@ def assert_no_room_clash(schedule: list[ScheduleEntry]) -> None:
         seen.add(key)
 
 
-def assert_availability_respected(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> None:
+def assert_availability_respected(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> None:
     """No entry sits in a slot where any of its teachers or groups is unavailable."""
     blocked: set[tuple[str, str, int]] = set()
     for entity in [*problem.teachers, *problem.student_groups]:

@@ -32,14 +32,14 @@ ChronoSolve generates conflict-free timetables for educational institutions. Unl
 
 ## Tech Stack
 
-| Component | Technology |
-| --------- | ---------- |
-| Solver | Python 3.14+ · Google OR-Tools CP-SAT |
-| Data models | Pydantic v2 |
-| Input format | YAML / JSON |
-| CLI | Typer |
-| Desktop app | Tauri v2 · React · TypeScript · Tailwind CSS _(planned)_ |
-| Package manager | uv |
+| Component       | Technology                                               |
+| --------------- | -------------------------------------------------------- |
+| Solver          | Python 3.14+ · Google OR-Tools CP-SAT                    |
+| Data models     | Pydantic v2                                              |
+| Input format    | YAML / JSON                                              |
+| CLI             | Typer                                                    |
+| Desktop app     | Tauri v2 · React · TypeScript · Tailwind CSS _(planned)_ |
+| Package manager | uv                                                       |
 
 ## Quick Start
 
@@ -74,9 +74,23 @@ print(result.status, result.quality_score)
 
 Tests: `uv run pytest tests/ --cov=src`
 
+A real-world example lives in `examples/nmamit_cse_sem3.yaml` (a 4-section CSE
+semester converted from a legacy generator), with matching CSVs under
+`examples/import/` for the desktop app's import wizard.
+
+With [just](https://github.com/casey/just) installed, common workflows are one
+command (recipes wrap `scripts/workflow.sh`):
+
+```bash
+just check   # every CI quality gate locally (ruff, pytest, eslint, vitest, clippy)
+just solve   # CLI smoke: template -> validate -> solve
+just web     # browser dev mode: sidecar + Vite wired together
+just dev     # full desktop app (Tauri)
+```
+
 ### Desktop app (development)
 
-Requires Node 20+, Rust (via [rustup](https://rustup.rs)), and `uv` on PATH —
+Requires Node 20+, Rust (via [rustup](https://rustup.rs)), and `uv` on PATH -
 the app spawns the solver sidecar with `uv run` and discovers its port
 automatically:
 
@@ -92,7 +106,12 @@ npm run test        # frontend unit tests (Vitest)
 Python solver complete: CP-SAT core (hard + 10 weighted soft constraints, room
 assignment, lab blocks, pre-assignments), independent quality scorer, statistics,
 CLI, FastAPI sidecar with SSE progress, and simulated-annealing refinement.
-Desktop app (Tauri) is the next phase.
+
+Desktop app (Tauri): three-pane editing shell with YAML editor, entity tables
+with add/edit/delete dialogs and right-click menus, timeline with pin/unpin,
+constraints editor, native file open/save, and a CSV import wizard with column
+auto-matching and solver-side validation. Next: live solve progress (SSE),
+score reports + exports, then packaging.
 
 ## License
 

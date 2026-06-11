@@ -1,4 +1,4 @@
-"""ChronoSolve — generalized university timetable scheduling solver.
+"""ChronoSolve - generalized university timetable scheduling solver.
 
 Public API:
     load_problem: Load a timetable problem from YAML/JSON file.

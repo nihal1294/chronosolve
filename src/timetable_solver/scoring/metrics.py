@@ -1,4 +1,4 @@
-"""Per-metric quality scorers — each returns (score 0-100, detail messages)."""
+"""Per-metric quality scorers - each returns (score 0-100, detail messages)."""
 
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.schedule import ScheduleEntry
@@ -37,9 +37,7 @@ def subject_spread(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> 
     return score, details
 
 
-def teacher_preferences(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> MetricResult:
+def teacher_preferences(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> MetricResult:
     """Respecting per-slot avoid/preferred markings scores higher."""
     grid = entity_day_slots(schedule, "teacher_ids")
     details: list[str] = []
@@ -50,9 +48,7 @@ def teacher_preferences(
         prefs = teacher.preferences
         if prefs is None or not prefs.slot_preferences:
             continue
-        marked_hours += sum(
-            len(slots) for (tid, _), slots in grid.items() if tid == teacher.id
-        )
+        marked_hours += sum(len(slots) for (tid, _), slots in grid.items() if tid == teacher.id)
         for day, slot_prefs in prefs.slot_preferences.items():
             scheduled = set(grid.get((teacher.id, day), []))
             for slot, preference in slot_prefs.items():
@@ -96,9 +92,7 @@ def compactness(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> Met
     return score, details
 
 
-def workload_balance(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> MetricResult:
+def workload_balance(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> MetricResult:
     """Evenly distributed daily hours per teacher score higher."""
     grid = entity_day_slots(schedule, "teacher_ids")
     day_count = len(problem.time_structure.days)

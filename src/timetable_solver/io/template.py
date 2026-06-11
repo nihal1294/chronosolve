@@ -6,7 +6,7 @@ import yaml
 
 TEMPLATE_YAML = """\
 # ChronoSolve timetable problem template.
-# Every institution-specific detail is configurable — adjust freely.
+# Every institution-specific detail is configurable - adjust freely.
 
 time_structure:
   days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -36,7 +36,7 @@ student_groups:
     name: Section A
     size: 40
 
-rooms:                                  # optional — omit to skip room constraints
+rooms:                                  # optional - omit to skip room constraints
   - id: r101
     name: Room 101
     capacity: 50

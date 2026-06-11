@@ -1,4 +1,4 @@
-"""Student group model — a section or cohort that takes classes together."""
+"""Student group model - a section or cohort that takes classes together."""
 
 from pydantic import BaseModel, Field
 

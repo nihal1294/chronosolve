@@ -1,10 +1,12 @@
-import { Lock } from "lucide-react";
+import { useState } from "react";
+import { Edit2, Lock, Unlock } from "lucide-react";
 import type { ScheduleEntry } from "../lib/solver-client";
 import { pivotByGroup } from "../lib/grid";
 import { BrandLogo } from "./BrandLogo";
+import { ContextMenu, type MenuState } from "./ContextMenu";
 
 /* Grid blocks follow the design system's Timeline Blocks spec: tinted body,
-   absolute w-1 accent strip, hue-encoded STATE — teal for standard
+   absolute w-1 accent strip, hue-encoded STATE - teal for standard
    placements, indigo + Lock for pre-assigned ("Locked / Hard Constrained"). */
 const HUES = {
   teal: {
@@ -29,10 +31,15 @@ interface TimetableViewProps {
   slotCount: number;
   slotLabels: Record<number, string>;
   subjectNames: Map<string, string>;
+  roomNames: Map<string, string>;
   /** "subject|day|slot" keys of pre-assigned sessions (locked blocks). */
   lockedKeys: Set<string>;
   selected: ScheduleEntry | null;
   onSelect: (entry: ScheduleEntry) => void;
+  /** Context-menu actions: pin/unpin write pre_assignments in the doc. */
+  onPin: (entry: ScheduleEntry) => void;
+  onUnpin: (entry: ScheduleEntry) => void;
+  onEditSubject: (subjectId: string) => void;
 }
 
 /** Centered brand empty state shown before any solve has produced a schedule. */
@@ -48,19 +55,29 @@ function EmptyState() {
   );
 }
 
-function SessionBlock({ entry, locked, slotLabel, name, isSelected, onSelect }: {
+function SessionBlock({
+  entry,
+  locked,
+  slotLabel,
+  name,
+  isSelected,
+  onSelect,
+  onMenu,
+}: {
   entry: ScheduleEntry;
   locked: boolean;
   slotLabel: string | undefined;
   name: string;
   isSelected: boolean;
   onSelect: (entry: ScheduleEntry) => void;
+  onMenu: (event: React.MouseEvent, entry: ScheduleEntry, locked: boolean) => void;
 }) {
   const hue = locked ? HUES.indigo : HUES.teal;
   const meta = [entry.room_id, slotLabel].filter(Boolean).join(" • ");
   return (
     <button
       onClick={() => onSelect(entry)}
+      onContextMenu={(event) => onMenu(event, entry, locked)}
       title={name}
       className={`relative w-full h-full text-left rounded-lg border p-2 transition-all ${hue.box} ${
         isSelected ? hue.selected : ""
@@ -74,13 +91,51 @@ function SessionBlock({ entry, locked, slotLabel, name, isSelected, onSelect }: 
   );
 }
 
-/** One weekly grid per student group; click a session block to inspect it. */
-export function TimetableView({ schedule, days, slotCount, slotLabels, subjectNames, lockedKeys, selected, onSelect }: TimetableViewProps) {
+/** One weekly grid per student group; click a session block to inspect it,
+    right-click it for pin/unpin + edit actions. */
+export function TimetableView({
+  schedule,
+  days,
+  slotCount,
+  slotLabels,
+  subjectNames,
+  roomNames,
+  lockedKeys,
+  selected,
+  onSelect,
+  onPin,
+  onUnpin,
+  onEditSubject,
+}: TimetableViewProps) {
+  const [menu, setMenu] = useState<MenuState | null>(null);
   if (schedule.length === 0) return <EmptyState />;
   const grid = pivotByGroup(schedule);
   const dayList = days.length > 0 ? days : [...new Set(schedule.map((entry) => entry.day))];
   const maxSlot = Math.max(slotCount, ...schedule.map((entry) => entry.slot));
   const slots = Array.from({ length: maxSlot }, (_, index) => index + 1);
+
+  const openBlockMenu = (event: React.MouseEvent, entry: ScheduleEntry, locked: boolean) => {
+    event.preventDefault();
+    onSelect(entry); // mirror the selection so the Inspector matches the menu
+    const room = entry.room_id ? (roomNames.get(entry.room_id) ?? entry.room_id) : null;
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      width: "w-64",
+      header: [entry.subject_id, room].filter(Boolean).join(" • "),
+      items: [
+        locked
+          ? { label: "Unpin from time slot", icon: Unlock, shortcut: "P", onSelect: () => onUnpin(entry) }
+          : { label: "Pin to current time slot", icon: Lock, shortcut: "P", onSelect: () => onPin(entry) },
+        {
+          label: "Edit block details",
+          icon: Edit2,
+          shortcut: "⌘E",
+          onSelect: () => onEditSubject(entry.subject_id),
+        },
+      ],
+    });
+  };
 
   return (
     <div className="flex-1 p-6 space-y-10 min-h-0 overflow-auto">
@@ -93,7 +148,10 @@ export function TimetableView({ schedule, days, slotCount, slotLabels, subjectNa
                 Slot
               </th>
               {dayList.map((day) => (
-                <th key={day} className="pb-1 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                <th
+                  key={day}
+                  className="pb-1 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400"
+                >
                   {day}
                 </th>
               ))}
@@ -117,6 +175,7 @@ export function TimetableView({ schedule, days, slotCount, slotLabels, subjectNa
                           name={subjectNames.get(entry.subject_id) ?? entry.subject_id}
                           isSelected={selected === entry}
                           onSelect={onSelect}
+                          onMenu={openBlockMenu}
                         />
                       ) : (
                         <div className="h-full rounded-lg border border-dashed border-neutral-200 dark:border-neutral-800" />
@@ -129,6 +188,8 @@ export function TimetableView({ schedule, days, slotCount, slotLabels, subjectNa
           </tbody>
         </table>
       ))}
+
+      {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} />}
     </div>
   );
 }

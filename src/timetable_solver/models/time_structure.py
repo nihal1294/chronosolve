@@ -1,4 +1,4 @@
-"""Time structure configuration — days, slots, and labels."""
+"""Time structure configuration - days, slots, and labels."""
 
 from pydantic import BaseModel, Field, model_validator
 

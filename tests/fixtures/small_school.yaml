@@ -1,4 +1,4 @@
-# Small school — 3 teachers, 2 groups, 8 subjects, 5 days × 6 slots
+# Small school - 3 teachers, 2 groups, 8 subjects, 5 days × 6 slots
 time_structure:
   days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
   slots_per_day: 6

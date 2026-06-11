@@ -21,7 +21,7 @@ student_groups:
 rooms:
   - id: r101
     capacity: 50
-    type: lecture
+    type: theory
 subjects:
   - id: math
     name: Mathematics
@@ -48,7 +48,7 @@ describe("parseEntities", () => {
       hoursPerWeek: 4,
       teacherIds: ["t_smith"],
       groupIds: ["sec_a"],
-      kind: "lecture",
+      kind: "theory",
     });
     expect(entities.subjects[1].kind).toBe("lab");
     expect(entities.teachers[0]).toMatchObject({ name: "Dr. Smith", unavailable: "Friday 5,6" });

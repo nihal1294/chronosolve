@@ -37,7 +37,7 @@ function buildSummary(phase: SolverPhase, { solveError, result, entities }: Phas
     case "optimal":
       return `All ${result?.schedule.length ?? 0} sessions scheduled with zero hard-constraint violations in ${seconds}.`;
     case "feasible":
-      return `Valid schedule found in ${seconds} — stopped before proving optimality.`;
+      return `Valid schedule found in ${seconds} - stopped before proving optimality.`;
     case "infeasible":
       return "The solver could not find a valid arrangement. The hard constraints conflict for:";
     case "timeout":
@@ -54,9 +54,15 @@ export function usePhase(inputs: PhaseInputs): PhaseState {
   useEffect(() => {
     if (!inputs.busy) return;
     const start = performance.now();
-    setElapsed(0);
-    const tick = window.setInterval(() => setElapsed((performance.now() - start) / 1000), 100);
-    return () => window.clearInterval(tick);
+    const update = () => setElapsed((performance.now() - start) / 1000);
+    // First update lands on the next frame (resets the display to ~0.0s)
+    // so no setState runs synchronously inside the effect body.
+    const frame = requestAnimationFrame(update);
+    const tick = window.setInterval(update, 100);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearInterval(tick);
+    };
   }, [inputs.busy]);
 
   const phase = derivePhase(inputs);
@@ -70,7 +76,7 @@ export function usePhase(inputs: PhaseInputs): PhaseState {
     metrics:
       succeeded && result
         ? [
-            ["Quality Score", result.quality_score !== null ? String(result.quality_score) : "—"],
+            ["Quality Score", result.quality_score !== null ? String(result.quality_score) : "-"],
             ["Solve Time", `${result.solve_time_seconds.toFixed(2)}s`],
           ]
         : null,

@@ -1,4 +1,4 @@
-"""Simulated annealing refinement — local search on top of a CP-SAT solution.
+"""Simulated annealing refinement - local search on top of a CP-SAT solution.
 
 Moves single-hour entries between slots, accepting changes per the Metropolis
 criterion on the independent quality score. Consecutive-block subjects and
@@ -66,9 +66,7 @@ def anneal(
                 stalled = 0
         temperature *= _COOLING_RATE
 
-    return result.model_copy(
-        update={"schedule": best, "quality_score": round(best_score, 2)}
-    )
+    return result.model_copy(update={"schedule": best, "quality_score": round(best_score, 2)})
 
 
 def _movable_indices(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[int]:

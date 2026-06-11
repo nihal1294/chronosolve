@@ -1,4 +1,4 @@
-"""Hard constraint builders — each adds one inviolable rule to the CP-SAT model.
+"""Hard constraint builders - each adds one inviolable rule to the CP-SAT model.
 
 Room-related hard constraints live in solver/rooms.py.
 """
@@ -106,8 +106,7 @@ def add_max_per_day(
             else:
                 slots = problem.time_structure.get_slots_for_day(day)
                 session_vars = [
-                    variables.assignments[(subject.id, day_idx, t)]
-                    for t in range(1, slots + 1)
+                    variables.assignments[(subject.id, day_idx, t)] for t in range(1, slots + 1)
                 ]
             if len(session_vars) > subject.max_per_day:
                 model.add(sum(session_vars) <= subject.max_per_day)
@@ -148,16 +147,12 @@ def add_pre_assignments(
             model.add(variables.assignments[key] == 1)
 
 
-def _subject_assignment_vars(
-    variables: SolverVariables, subject_id: str
-) -> list[cp_model.IntVar]:
+def _subject_assignment_vars(variables: SolverVariables, subject_id: str) -> list[cp_model.IntVar]:
     """All assignment booleans belonging to one subject."""
     return [var for (sid, _, _), var in variables.assignments.items() if sid == subject_id]
 
 
-def _subject_block_vars(
-    variables: SolverVariables, subject_id: str
-) -> list[cp_model.IntVar]:
+def _subject_block_vars(variables: SolverVariables, subject_id: str) -> list[cp_model.IntVar]:
     """All block-start booleans belonging to one subject."""
     return [var for (sid, _, _), var in variables.block_starts.items() if sid == subject_id]
 

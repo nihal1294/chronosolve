@@ -1,4 +1,4 @@
-"""FastAPI sidecar server — thin HTTP wrapper for the Tauri desktop app.
+"""FastAPI sidecar server - thin HTTP wrapper for the Tauri desktop app.
 
 Run with `python -m timetable_solver.server [--port N]`. Prints `PORT=<n>` to
 stdout on startup so the Tauri shell can discover the auto-selected port.
@@ -28,7 +28,7 @@ from timetable_solver.validation.validator import Severity
 VERSION = "0.1.0"
 
 app = FastAPI(title="ChronoSolve Solver", version=VERSION)
-# Origins: vite dev (localhost:1420), packaged Tauri webviews — macOS/Linux use
+# Origins: vite dev (localhost:1420), packaged Tauri webviews - macOS/Linux use
 # tauri://localhost, Windows uses http(s)://tauri.localhost.
 app.add_middleware(
     CORSMiddleware,
@@ -78,7 +78,7 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
     loop = asyncio.get_running_loop()
 
     def on_progress(event: Any) -> None:
-        # Called from CP-SAT's search thread — hop back onto the event loop.
+        # Called from CP-SAT's search thread - hop back onto the event loop.
         loop.call_soon_threadsafe(
             queue.put_nowait,
             {
@@ -93,9 +93,7 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
 
     async def run_solver() -> None:
         try:
-            result = await asyncio.to_thread(
-                solve, problem, request.time_limit, on_progress
-            )
+            result = await asyncio.to_thread(solve, problem, request.time_limit, on_progress)
             await queue.put({"event": "result", "data": result.model_dump()})
         except Exception as exc:  # surface solver crashes to the client
             await queue.put({"event": "error", "data": {"message": str(exc)}})
@@ -141,7 +139,7 @@ def _find_free_port() -> int:
 
 
 def _exit_on_stdin_close() -> None:
-    """Exit when stdin reaches EOF — i.e. when the parent app is gone.
+    """Exit when stdin reaches EOF - i.e. when the parent app is gone.
 
     The desktop shell spawns this server with a stdin pipe it never writes to.
     If the shell dies for any reason (clean quit, crash, force-kill), the pipe
@@ -149,7 +147,7 @@ def _exit_on_stdin_close() -> None:
     """
     try:
         sys.stdin.buffer.read()
-    except Exception:  # noqa: BLE001 — any stdin failure means the parent is gone
+    except Exception:  # noqa: BLE001 - any stdin failure means the parent is gone
         pass
     os._exit(0)
 

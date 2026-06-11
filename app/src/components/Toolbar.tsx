@@ -1,6 +1,6 @@
 import { Loader2, Moon, Play, Sun } from "lucide-react";
 
-export type WorkspaceView = "editor" | "table" | "timeline";
+export type WorkspaceView = "editor" | "constraints" | "table" | "timeline";
 
 interface ToolbarProps {
   view: WorkspaceView;

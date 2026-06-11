@@ -1,4 +1,4 @@
-"""Solver orchestrator — build model, add constraints, solve, extract."""
+"""Solver orchestrator - build model, add constraints, solve, extract."""
 
 import os
 from collections.abc import Callable

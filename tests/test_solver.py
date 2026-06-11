@@ -18,9 +18,7 @@ from timetable_solver.models import (
 
 class TestFixtureSolves:
     @pytest.mark.parametrize("name", ["minimal", "small_school", "vtu_department"])
-    def test_fixture_solves_with_all_hard_constraints(
-        self, fixtures_dir: Path, name: str
-    ) -> None:
+    def test_fixture_solves_with_all_hard_constraints(self, fixtures_dir: Path, name: str) -> None:
         problem = load_problem(fixtures_dir / f"{name}.yaml")
         result = solve(problem, time_limit=30)
         assert result.status in ("optimal", "feasible")
@@ -48,9 +46,7 @@ class TestPreAssignments:
         fixed = [e for e in result.schedule if e.subject_id == "math_a"]
         assert any(e.day == "Monday" and e.slot == 1 for e in fixed)
 
-    def test_pre_assigned_block_starts_at_slot(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_pre_assigned_block_starts_at_slot(self, minimal_time_structure: TimeStructure) -> None:
         problem = TimetableProblem(
             time_structure=minimal_time_structure,
             teachers=[Teacher(id="t1", name="T")],
@@ -119,10 +115,22 @@ class TestInfeasibility:
                 StudentGroup(id="g2", name="B", size=20),
             ],
             subjects=[
-                Subject(id="s1", name="S1", hours_per_week=2, max_per_day=2,
-                        teacher_ids=["t1"], group_ids=["g1"]),
-                Subject(id="s2", name="S2", hours_per_week=2, max_per_day=2,
-                        teacher_ids=["t1"], group_ids=["g2"]),
+                Subject(
+                    id="s1",
+                    name="S1",
+                    hours_per_week=2,
+                    max_per_day=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                ),
+                Subject(
+                    id="s2",
+                    name="S2",
+                    hours_per_week=2,
+                    max_per_day=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g2"],
+                ),
             ],
         )
         result = solve(problem, time_limit=10)
@@ -136,8 +144,14 @@ class TestAvailability:
             teachers=[Teacher(id="t1", name="T", unavailable={"Monday": [1, 2, 3, 4]})],
             student_groups=[StudentGroup(id="g1", name="G", size=20)],
             subjects=[
-                Subject(id="s1", name="S", hours_per_week=3, max_per_day=3,
-                        teacher_ids=["t1"], group_ids=["g1"]),
+                Subject(
+                    id="s1",
+                    name="S",
+                    hours_per_week=3,
+                    max_per_day=3,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                ),
             ],
         )
         result = solve(problem, time_limit=10)

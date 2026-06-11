@@ -6,9 +6,7 @@ from timetable_solver.models.schedule import ScheduleEntry
 from timetable_solver.scoring.grid import entity_day_slots
 
 
-def find_hard_violations(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> list[str]:
+def find_hard_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[str]:
     """Check every hard constraint and describe each violation found.
 
     Args:
@@ -64,9 +62,7 @@ def _room_clashes(schedule: list[ScheduleEntry]) -> list[str]:
     return found
 
 
-def _room_type_violations(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> list[str]:
+def _room_type_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[str]:
     """Entries placed in unknown rooms or rooms incompatible with the subject.
 
     The solver treats room type compatibility as hard (only compatible room
@@ -97,9 +93,7 @@ def _room_type_violations(
     return found
 
 
-def _availability_violations(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> list[str]:
+def _availability_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[str]:
     """Entries placed where a teacher or group is unavailable."""
     blocked: dict[tuple[str, str, int], str] = {}
     for entity in [*problem.teachers, *problem.student_groups]:
@@ -151,9 +145,7 @@ def _block_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) 
     return found
 
 
-def _max_per_day_violations(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> list[str]:
+def _max_per_day_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[str]:
     """Subjects exceeding their daily session cap (blocks count as one session)."""
     found: list[str] = []
     subjects = {s.id: s for s in problem.subjects}
@@ -175,18 +167,14 @@ def _max_per_day_violations(
     return found
 
 
-def _group_hours_violations(
-    problem: TimetableProblem, schedule: list[ScheduleEntry]
-) -> list[str]:
+def _group_hours_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[str]:
     """Groups whose daily class hours exceed StudentGroup.max_hours_per_day."""
     caps = {g.id: g.max_hours_per_day for g in problem.student_groups}
     found: list[str] = []
     for (group_id, day), slots in entity_day_slots(schedule, "group_ids").items():
         cap = caps.get(group_id)
         if cap is not None and len(slots) > cap:
-            found.append(
-                f"Group {group_id!r} has {len(slots)}h on {day} (max_hours_per_day={cap})"
-            )
+            found.append(f"Group {group_id!r} has {len(slots)}h on {day} (max_hours_per_day={cap})")
     return found
 
 

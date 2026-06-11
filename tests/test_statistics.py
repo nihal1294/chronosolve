@@ -18,10 +18,15 @@ def _problem() -> TimetableProblem:
         teachers=[Teacher(id="t1", name="T1"), Teacher(id="t2", name="T2")],
         student_groups=[StudentGroup(id="g1", name="G", size=20)],
         subjects=[
-            Subject(id="s1", name="S1", hours_per_week=3, max_per_day=2,
-                    teacher_ids=["t1"], group_ids=["g1"]),
-            Subject(id="s2", name="S2", hours_per_week=1,
-                    teacher_ids=["t2"], group_ids=["g1"]),
+            Subject(
+                id="s1",
+                name="S1",
+                hours_per_week=3,
+                max_per_day=2,
+                teacher_ids=["t1"],
+                group_ids=["g1"],
+            ),
+            Subject(id="s2", name="S2", hours_per_week=1, teacher_ids=["t2"], group_ids=["g1"]),
         ],
         rooms=[Room(id="r1", name="R1", capacity=30)],
     )
@@ -30,14 +35,18 @@ def _problem() -> TimetableProblem:
 def _schedule() -> list[ScheduleEntry]:
     """t1: Mon slots 1,3 (one gap), Tue slot 1. t2: Mon slot 2. All in r1."""
     return [
-        ScheduleEntry(subject_id="s1", day="Mon", slot=1,
-                      teacher_ids=["t1"], group_ids=["g1"], room_id="r1"),
-        ScheduleEntry(subject_id="s2", day="Mon", slot=2,
-                      teacher_ids=["t2"], group_ids=["g1"], room_id="r1"),
-        ScheduleEntry(subject_id="s1", day="Mon", slot=3,
-                      teacher_ids=["t1"], group_ids=["g1"], room_id="r1"),
-        ScheduleEntry(subject_id="s1", day="Tue", slot=1,
-                      teacher_ids=["t1"], group_ids=["g1"], room_id="r1"),
+        ScheduleEntry(
+            subject_id="s1", day="Mon", slot=1, teacher_ids=["t1"], group_ids=["g1"], room_id="r1"
+        ),
+        ScheduleEntry(
+            subject_id="s2", day="Mon", slot=2, teacher_ids=["t2"], group_ids=["g1"], room_id="r1"
+        ),
+        ScheduleEntry(
+            subject_id="s1", day="Mon", slot=3, teacher_ids=["t1"], group_ids=["g1"], room_id="r1"
+        ),
+        ScheduleEntry(
+            subject_id="s1", day="Tue", slot=1, teacher_ids=["t1"], group_ids=["g1"], room_id="r1"
+        ),
     ]
 
 

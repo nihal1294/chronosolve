@@ -1,0 +1,385 @@
+# NMAMIT CSE 3rd-semester problem, converted from the 2017 legacy
+# timetable generator (scripts/convert_legacy_inputs.py).
+#
+# Faithful to the source: subjects, per-section faculty, 6x8 week,
+# blocked slots (lunch / short days) as group unavailability, lab as
+# two 3-hour blocks, and Section A's Maths slots pinned where the
+# legacy grid fixed them. Rooms are invented - the legacy data had
+# no room model. Cross-semester faculty load is out of scope.
+
+time_structure:
+  days:
+  - Monday
+  - Tuesday
+  - Wednesday
+  - Thursday
+  - Friday
+  - Saturday
+  slots_per_day: 8
+teachers:
+- id: anisha_p_rodrigues
+  name: Anisha P Rodrigues
+- id: asmitha_poojari
+  name: Asmitha Poojari
+- id: chandra_naik
+  name: Chandra Naik
+- id: keerthana_b_c
+  name: Keerthana B C
+- id: krishna_prasad_rao
+  name: Krishna Prasad Rao
+- id: maths_faculty
+  name: Maths Faculty
+- id: minu_p_abraham
+  name: Minu P Abraham
+- id: pradeep_nazareth
+  name: Pradeep Nazareth
+- id: puneeth_r_p
+  name: Puneeth R P
+- id: radhakrishna_dodmane
+  name: Radhakrishna Dodmane
+- id: raghunandan_k_r
+  name: Raghunandan K R
+- id: ramesha_shettigar
+  name: Ramesha Shettigar
+- id: ravi_b
+  name: Ravi B
+- id: sannidhan_m_s
+  name: Sannidhan M S
+- id: shruthi
+  name: Shruthi
+- id: uday_kumar_reddy
+  name: Uday Kumar Reddy
+- id: uday_kumar_shenoy
+  name: Uday Kumar Shenoy
+student_groups:
+- id: sec_a
+  name: CSE III Sem - Section A
+  size: 60
+  unavailable:
+    Monday:
+    - 5
+    Tuesday:
+    - 5
+    Wednesday:
+    - 5
+    Thursday:
+    - 5
+    - 6
+    - 7
+    - 8
+    Friday:
+    - 5
+    Saturday:
+    - 4
+- id: sec_b
+  name: CSE III Sem - Section B
+  size: 60
+  unavailable:
+    Monday:
+    - 5
+    Tuesday:
+    - 5
+    Wednesday:
+    - 5
+    Thursday:
+    - 5
+    - 6
+    - 7
+    - 8
+    Friday:
+    - 5
+    Saturday:
+    - 4
+- id: sec_c
+  name: CSE III Sem - Section C
+  size: 60
+  unavailable:
+    Monday:
+    - 5
+    Tuesday:
+    - 5
+    Wednesday:
+    - 5
+    Thursday:
+    - 5
+    - 6
+    - 7
+    - 8
+    Friday:
+    - 5
+    Saturday:
+    - 4
+- id: sec_d
+  name: CSE III Sem - Section D
+  size: 60
+  unavailable:
+    Monday:
+    - 5
+    Tuesday:
+    - 5
+    Wednesday:
+    - 5
+    Thursday:
+    - 5
+    - 6
+    - 7
+    - 8
+    Friday:
+    - 5
+    Saturday:
+    - 4
+subjects:
+- id: MATHS-A
+  name: Generating Functions and Transform Techniques Combinatorics
+  hours_per_week: 4
+  teacher_ids:
+  - maths_faculty
+  group_ids:
+  - sec_a
+- id: DSD-A
+  name: Digital System Design
+  hours_per_week: 4
+  teacher_ids:
+  - raghunandan_k_r
+  group_ids:
+  - sec_a
+- id: DMS-A
+  name: Discrete Mathematical Stuctures & Graph Theory
+  hours_per_week: 4
+  teacher_ids:
+  - uday_kumar_reddy
+  group_ids:
+  - sec_a
+- id: CO-A
+  name: Computer Organization and Design
+  hours_per_week: 4
+  teacher_ids:
+  - pradeep_nazareth
+  group_ids:
+  - sec_a
+- id: DS-A
+  name: Data Structures
+  hours_per_week: 4
+  teacher_ids:
+  - sannidhan_m_s
+  group_ids:
+  - sec_a
+- id: DC-A
+  name: Data Communication
+  hours_per_week: 4
+  teacher_ids:
+  - uday_kumar_shenoy
+  group_ids:
+  - sec_a
+- id: DS-DSD-LAB-A
+  name: Data Structures | Digital System Design Lab
+  hours_per_week: 6
+  teacher_ids:
+  - sannidhan_m_s
+  - raghunandan_k_r
+  group_ids:
+  - sec_a
+  type: lab
+  consecutive_hours: 3
+  preferred_room_type: lab
+- id: MATHS-B
+  name: Generating Functions and Transform Techniques Combinatorics
+  hours_per_week: 4
+  teacher_ids:
+  - maths_faculty
+  group_ids:
+  - sec_b
+- id: DSD-B
+  name: Digital System Design
+  hours_per_week: 4
+  teacher_ids:
+  - sannidhan_m_s
+  group_ids:
+  - sec_b
+- id: DMS-B
+  name: Discrete Mathematical Stuctures & Graph Theory
+  hours_per_week: 4
+  teacher_ids:
+  - minu_p_abraham
+  group_ids:
+  - sec_b
+- id: CO-B
+  name: Computer Organization and Design
+  hours_per_week: 4
+  teacher_ids:
+  - raghunandan_k_r
+  group_ids:
+  - sec_b
+- id: DS-B
+  name: Data Structures
+  hours_per_week: 4
+  teacher_ids:
+  - asmitha_poojari
+  group_ids:
+  - sec_b
+- id: DC-B
+  name: Data Communication
+  hours_per_week: 4
+  teacher_ids:
+  - radhakrishna_dodmane
+  group_ids:
+  - sec_b
+- id: DS-DSD-LAB-B
+  name: Data Structures | Digital System Design Lab
+  hours_per_week: 6
+  teacher_ids:
+  - asmitha_poojari
+  - sannidhan_m_s
+  group_ids:
+  - sec_b
+  type: lab
+  consecutive_hours: 3
+  preferred_room_type: lab
+- id: MATHS-C
+  name: Generating Functions and Transform Techniques Combinatorics
+  hours_per_week: 4
+  teacher_ids:
+  - maths_faculty
+  group_ids:
+  - sec_c
+- id: DSD-C
+  name: Digital System Design
+  hours_per_week: 4
+  teacher_ids:
+  - keerthana_b_c
+  group_ids:
+  - sec_c
+- id: DMS-C
+  name: Discrete Mathematical Stuctures & Graph Theory
+  hours_per_week: 4
+  teacher_ids:
+  - ravi_b
+  group_ids:
+  - sec_c
+- id: CO-C
+  name: Computer Organization and Design
+  hours_per_week: 4
+  teacher_ids:
+  - anisha_p_rodrigues
+  group_ids:
+  - sec_c
+- id: DS-C
+  name: Data Structures
+  hours_per_week: 4
+  teacher_ids:
+  - ramesha_shettigar
+  group_ids:
+  - sec_c
+- id: DC-C
+  name: Data Communication
+  hours_per_week: 4
+  teacher_ids:
+  - puneeth_r_p
+  group_ids:
+  - sec_c
+- id: DS-DSD-LAB-C
+  name: Data Structures | Digital System Design Lab
+  hours_per_week: 6
+  teacher_ids:
+  - ramesha_shettigar
+  - keerthana_b_c
+  group_ids:
+  - sec_c
+  type: lab
+  consecutive_hours: 3
+  preferred_room_type: lab
+- id: MATHS-D
+  name: Generating Functions and Transform Techniques Combinatorics
+  hours_per_week: 4
+  teacher_ids:
+  - maths_faculty
+  group_ids:
+  - sec_d
+- id: DSD-D
+  name: Digital System Design
+  hours_per_week: 4
+  teacher_ids:
+  - pradeep_nazareth
+  group_ids:
+  - sec_d
+- id: DMS-D
+  name: Discrete Mathematical Stuctures & Graph Theory
+  hours_per_week: 4
+  teacher_ids:
+  - chandra_naik
+  group_ids:
+  - sec_d
+- id: CO-D
+  name: Computer Organization and Design
+  hours_per_week: 4
+  teacher_ids:
+  - uday_kumar_shenoy
+  group_ids:
+  - sec_d
+- id: DS-D
+  name: Data Structures
+  hours_per_week: 4
+  teacher_ids:
+  - shruthi
+  group_ids:
+  - sec_d
+- id: DC-D
+  name: Data Communication
+  hours_per_week: 4
+  teacher_ids:
+  - krishna_prasad_rao
+  group_ids:
+  - sec_d
+- id: DS-DSD-LAB-D
+  name: Data Structures | Digital System Design Lab
+  hours_per_week: 6
+  teacher_ids:
+  - shruthi
+  - pradeep_nazareth
+  group_ids:
+  - sec_d
+  type: lab
+  consecutive_hours: 3
+  preferred_room_type: lab
+rooms:
+- id: lh_1
+  name: Lecture Hall 1
+  capacity: 70
+  type: lecture
+- id: lh_2
+  name: Lecture Hall 2
+  capacity: 70
+  type: lecture
+- id: lh_3
+  name: Lecture Hall 3
+  capacity: 70
+  type: lecture
+- id: lh_4
+  name: Lecture Hall 4
+  capacity: 70
+  type: lecture
+- id: cs_lab_1
+  name: CS Lab 1
+  capacity: 70
+  type: lab
+- id: cs_lab_2
+  name: CS Lab 2
+  capacity: 70
+  type: lab
+pre_assignments:
+- subject_id: MATHS-A
+  day: Monday
+  slot: 1
+- subject_id: MATHS-A
+  day: Tuesday
+  slot: 6
+- subject_id: MATHS-A
+  day: Thursday
+  slot: 4
+- subject_id: MATHS-A
+  day: Saturday
+  slot: 3
+constraints:
+  soft:
+    minimize_student_gaps: 60
+    spread_subjects: 40

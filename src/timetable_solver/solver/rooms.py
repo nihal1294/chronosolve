@@ -1,4 +1,4 @@
-"""Room assignment constraints — channeling, no-clash, and block continuity.
+"""Room assignment constraints - channeling, no-clash, and block continuity.
 
 Only active when the problem defines rooms. Room *type* compatibility is hard
 (enforced by variable creation); capacity is soft (validator warning only).
@@ -31,8 +31,7 @@ def _channel_rooms_to_assignments(
         for day_idx, day in enumerate(problem.time_structure.days):
             for slot in range(1, problem.time_structure.get_slots_for_day(day) + 1):
                 choices = [
-                    variables.room_choices[(subject.id, day_idx, slot, room.id)]
-                    for room in rooms
+                    variables.room_choices[(subject.id, day_idx, slot, room.id)] for room in rooms
                 ]
                 assignment = variables.assignments[(subject.id, day_idx, slot)]
                 model.add(sum(choices) == assignment)

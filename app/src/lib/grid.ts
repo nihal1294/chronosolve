@@ -20,3 +20,10 @@ export function pivotByGroup(schedule: ScheduleEntry[]): GroupGrid {
   }
   return grid;
 }
+
+/** Scheduled slot count per subject id (drives the table's Status column). */
+export function countScheduled(schedule: ScheduleEntry[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const entry of schedule) counts.set(entry.subject_id, (counts.get(entry.subject_id) ?? 0) + 1);
+  return counts;
+}

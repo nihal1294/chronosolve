@@ -1,4 +1,4 @@
-"""CP-SAT variable creation — the boolean encoding of a timetable problem."""
+"""CP-SAT variable creation - the boolean encoding of a timetable problem."""
 
 from dataclasses import dataclass, field
 
@@ -18,10 +18,10 @@ class SolverVariables:
     """All CP-SAT decision variables for one problem.
 
     Attributes:
-        assignments: x[subject, day, slot] — subject occupies this slot.
-        block_starts: block[subject, day, start] — a consecutive block of the
+        assignments: x[subject, day, slot] - subject occupies this slot.
+        block_starts: block[subject, day, start] - a consecutive block of the
             subject begins at this slot (only for subjects with consecutive_hours > 1).
-        room_choices: room[subject, day, slot, room] — scheduled hour uses this room
+        room_choices: room[subject, day, slot, room] - scheduled hour uses this room
             (only when the problem defines rooms; restricted to type-compatible rooms).
     """
 
@@ -38,7 +38,7 @@ def block_size(subject: Subject) -> int:
 def compatible_rooms(subject: Subject, rooms: list[Room]) -> list[Room]:
     """Rooms a subject may use: type must match its preference ("any" matches all).
 
-    Capacity is deliberately not filtered here — it is a soft concern
+    Capacity is deliberately not filtered here - it is a soft concern
     (validator warning), matching the validation contract.
     """
     return [r for r in rooms if room_type_matches(r.type, subject.preferred_room_type)]

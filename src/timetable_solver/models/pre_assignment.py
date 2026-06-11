@@ -1,4 +1,4 @@
-"""Pre-assignment model — events fixed to specific timeslots."""
+"""Pre-assignment model - events fixed to specific timeslots."""
 
 from pydantic import BaseModel, Field
 

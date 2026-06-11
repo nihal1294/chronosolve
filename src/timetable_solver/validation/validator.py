@@ -1,4 +1,4 @@
-"""Pre-solve feasibility validation — catches unsolvable or suspicious inputs.
+"""Pre-solve feasibility validation - catches unsolvable or suspicious inputs.
 
 Pydantic handles structural validation (types, references). This module checks
 semantic feasibility: can the solver actually produce a valid schedule?
@@ -63,21 +63,25 @@ def _check_group_hours_feasibility(
             available = min(available, group.max_hours_per_day * day_count)
         required = group_hours.get(group.id, 0)
         if required > available:
-            issues.append(ValidationIssue(
-                severity=Severity.ERROR,
-                message=(
-                    f"Group {group.id!r} needs {required} hours/week "
-                    f"but only has {available} available slots"
-                ),
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.ERROR,
+                    message=(
+                        f"Group {group.id!r} needs {required} hours/week "
+                        f"but only has {available} available slots"
+                    ),
+                )
+            )
         elif required > available * 0.9:
-            issues.append(ValidationIssue(
-                severity=Severity.WARNING,
-                message=(
-                    f"Group {group.id!r} uses {required}/{available} slots "
-                    f"({required * 100 // available}%) — solver may struggle"
-                ),
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.WARNING,
+                    message=(
+                        f"Group {group.id!r} uses {required}/{available} slots "
+                        f"({required * 100 // available}%) - solver may struggle"
+                    ),
+                )
+            )
 
 
 def _check_teacher_availability_feasibility(
@@ -94,21 +98,25 @@ def _check_teacher_availability_feasibility(
         available = _available_slots_for_entity(problem, teacher.unavailable)
         required = teacher_hours.get(teacher.id, 0)
         if required > available:
-            issues.append(ValidationIssue(
-                severity=Severity.ERROR,
-                message=(
-                    f"Teacher {teacher.id!r} needs {required} hours/week "
-                    f"but only has {available} available slots"
-                ),
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.ERROR,
+                    message=(
+                        f"Teacher {teacher.id!r} needs {required} hours/week "
+                        f"but only has {available} available slots"
+                    ),
+                )
+            )
         elif available > 0 and required > available * 0.9:
-            issues.append(ValidationIssue(
-                severity=Severity.WARNING,
-                message=(
-                    f"Teacher {teacher.id!r} uses {required}/{available} slots "
-                    f"({required * 100 // available}%) — very tight schedule"
-                ),
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.WARNING,
+                    message=(
+                        f"Teacher {teacher.id!r} uses {required}/{available} slots "
+                        f"({required * 100 // available}%) - very tight schedule"
+                    ),
+                )
+            )
 
 
 def _check_pre_assignment_clashes(
@@ -144,13 +152,15 @@ def _report_duplicates(
         seen: set[str] = set()
         for entity_id in ids:
             if entity_id in seen:
-                issues.append(ValidationIssue(
-                    severity=Severity.ERROR,
-                    message=(
-                        f"{label} {entity_id!r} has clashing "
-                        f"pre-assignments on {day} slot {slot}"
-                    ),
-                ))
+                issues.append(
+                    ValidationIssue(
+                        severity=Severity.ERROR,
+                        message=(
+                            f"{label} {entity_id!r} has clashing "
+                            f"pre-assignments on {day} slot {slot}"
+                        ),
+                    )
+                )
             seen.add(entity_id)
 
 
@@ -175,13 +185,15 @@ def _check_room_capacity_warnings(
         room_type = subj.preferred_room_type or "any"
         max_cap = rooms_by_type.get(room_type, max_any_capacity)
         if total_students > max_cap:
-            issues.append(ValidationIssue(
-                severity=Severity.WARNING,
-                message=(
-                    f"Subject {subj.id!r} has {total_students} students "
-                    f"but largest {room_type!r} room holds {max_cap}"
-                ),
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.WARNING,
+                    message=(
+                        f"Subject {subj.id!r} has {total_students} students "
+                        f"but largest {room_type!r} room holds {max_cap}"
+                    ),
+                )
+            )
 
 
 def _available_slots_for_entity(

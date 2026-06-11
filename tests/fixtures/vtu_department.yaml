@@ -1,4 +1,4 @@
-# VTU CS Department — 4th semester, 3 sections, ~15 subjects, Saturday half-day
+# VTU CS Department - 4th semester, 3 sections, ~15 subjects, Saturday half-day
 time_structure:
   days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
   slots_per_day: 8
@@ -237,7 +237,7 @@ subjects:
     preferred_room_type: lab
 
 pre_assignments:
-  # Assembly slot — DAA Section A always Monday period 1
+  # Assembly slot - DAA Section A always Monday period 1
   - subject_id: daa_a
     day: Monday
     slot: 1

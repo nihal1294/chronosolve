@@ -37,9 +37,7 @@ def add_teacher_preference_penalties(
         if weights.leave_early and prefs.leave_early:
             terms += _leave_early_terms(model, variables, problem, teacher, weights.leave_early)
         if weights.max_hours_per_day and prefs.max_hours_per_day:
-            terms += _max_hours_terms(
-                model, variables, problem, teacher, weights.max_hours_per_day
-            )
+            terms += _max_hours_terms(model, variables, problem, teacher, weights.max_hours_per_day)
         if weights.free_days and prefs.min_free_days:
             terms += _free_days_terms(model, variables, problem, teacher, weights.free_days)
     return terms
@@ -100,9 +98,7 @@ def _run_cap_terms(
     terms: Terms = []
     for start in range(len(occupied) - cap):
         window = occupied[start : start + cap + 1]
-        excess = positive_part(
-            model, sum(window) - cap, 1, f"run_{teacher_id}_{day_idx}_{start}"
-        )
+        excess = positive_part(model, sum(window) - cap, 1, f"run_{teacher_id}_{day_idx}_{start}")
         terms.append(weight * excess)
     return terms
 
