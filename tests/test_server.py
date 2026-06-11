@@ -89,6 +89,34 @@ class TestScore:
         assert body["overall_score"] > 0
 
 
+class TestParentWatchdog:
+    def test_server_exits_when_stdin_closes(self) -> None:
+        """Sidecar lifecycle: --parent-watchdog must end the process on stdin EOF.
+
+        This is what prevents orphaned solver processes when the desktop app
+        dies without cleanly killing its child (regression for the leak found
+        during M1 smoke testing).
+        """
+        import subprocess
+        import sys
+
+        process = subprocess.Popen(
+            [sys.executable, "-m", "timetable_solver.server", "--parent-watchdog"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        try:
+            assert process.stdout is not None
+            assert process.stdout.readline().startswith(b"PORT=")
+            assert process.stdin is not None
+            process.stdin.close()  # simulate the parent app dying
+            assert process.wait(timeout=10) == 0
+        finally:
+            if process.poll() is None:
+                process.kill()
+
+
 class TestTemplate:
     def test_template_served_in_both_formats(self) -> None:
         response = client.get("/template")

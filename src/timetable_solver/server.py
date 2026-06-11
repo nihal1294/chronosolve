@@ -7,7 +7,10 @@ stdout on startup so the Tauri shell can discover the auto-selected port.
 import argparse
 import asyncio
 import json
+import os
 import socket
+import sys
+import threading
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -135,13 +138,34 @@ def _find_free_port() -> int:
         return probe.getsockname()[1]
 
 
+def _exit_on_stdin_close() -> None:
+    """Exit when stdin reaches EOF — i.e. when the parent app is gone.
+
+    The desktop shell spawns this server with a stdin pipe it never writes to.
+    If the shell dies for any reason (clean quit, crash, force-kill), the pipe
+    closes and this watchdog terminates the orphaned sidecar.
+    """
+    try:
+        sys.stdin.buffer.read()
+    except Exception:  # noqa: BLE001 — any stdin failure means the parent is gone
+        pass
+    os._exit(0)
+
+
 def main() -> None:
     """Start the sidecar: announce the port on stdout, then serve."""
     import uvicorn
 
     parser = argparse.ArgumentParser(description="ChronoSolve sidecar server")
     parser.add_argument("--port", type=int, default=0, help="0 = auto-select")
+    parser.add_argument(
+        "--parent-watchdog",
+        action="store_true",
+        help="Exit when stdin closes (used when spawned as a desktop sidecar)",
+    )
     args = parser.parse_args()
+    if args.parent_watchdog:
+        threading.Thread(target=_exit_on_stdin_close, daemon=True).start()
     port = args.port or _find_free_port()
     print(f"PORT={port}", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

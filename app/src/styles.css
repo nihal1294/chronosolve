@@ -1,0 +1,23 @@
+/* ChronoSolve design system — ported from the Figma Make v7 source.
+   Neutral surfaces (neutral-950/900 dark, white/neutral-50 light); brand
+   indigo-600 actions, teal success, amber soft-penalty, red violations.
+   Default sans/mono stacks per the design (no custom font imports). */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode toggles via a `.dark` class on <html> (design theme.css),
+   not the OS preference — the in-app Sun/Moon switch drives it. */
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+  }
+}
