@@ -1,4 +1,4 @@
-"""Room model — optional physical space assignments."""
+"""Room model - optional physical space assignments."""
 
 from typing import Literal
 

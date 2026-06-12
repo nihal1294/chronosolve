@@ -1,4 +1,4 @@
-# Minimal valid input — 1 teacher, 1 group, 1 subject, 3 days × 4 slots
+# Minimal valid input - 1 teacher, 1 group, 1 subject, 3 days × 4 slots
 time_structure:
   days: ["Monday", "Tuesday", "Wednesday"]
   slots_per_day: 4

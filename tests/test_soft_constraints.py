@@ -1,4 +1,4 @@
-"""Soft constraint tests — each penalty provably shapes the optimal solution.
+"""Soft constraint tests - each penalty provably shapes the optimal solution.
 
 Every test builds a problem where satisfying the preference costs nothing,
 asserts the solve is proven optimal, then asserts the preferred property.
@@ -37,8 +37,12 @@ def _problem(
 
 def _subject(sid: str = "s1", hours: int = 2, max_per_day: int = 2) -> Subject:
     return Subject(
-        id=sid, name=sid, hours_per_week=hours, max_per_day=max_per_day,
-        teacher_ids=["t1"], group_ids=["g1"],
+        id=sid,
+        name=sid,
+        hours_per_week=hours,
+        max_per_day=max_per_day,
+        teacher_ids=["t1"],
+        group_ids=["g1"],
     )
 
 
@@ -51,14 +55,11 @@ def _optimal(problem: TimetableProblem) -> SolveResult:
 class TestSlotPreferences:
     def test_avoided_slots_stay_empty_when_alternatives_exist(self) -> None:
         teacher = Teacher(
-            id="t1", name="T",
-            preferences=TeacherPreferences(
-                slot_preferences={"Monday": {1: "avoid", 2: "avoid"}}
-            ),
+            id="t1",
+            name="T",
+            preferences=TeacherPreferences(slot_preferences={"Monday": {1: "avoid", 2: "avoid"}}),
         )
-        problem = _problem(
-            teacher, [_subject()], ["Monday"], slots=4, teacher_time_preferences=100
-        )
+        problem = _problem(teacher, [_subject()], ["Monday"], slots=4, teacher_time_preferences=100)
         result = _optimal(problem)
         assert sorted(e.slot for e in result.schedule) == [3, 4]
 
@@ -66,7 +67,10 @@ class TestSlotPreferences:
 class TestGapMinimization:
     def test_student_hours_are_adjacent(self) -> None:
         problem = _problem(
-            Teacher(id="t1", name="T"), [_subject()], ["Monday"], slots=6,
+            Teacher(id="t1", name="T"),
+            [_subject()],
+            ["Monday"],
+            slots=6,
             minimize_student_gaps=100,
         )
         result = _optimal(problem)
@@ -75,7 +79,10 @@ class TestGapMinimization:
 
     def test_teacher_hours_are_adjacent(self) -> None:
         problem = _problem(
-            Teacher(id="t1", name="T"), [_subject()], ["Monday"], slots=6,
+            Teacher(id="t1", name="T"),
+            [_subject()],
+            ["Monday"],
+            slots=6,
             minimize_teacher_gaps=100,
         )
         result = _optimal(problem)
@@ -86,7 +93,10 @@ class TestGapMinimization:
 class TestSubjectSpread:
     def test_hours_spread_across_days(self) -> None:
         problem = _problem(
-            Teacher(id="t1", name="T"), [_subject()], ["Mon", "Tue"], slots=2,
+            Teacher(id="t1", name="T"),
+            [_subject()],
+            ["Mon", "Tue"],
+            slots=2,
             spread_subjects=100,
         )
         result = _optimal(problem)
@@ -98,9 +108,7 @@ class TestCompactStyle:
         teacher = Teacher(
             id="t1", name="T", preferences=TeacherPreferences(schedule_style="compact")
         )
-        problem = _problem(
-            teacher, [_subject()], ["Monday"], slots=6, compact_schedules=100
-        )
+        problem = _problem(teacher, [_subject()], ["Monday"], slots=6, compact_schedules=100)
         result = _optimal(problem)
         slots = sorted(e.slot for e in result.schedule)
         assert slots[1] == slots[0] + 1
@@ -111,21 +119,18 @@ class TestConsecutivePreference:
         teacher = Teacher(
             id="t1", name="T", preferences=TeacherPreferences(consecutive_hours="avoid")
         )
-        problem = _problem(
-            teacher, [_subject()], ["Monday"], slots=4, avoid_consecutive_hours=100
-        )
+        problem = _problem(teacher, [_subject()], ["Monday"], slots=4, avoid_consecutive_hours=100)
         result = _optimal(problem)
         slots = sorted(e.slot for e in result.schedule)
         assert slots[1] - slots[0] >= 2
 
     def test_prefer_packs_hours_together(self) -> None:
         teacher = Teacher(
-            id="t1", name="T",
+            id="t1",
+            name="T",
             preferences=TeacherPreferences(consecutive_hours="prefer", max_consecutive=3),
         )
-        problem = _problem(
-            teacher, [_subject()], ["Monday"], slots=4, avoid_consecutive_hours=100
-        )
+        problem = _problem(teacher, [_subject()], ["Monday"], slots=4, avoid_consecutive_hours=100)
         result = _optimal(problem)
         slots = sorted(e.slot for e in result.schedule)
         assert slots[1] == slots[0] + 1
@@ -143,24 +148,21 @@ class TestLeaveEarly:
 
 class TestMaxHoursPerDay:
     def test_load_split_to_respect_daily_cap(self) -> None:
-        teacher = Teacher(
-            id="t1", name="T", preferences=TeacherPreferences(max_hours_per_day=1)
-        )
-        problem = _problem(
-            teacher, [_subject()], ["Mon", "Tue"], slots=2, max_hours_per_day=100
-        )
+        teacher = Teacher(id="t1", name="T", preferences=TeacherPreferences(max_hours_per_day=1))
+        problem = _problem(teacher, [_subject()], ["Mon", "Tue"], slots=2, max_hours_per_day=100)
         result = _optimal(problem)
         assert len({e.day for e in result.schedule}) == 2
 
 
 class TestFreeDays:
     def test_hours_compressed_to_leave_days_free(self) -> None:
-        teacher = Teacher(
-            id="t1", name="T", preferences=TeacherPreferences(min_free_days=2)
-        )
+        teacher = Teacher(id="t1", name="T", preferences=TeacherPreferences(min_free_days=2))
         problem = _problem(
-            teacher, [_subject(hours=3, max_per_day=3)], ["Mon", "Tue", "Wed"],
-            slots=4, free_days=100,
+            teacher,
+            [_subject(hours=3, max_per_day=3)],
+            ["Mon", "Tue", "Wed"],
+            slots=4,
+            free_days=100,
         )
         result = _optimal(problem)
         assert len({e.day for e in result.schedule}) == 1
@@ -169,7 +171,10 @@ class TestFreeDays:
 class TestWorkloadBalance:
     def test_daily_hours_balanced(self) -> None:
         problem = _problem(
-            Teacher(id="t1", name="T"), [_subject()], ["Mon", "Tue"], slots=2,
+            Teacher(id="t1", name="T"),
+            [_subject()],
+            ["Mon", "Tue"],
+            slots=2,
             workload_balance=100,
         )
         result = _optimal(problem)

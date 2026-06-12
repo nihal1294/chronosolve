@@ -1,4 +1,4 @@
-"""Tests for YAML/JSON loader — fixture loading, round-trips, and error handling."""
+"""Tests for YAML/JSON loader - fixture loading, round-trips, and error handling."""
 
 import json
 from pathlib import Path

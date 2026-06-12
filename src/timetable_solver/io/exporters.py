@@ -82,9 +82,7 @@ def _group_table(
     return table
 
 
-def _day_order(
-    schedule: list[ScheduleEntry], problem: TimetableProblem | None
-) -> list[str]:
+def _day_order(schedule: list[ScheduleEntry], problem: TimetableProblem | None) -> list[str]:
     """Day columns: from the problem when given, else first-seen entry order."""
     if problem is not None:
         return list(problem.time_structure.days)

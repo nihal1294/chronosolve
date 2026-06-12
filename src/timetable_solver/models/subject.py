@@ -1,4 +1,4 @@
-"""Subject model — an event that needs scheduling (theory, lab, or elective)."""
+"""Subject model - an event that needs scheduling (theory, lab, or elective)."""
 
 from typing import Literal
 

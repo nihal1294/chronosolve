@@ -34,7 +34,7 @@ async function baseUrl(): Promise<string> {
     if (port) return `http://127.0.0.1:${port}`;
     await new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
   }
-  throw new Error("Solver did not start within 10s — check the app logs (is uv on PATH?)");
+  throw new Error("Solver did not start within 10s - check the app logs (is uv on PATH?)");
 }
 
 async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
@@ -45,15 +45,32 @@ async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok) {
-    throw new Error(`${path} failed (${response.status}): ${await response.text()}`);
+    const body = await response.text();
+    let detail = body;
+    try {
+      // FastAPI wraps errors as {"detail": "..."} - surface the text, not the JSON.
+      detail = (JSON.parse(body) as { detail?: string }).detail ?? body;
+    } catch {
+      // not JSON - keep the raw body
+    }
+    throw new Error(`${path} failed (${response.status}): ${detail}`);
   }
   return response.json() as Promise<T>;
+}
+
+export interface ValidationReport {
+  errors: string[];
+  warnings: string[];
 }
 
 export const solverClient = {
   async health(): Promise<boolean> {
     const response = await fetch(`${await baseUrl()}/health`, { signal: AbortSignal.timeout(5_000) });
     return response.ok;
+  },
+
+  validate(problem: unknown): Promise<ValidationReport> {
+    return post<ValidationReport>("/validate", { problem }, 10_000);
   },
 
   async template(): Promise<string> {

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
-  <!-- ChronoSolve — GitHub Social Preview Banner (1280x640) -->
+  <!-- ChronoSolve - GitHub Social Preview Banner (1280x640) -->
 
   <defs>
     <style>
@@ -83,11 +83,11 @@
 
   <!-- Logo mark (right side, large) -->
   <g transform="translate(880, 140) scale(3.6)">
-    <!-- Row 1 — Indigo -->
+    <!-- Row 1 - Indigo -->
     <rect x="12" y="16" width="40" height="18" rx="4" fill="#4338CA" />
-    <!-- Row 2 — Teal -->
+    <!-- Row 2 - Teal -->
     <rect x="28" y="41" width="44" height="18" rx="4" fill="#0F766E" />
-    <!-- Row 3 — Amber -->
+    <!-- Row 3 - Amber -->
     <rect x="48" y="66" width="40" height="18" rx="4" fill="#D97706" />
     <!-- Optimization Path -->
     <path

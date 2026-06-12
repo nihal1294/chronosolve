@@ -1,4 +1,4 @@
-"""Typer CLI — solve, validate, score, and template commands."""
+"""Typer CLI - solve, validate, score, and template commands."""
 
 import json
 from enum import StrEnum
@@ -16,7 +16,7 @@ from timetable_solver.io.template import get_template
 from timetable_solver.models import ScheduleEntry
 from timetable_solver.validation.validator import Severity
 
-app = typer.Typer(help="ChronoSolve — university timetable scheduling solver.")
+app = typer.Typer(help="ChronoSolve - university timetable scheduling solver.")
 console = Console()
 err_console = Console(stderr=True)
 

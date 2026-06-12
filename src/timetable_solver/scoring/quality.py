@@ -1,4 +1,4 @@
-"""Independent schedule quality scoring — works on any schedule, not just solver output."""
+"""Independent schedule quality scoring - works on any schedule, not just solver output."""
 
 from collections.abc import Callable
 from dataclasses import dataclass, field

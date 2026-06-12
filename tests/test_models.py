@@ -1,4 +1,4 @@
-"""Tests for Pydantic data models — valid construction and validation errors."""
+"""Tests for Pydantic data models - valid construction and validation errors."""
 
 import pytest
 from pydantic import ValidationError

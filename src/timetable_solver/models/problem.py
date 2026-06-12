@@ -1,4 +1,4 @@
-"""Top-level problem model — the complete input for the solver."""
+"""Top-level problem model - the complete input for the solver."""
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -19,7 +19,7 @@ class TimetableProblem(BaseModel):
         teachers: All teachers to be scheduled.
         student_groups: All student groups.
         subjects: All subjects/events to place.
-        rooms: Physical rooms (optional — omit to skip room constraints).
+        rooms: Physical rooms (optional - omit to skip room constraints).
         pre_assignments: Fixed slot assignments (optional).
         constraints: Hard and soft constraint configuration.
     """
@@ -68,9 +68,7 @@ def _collect_reference_errors(problem: "TimetableProblem") -> list[str]:
             continue
         max_slot = problem.time_structure.get_slots_for_day(pa.day)
         if pa.slot > max_slot:
-            errors.append(
-                f"PreAssignment: slot {pa.slot} exceeds max {max_slot} for {pa.day!r}"
-            )
+            errors.append(f"PreAssignment: slot {pa.slot} exceeds max {max_slot} for {pa.day!r}")
             continue
         subj = subject_map.get(pa.subject_id)
         block = (subj.consecutive_hours or 1) if subj else 1
@@ -91,7 +89,7 @@ def _collect_reference_errors(problem: "TimetableProblem") -> list[str]:
 
 
 def _check_duplicate_ids(problem: "TimetableProblem", errors: list[str]) -> None:
-    """Reject duplicate IDs — solver variables and lookups key on them."""
+    """Reject duplicate IDs - solver variables and lookups key on them."""
     entity_lists = [
         ("Teacher", problem.teachers),
         ("StudentGroup", problem.student_groups),
@@ -131,9 +129,7 @@ def _check_preference_days(
             continue
         for day in [*prefs.slot_preferences, *prefs.leave_early]:
             if day not in valid_days:
-                errors.append(
-                    f"Teacher {teacher.id!r}: preferences reference unknown day {day!r}"
-                )
+                errors.append(f"Teacher {teacher.id!r}: preferences reference unknown day {day!r}")
 
 
 def _check_room_references(
@@ -150,8 +146,7 @@ def _check_room_references(
         if subj.preferred_room_type is None:
             continue
         if not any(
-            room_type_matches(room.type, subj.preferred_room_type)
-            for room in problem.rooms
+            room_type_matches(room.type, subj.preferred_room_type) for room in problem.rooms
         ):
             errors.append(
                 f"Subject {subj.id!r}: preferred_room_type {subj.preferred_room_type!r} "

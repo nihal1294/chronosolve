@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { AlertCircle, CheckCircle2, Search } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Edit2, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import type { ProblemEntities } from "../lib/entities";
 import type { EntityKind } from "./Sidebar";
+import { ContextMenu, type MenuState } from "./ContextMenu";
 
 interface TableViewProps {
   entities: ProblemEntities;
   entity: EntityKind;
   /** Scheduled slot count per subject id, once a solve has completed. */
   scheduledCounts: Map<string, number> | null;
+  onAdd: () => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 interface Row {
@@ -17,20 +21,24 @@ interface Row {
   status?: { ok: boolean; label: string };
 }
 
-const LABELS: Record<EntityKind, { title: string; columns: string[] }> = {
-  subjects: { title: "courses", columns: ["Hours / Week", "Instructors", "Groups", "Status"] },
-  teachers: { title: "professors", columns: ["Unavailable"] },
-  groups: { title: "student groups", columns: ["Size"] },
-  rooms: { title: "rooms", columns: ["Capacity", "Type"] },
+const LABELS: Record<EntityKind, { title: string; singular: string; columns: string[] }> = {
+  subjects: {
+    title: "courses",
+    singular: "course",
+    columns: ["Hours / Week", "Instructors", "Groups", "Status"],
+  },
+  teachers: { title: "professors", singular: "professor", columns: ["Unavailable"] },
+  groups: { title: "student groups", singular: "group", columns: ["Size"] },
+  rooms: { title: "rooms", singular: "room", columns: ["Capacity", "Type"] },
 };
 
 function buildRows(entities: ProblemEntities, entity: EntityKind, counts: Map<string, number> | null): Row[] {
   if (entity === "teachers")
-    return entities.teachers.map((row) => ({ ...row, cells: [row.unavailable || "—"] }));
+    return entities.teachers.map((row) => ({ ...row, cells: [row.unavailable || "-"] }));
   if (entity === "groups")
-    return entities.groups.map((row) => ({ ...row, cells: [row.size?.toString() ?? "—"] }));
+    return entities.groups.map((row) => ({ ...row, cells: [row.size?.toString() ?? "-"] }));
   if (entity === "rooms")
-    return entities.rooms.map((row) => ({ ...row, cells: [row.capacity?.toString() ?? "—", row.type] }));
+    return entities.rooms.map((row) => ({ ...row, cells: [row.capacity?.toString() ?? "-", row.type] }));
   return entities.subjects.map((row) => ({
     ...row,
     cells: [row.hoursPerWeek.toString(), row.teacherIds.join(", "), row.groupIds.join(", ")],
@@ -42,22 +50,53 @@ function buildRows(entities: ProblemEntities, entity: EntityKind, counts: Map<st
   }));
 }
 
-/** High-density entity table, per the design system's Data Display spec. */
-export function TableView({ entities, entity, scheduledCounts }: TableViewProps) {
+/** High-density entity table with add/edit/delete affordances, per the
+    design system's Data Display + Context Menus specs. */
+export function TableView({ entities, entity, scheduledCounts, onAdd, onEdit, onDelete }: TableViewProps) {
   const [query, setQuery] = useState("");
-  const { title, columns } = LABELS[entity];
-  const rows = buildRows(entities, entity, scheduledCounts).filter((row) =>
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const { title, singular, columns } = LABELS[entity];
+  const allRows = buildRows(entities, entity, scheduledCounts);
+  const rows = allRows.filter((row) =>
     `${row.id} ${row.name}`.toLowerCase().includes(query.trim().toLowerCase()),
   );
   const showStatus = entity === "subjects" && scheduledCounts !== null;
   const headers = ["ID", "Name", ...columns.filter((column) => column !== "Status" || showStatus)];
+
+  const rowMenu = (row: Row, x: number, y: number): MenuState => ({
+    x,
+    y,
+    items: [
+      {
+        label: "Copy Row Data",
+        icon: Copy,
+        shortcut: "⌘C",
+        onSelect: () =>
+          void navigator.clipboard
+            ?.writeText([row.id, row.name, ...row.cells].join("\t"))
+            .catch((problem) => console.warn("Clipboard write failed", problem)),
+      },
+      { label: "Edit Record", icon: Edit2, shortcut: "↵", onSelect: () => onEdit(row.id) },
+      "divider",
+      {
+        label: "Delete Record",
+        icon: Trash2,
+        shortcut: "⌘⌫",
+        destructive: true,
+        onSelect: () => onDelete(row.id),
+      },
+    ],
+  });
 
   return (
     <div className="flex-1 p-6 min-h-0 overflow-auto">
       <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-sm flex flex-col">
         <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-4">
           <div className="relative w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400" />
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400"
+            />
             <input
               type="text"
               value={query}
@@ -66,6 +105,13 @@ export function TableView({ entities, entity, scheduledCounts }: TableViewProps)
               className="w-full pl-9 pr-3 py-1.5 text-sm bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
+          <button
+            onClick={onAdd}
+            className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors capitalize"
+          >
+            <Plus size={14} />
+            Add {singular}
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -73,16 +119,24 @@ export function TableView({ entities, entity, scheduledCounts }: TableViewProps)
             <thead>
               <tr className="bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800">
                 {headers.map((header) => (
-                  <th key={header} className="px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                  <th
+                    key={header}
+                    className="px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400"
+                  >
                     {header}
                   </th>
                 ))}
+                <th className="w-12 px-2 py-3" aria-label="Row actions" />
               </tr>
             </thead>
             <tbody className="text-sm">
               {rows.map((row) => (
                 <tr
                   key={row.id}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setMenu(rowMenu(row, event.clientX, event.clientY));
+                  }}
                   className="border-b border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
                 >
                   <td className="px-4 py-3 font-mono text-xs">{row.id}</td>
@@ -96,7 +150,9 @@ export function TableView({ entities, entity, scheduledCounts }: TableViewProps)
                     <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-medium ${
-                          row.status.ok ? "text-teal-600 dark:text-teal-400" : "text-red-600 dark:text-red-400"
+                          row.status.ok
+                            ? "text-teal-600 dark:text-teal-400"
+                            : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         {row.status.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
@@ -104,6 +160,19 @@ export function TableView({ entities, entity, scheduledCounts }: TableViewProps)
                       </span>
                     </td>
                   )}
+                  <td className="px-2 py-3 text-right">
+                    <button
+                      title="Row actions"
+                      aria-label="Row actions"
+                      onClick={(event) => {
+                        const anchor = event.currentTarget.getBoundingClientRect();
+                        setMenu(rowMenu(row, anchor.right - 224, anchor.bottom + 4));
+                      }}
+                      className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-neutral-400 dark:text-neutral-500 transition-colors"
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -111,9 +180,11 @@ export function TableView({ entities, entity, scheduledCounts }: TableViewProps)
         </div>
 
         <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-950">
-          Showing {rows.length} of {buildRows(entities, entity, scheduledCounts).length} {title}
+          Showing {rows.length} of {allRows.length} {title}
         </div>
       </div>
+
+      {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} />}
     </div>
   );
 }

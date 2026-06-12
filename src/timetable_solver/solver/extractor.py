@@ -39,7 +39,7 @@ def extract_solution(
         SolverError: If CP-SAT reports MODEL_INVALID.
     """
     if status == cp_model.MODEL_INVALID:
-        raise SolverError("CP-SAT rejected the model as invalid — this is a solver bug")
+        raise SolverError("CP-SAT rejected the model as invalid - this is a solver bug")
     mapped = _STATUS_MAP[status]
     if mapped in ("infeasible", "timeout"):
         return SolveResult(

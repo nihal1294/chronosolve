@@ -11,7 +11,7 @@ interface BrandLogoProps {
 }
 
 /** Brand mark from the Figma design system: three Gantt time blocks with a
-    continuous routing path — the solver finding the optimal way through. */
+    continuous routing path - the solver finding the optimal way through. */
 export function BrandLogo({
   variant = "primary",
   size = 256,

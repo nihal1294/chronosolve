@@ -82,10 +82,16 @@ class TestAnneal:
             teachers=[Teacher(id="t1", name="T")],
             student_groups=[StudentGroup(id="g1", name="G", size=20)],
             subjects=[
-                Subject(id="lab", name="Lab", hours_per_week=2, type="lab",
-                        teacher_ids=["t1"], group_ids=["g1"], consecutive_hours=2),
-                Subject(id="s1", name="S1", hours_per_week=1,
-                        teacher_ids=["t1"], group_ids=["g1"]),
+                Subject(
+                    id="lab",
+                    name="Lab",
+                    hours_per_week=2,
+                    type="lab",
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    consecutive_hours=2,
+                ),
+                Subject(id="s1", name="S1", hours_per_week=1, teacher_ids=["t1"], group_ids=["g1"]),
             ],
             constraints=ConstraintsConfig(soft=SoftConstraints(minimize_student_gaps=100)),
         )

@@ -1,4 +1,4 @@
-"""Exporter tests — JSON, CSV, and pretty-table output."""
+"""Exporter tests - JSON, CSV, and pretty-table output."""
 
 import csv
 import io

@@ -27,12 +27,18 @@ fn repo_root() -> std::path::PathBuf {
 
 pub fn spawn_sidecar(app: &AppHandle) -> tauri::Result<()> {
     // --parent-watchdog: the server exits itself when our stdin pipe closes,
-    // covering every shutdown path (including crashes) — kill() below is only
+    // covering every shutdown path (including crashes) - kill() below is only
     // the fast path and cannot reach through the `uv run` wrapper process.
     let (mut rx, child) = app
         .shell()
         .command("uv")
-        .args(["run", "python", "-m", "timetable_solver.server", "--parent-watchdog"])
+        .args([
+            "run",
+            "python",
+            "-m",
+            "timetable_solver.server",
+            "--parent-watchdog",
+        ])
         .current_dir(repo_root())
         .spawn()
         .expect("failed to spawn solver sidecar (is uv on PATH?)");
@@ -54,7 +60,7 @@ pub fn spawn_sidecar(app: &AppHandle) -> tauri::Result<()> {
                         }
                     }
                 }
-                // Surface sidecar diagnostics — a silent solver death is undebuggable.
+                // Surface sidecar diagnostics - a silent solver death is undebuggable.
                 CommandEvent::Stderr(line) => {
                     eprintln!("sidecar: {}", String::from_utf8_lossy(&line).trim_end());
                 }

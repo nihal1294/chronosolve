@@ -1,4 +1,4 @@
-"""Tests for pre-solve validation — feasibility errors and warnings."""
+"""Tests for pre-solve validation - feasibility errors and warnings."""
 
 from pathlib import Path
 
@@ -66,9 +66,7 @@ class TestGroupHoursFeasibility:
         problem = TimetableProblem(
             time_structure=TimeStructure(days=["Mon", "Tue", "Wed"], slots_per_day=4),
             teachers=[Teacher(id="t1", name="T1")],
-            student_groups=[
-                StudentGroup(id="g1", name="G1", size=30, max_hours_per_day=1)
-            ],
+            student_groups=[StudentGroup(id="g1", name="G1", size=30, max_hours_per_day=1)],
             subjects=[
                 Subject(
                     id="s1",
@@ -80,14 +78,12 @@ class TestGroupHoursFeasibility:
             ],
         )
         issues = validate_problem(problem)
-        group_errors = [
-            i for i in issues if i.severity == Severity.ERROR and "g1" in i.message
-        ]
+        group_errors = [i for i in issues if i.severity == Severity.ERROR and "g1" in i.message]
         assert len(group_errors) == 1
         assert "only has 3" in group_errors[0].message
 
     def test_group_near_capacity_warns(self) -> None:
-        """Group uses >90% of slots — should warn."""
+        """Group uses >90% of slots - should warn."""
         problem = TimetableProblem(
             time_structure=TimeStructure(days=["Mon", "Tue", "Wed"], slots_per_day=4),
             teachers=[Teacher(id="t1", name="T1")],
@@ -149,12 +145,18 @@ class TestPreAssignmentClashes:
             ],
             subjects=[
                 Subject(
-                    id="s1", name="S1", hours_per_week=1,
-                    teacher_ids=["t1"], group_ids=["g1"],
+                    id="s1",
+                    name="S1",
+                    hours_per_week=1,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
                 ),
                 Subject(
-                    id="s2", name="S2", hours_per_week=1,
-                    teacher_ids=["t1"], group_ids=["g2"],
+                    id="s2",
+                    name="S2",
+                    hours_per_week=1,
+                    teacher_ids=["t1"],
+                    group_ids=["g2"],
                 ),
             ],
             pre_assignments=[
@@ -176,8 +178,11 @@ class TestRoomCapacityWarnings:
             student_groups=[StudentGroup(id="g1", name="G1", size=100)],
             subjects=[
                 Subject(
-                    id="s1", name="S1", hours_per_week=2,
-                    teacher_ids=["t1"], group_ids=["g1"],
+                    id="s1",
+                    name="S1",
+                    hours_per_week=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
                     preferred_room_type="lecture",
                 )
             ],

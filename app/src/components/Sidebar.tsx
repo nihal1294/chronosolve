@@ -1,16 +1,31 @@
 import { useState } from "react";
-import { AlignLeft, FileCode2, GraduationCap, Search, Square, Users, type LucideIcon } from "lucide-react";
+import {
+  AlignLeft,
+  FileCode2,
+  GraduationCap,
+  Network,
+  Search,
+  Square,
+  UploadCloud,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import type { ProblemEntities } from "../lib/entities";
+import type { EntityKind } from "../lib/entity-forms";
 
-export type EntityKind = "subjects" | "teachers" | "groups" | "rooms";
-export type NavSelection = { kind: "editor" } | { kind: "entity"; entity: EntityKind };
+export type { EntityKind };
+export type NavSelection =
+  | { kind: "editor" }
+  | { kind: "constraints" }
+  | { kind: "entity"; entity: EntityKind };
 
 interface SidebarProps {
   entities: ProblemEntities | null;
-  /** Null while the timeline view is active — no nav item highlights. */
+  /** Null while the timeline view is active - no nav item highlights. */
   selection: NavSelection | null;
   onSelect: (selection: NavSelection) => void;
+  onImport: () => void;
 }
 
 const DATA_SOURCES: { entity: EntityKind; label: string; icon: LucideIcon }[] = [
@@ -27,8 +42,9 @@ const itemClass = (active: boolean): string =>
       : "text-neutral-500 dark:text-neutral-400 hover:bg-black/5 dark:hover:bg-white/5"
   }`;
 
-/** Left navigation pane: brand header, entity search, and data sources. */
-export function Sidebar({ entities, selection, onSelect }: SidebarProps) {
+/** Left navigation pane: brand header, entity search, data sources, and
+    the CSV import entry point. */
+export function Sidebar({ entities, selection, onSelect, onImport }: SidebarProps) {
   const [query, setQuery] = useState("");
   const counts: Record<EntityKind, number> = {
     subjects: entities?.subjects.length ?? 0,
@@ -52,7 +68,10 @@ export function Sidebar({ entities, selection, onSelect }: SidebarProps) {
 
       <div className="px-3 pb-3 border-b border-neutral-200 dark:border-neutral-800">
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400" />
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400"
+          />
           <input
             type="text"
             value={query}
@@ -67,9 +86,19 @@ export function Sidebar({ entities, selection, onSelect }: SidebarProps) {
         <div className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 text-neutral-500 dark:text-neutral-400">
           Project
         </div>
-        <button className={itemClass(selection?.kind === "editor")} onClick={() => onSelect({ kind: "editor" })}>
+        <button
+          className={itemClass(selection?.kind === "editor")}
+          onClick={() => onSelect({ kind: "editor" })}
+        >
           <FileCode2 size={16} />
           Problem Definition
+        </button>
+        <button
+          className={itemClass(selection?.kind === "constraints")}
+          onClick={() => onSelect({ kind: "constraints" })}
+        >
+          <Network size={16} />
+          Constraints
         </button>
 
         <div className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 pt-4 text-neutral-500 dark:text-neutral-400">
@@ -91,6 +120,11 @@ export function Sidebar({ entities, selection, onSelect }: SidebarProps) {
             </button>
           );
         })}
+
+        <button className={itemClass(false)} onClick={onImport}>
+          <UploadCloud size={16} />
+          Import CSV…
+        </button>
       </nav>
     </aside>
   );

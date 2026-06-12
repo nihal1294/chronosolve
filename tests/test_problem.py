@@ -35,18 +35,14 @@ class TestTimetableProblem:
         assert len(minimal_problem.subjects) == 1
         assert minimal_problem.constraints.hard.teacher_no_clash is True
 
-    def test_unknown_teacher_id_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_unknown_teacher_id_rejected(self, minimal_time_structure: TimeStructure) -> None:
         with pytest.raises(ValidationError, match="unknown teacher_id"):
             _problem(
                 minimal_time_structure,
                 subjects=[_subject(teacher_ids=["t_nonexistent"])],
             )
 
-    def test_unknown_group_id_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_unknown_group_id_rejected(self, minimal_time_structure: TimeStructure) -> None:
         with pytest.raises(ValidationError, match="unknown group_id"):
             _problem(
                 minimal_time_structure,
@@ -62,9 +58,7 @@ class TestTimetableProblem:
                 pre_assignments=[PreAssignment(subject_id="s1", day="Sunday", slot=1)],
             )
 
-    def test_pre_assignment_slot_exceeds_max(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_pre_assignment_slot_exceeds_max(self, minimal_time_structure: TimeStructure) -> None:
         with pytest.raises(ValidationError, match="exceeds max"):
             _problem(
                 minimal_time_structure,
@@ -96,9 +90,7 @@ class TestTimetableProblem:
         )
         assert problem.pre_assignments[0].slot == 3
 
-    def test_duplicate_subject_id_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_duplicate_subject_id_rejected(self, minimal_time_structure: TimeStructure) -> None:
         """Solver variables key on subject IDs, so duplicates must be rejected."""
         with pytest.raises(ValidationError, match="Duplicate Subject id 's1'"):
             _problem(
@@ -106,27 +98,21 @@ class TestTimetableProblem:
                 subjects=[_subject(), _subject(hours_per_week=3)],
             )
 
-    def test_duplicate_teacher_id_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_duplicate_teacher_id_rejected(self, minimal_time_structure: TimeStructure) -> None:
         with pytest.raises(ValidationError, match="Duplicate Teacher id 't1'"):
             _problem(
                 minimal_time_structure,
                 teachers=[Teacher(id="t1", name="Smith"), Teacher(id="t1", name="Jones")],
             )
 
-    def test_unavailable_unknown_day_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_unavailable_unknown_day_rejected(self, minimal_time_structure: TimeStructure) -> None:
         with pytest.raises(ValidationError, match="unknown day"):
             _problem(
                 minimal_time_structure,
                 teachers=[Teacher(id="t1", name="Smith", unavailable={"Sunday": [1]})],
             )
 
-    def test_preference_unknown_day_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_preference_unknown_day_rejected(self, minimal_time_structure: TimeStructure) -> None:
         """slot_preferences/leave_early days are validated like unavailable days."""
         prefs = TeacherPreferences(leave_early={"Sunday": 2})
         with pytest.raises(ValidationError, match="preferences reference unknown day"):
@@ -149,9 +135,7 @@ class TestTimetableProblem:
         )
         assert problem.subjects[0].preferred_room_type == "lab"
 
-    def test_invalid_room_type_rejected(
-        self, minimal_time_structure: TimeStructure
-    ) -> None:
+    def test_invalid_room_type_rejected(self, minimal_time_structure: TimeStructure) -> None:
         with pytest.raises(ValidationError, match="preferred_room_type"):
             _problem(
                 minimal_time_structure,

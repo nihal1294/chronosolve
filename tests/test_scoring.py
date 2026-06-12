@@ -18,8 +18,12 @@ from timetable_solver.models import (
 
 def _entry(subject: str, day: str, slot: int, room: str | None = None) -> ScheduleEntry:
     return ScheduleEntry(
-        subject_id=subject, day=day, slot=slot,
-        teacher_ids=["t1"], group_ids=["g1"], room_id=room,
+        subject_id=subject,
+        day=day,
+        slot=slot,
+        teacher_ids=["t1"],
+        group_ids=["g1"],
+        room_id=room,
     )
 
 
@@ -58,19 +62,13 @@ class TestQualityScoring:
     def test_weights_drive_overall_score(self, two_subject_problem: TimetableProblem) -> None:
         """With only student_gaps weighted, overall equals that metric exactly."""
         problem = two_subject_problem.model_copy(deep=True)
-        problem.constraints = ConstraintsConfig(
-            soft=SoftConstraints(minimize_student_gaps=80)
-        )
-        report = score_schedule(
-            problem, [_entry("s1", "Monday", 1), _entry("s2", "Monday", 4)]
-        )
+        problem.constraints = ConstraintsConfig(soft=SoftConstraints(minimize_student_gaps=80))
+        report = score_schedule(problem, [_entry("s1", "Monday", 1), _entry("s2", "Monday", 4)])
         assert report.overall_score == report.metrics["student_gaps"]
 
 
 class TestHardViolations:
-    def test_teacher_double_booking_reported(
-        self, two_subject_problem: TimetableProblem
-    ) -> None:
+    def test_teacher_double_booking_reported(self, two_subject_problem: TimetableProblem) -> None:
         schedule = [_entry("s1", "Monday", 1), _entry("s2", "Monday", 1)]
         report = score_schedule(two_subject_problem, schedule)
         assert report.overall_score == 0.0
@@ -87,8 +85,7 @@ class TestHardViolations:
             teachers=[Teacher(id="t1", name="T", unavailable={"Monday": [1]})],
             student_groups=[StudentGroup(id="g1", name="G", size=20)],
             subjects=[
-                Subject(id="s1", name="S", hours_per_week=1,
-                        teacher_ids=["t1"], group_ids=["g1"]),
+                Subject(id="s1", name="S", hours_per_week=1, teacher_ids=["t1"], group_ids=["g1"]),
             ],
         )
         report = score_schedule(problem, [_entry("s1", "Monday", 1)])
@@ -100,10 +97,22 @@ class TestHardViolations:
         # Different teachers/groups would be needed for a legal schedule, but the
         # scorer must flag the room clash independently of the other violations.
         schedule = [
-            ScheduleEntry(subject_id="s1", day="Monday", slot=1,
-                          teacher_ids=["t1"], group_ids=["g1"], room_id="r1"),
-            ScheduleEntry(subject_id="s2", day="Monday", slot=1,
-                          teacher_ids=["t2"], group_ids=["g2"], room_id="r1"),
+            ScheduleEntry(
+                subject_id="s1",
+                day="Monday",
+                slot=1,
+                teacher_ids=["t1"],
+                group_ids=["g1"],
+                room_id="r1",
+            ),
+            ScheduleEntry(
+                subject_id="s2",
+                day="Monday",
+                slot=1,
+                teacher_ids=["t2"],
+                group_ids=["g2"],
+                room_id="r1",
+            ),
         ]
         report = score_schedule(problem, schedule)
         assert any("Room 'r1' double-booked" in v for v in report.hard_violations)
@@ -115,9 +124,15 @@ class TestHardViolations:
             teachers=[Teacher(id="t1", name="T")],
             student_groups=[StudentGroup(id="g1", name="G", size=20)],
             subjects=[
-                Subject(id="lab", name="Lab", hours_per_week=1, type="lab",
-                        teacher_ids=["t1"], group_ids=["g1"],
-                        preferred_room_type="lab"),
+                Subject(
+                    id="lab",
+                    name="Lab",
+                    hours_per_week=1,
+                    type="lab",
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    preferred_room_type="lab",
+                ),
             ],
             rooms=[
                 Room(id="lh1", name="Hall", capacity=60, type="lecture"),
@@ -138,9 +153,7 @@ class TestHardViolations:
         roomless = score_schedule(problem, [_entry("lab", "Monday", 1)])
         assert any("no room assigned" in v for v in roomless.hard_violations)
 
-    def test_max_per_day_violation_reported(
-        self, two_subject_problem: TimetableProblem
-    ) -> None:
+    def test_max_per_day_violation_reported(self, two_subject_problem: TimetableProblem) -> None:
         """Two hours of a max_per_day=1 subject on one day is flagged."""
         problem = two_subject_problem.model_copy(deep=True)
         problem.subjects[0].hours_per_week = 2
@@ -168,8 +181,15 @@ class TestHardViolations:
             teachers=[Teacher(id="t1", name="T")],
             student_groups=[StudentGroup(id="g1", name="G", size=20)],
             subjects=[
-                Subject(id="lab", name="Lab", hours_per_week=2, type="lab",
-                        teacher_ids=["t1"], group_ids=["g1"], consecutive_hours=2),
+                Subject(
+                    id="lab",
+                    name="Lab",
+                    hours_per_week=2,
+                    type="lab",
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    consecutive_hours=2,
+                ),
             ],
         )
         split = [_entry("lab", "Monday", 1), _entry("lab", "Monday", 3)]

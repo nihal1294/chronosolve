@@ -1,4 +1,4 @@
-"""Schedule output models — solver results and individual entries."""
+"""Schedule output models - solver results and individual entries."""
 
 from typing import Literal
 

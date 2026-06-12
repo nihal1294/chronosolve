@@ -65,9 +65,7 @@ class TestValidate:
 
 class TestSolve:
     def test_solve_minimal(self, minimal_payload: dict) -> None:
-        response = client.post(
-            "/solve", json={"problem": minimal_payload, "time_limit": 10}
-        )
+        response = client.post("/solve", json={"problem": minimal_payload, "time_limit": 10})
         assert response.status_code == 200
         body = response.json()
         assert body["status"] == "optimal"
@@ -97,9 +95,7 @@ class TestSolveStream:
 
 class TestScore:
     def test_score_solved_schedule(self, minimal_payload: dict) -> None:
-        solved = client.post(
-            "/solve", json={"problem": minimal_payload, "time_limit": 10}
-        ).json()
+        solved = client.post("/solve", json={"problem": minimal_payload, "time_limit": 10}).json()
         response = client.post(
             "/score",
             json={"problem": minimal_payload, "schedule": solved["schedule"]},

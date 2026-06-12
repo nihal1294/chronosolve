@@ -1,4 +1,4 @@
-"""Soft constraint penalties — gap/spread/preference terms and objective assembly."""
+"""Soft constraint penalties - gap/spread/preference terms and objective assembly."""
 
 from ortools.sat.python import cp_model
 
@@ -76,15 +76,12 @@ def add_subject_spread_penalty(
         source = variables.block_starts if use_blocks else variables.assignments
         for day_idx, day in enumerate(problem.time_structure.days):
             sessions = [
-                var for (sid, d, _), var in source.items()
-                if sid == subject.id and d == day_idx
+                var for (sid, d, _), var in source.items() if sid == subject.id and d == day_idx
             ]
             if len(sessions) <= 1:
                 continue
             slots = problem.time_structure.get_slots_for_day(day)
-            extra = positive_part(
-                model, sum(sessions) - 1, slots, f"spread_{subject.id}_{day_idx}"
-            )
+            extra = positive_part(model, sum(sessions) - 1, slots, f"spread_{subject.id}_{day_idx}")
             terms.append(weight * extra)
     return terms
 

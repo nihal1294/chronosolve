@@ -3,15 +3,8 @@
   "configurations": [
     {
       "name": "chronosolve-frontend",
-      "runtimeExecutable": "env",
-      "runtimeArgs": [
-        "VITE_SOLVER_URL=http://127.0.0.1:8765",
-        "npm",
-        "--prefix",
-        "app",
-        "run",
-        "dev"
-      ],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app", "run", "dev"],
       "port": 1420
     }
   ]

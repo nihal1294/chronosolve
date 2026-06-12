@@ -8,6 +8,8 @@ export interface SubjectRow {
   teacherIds: string[];
   groupIds: string[];
   kind: string;
+  /** Block size; 1 = independently schedulable single slots. */
+  consecutiveHours: number;
 }
 
 export interface TeacherRow {
@@ -48,14 +50,11 @@ export interface ProblemEntities {
 
 type Raw = Record<string, unknown>;
 
-const asRecord = (value: unknown): Raw =>
-  typeof value === "object" && value !== null ? (value as Raw) : {};
+const asRecord = (value: unknown): Raw => (typeof value === "object" && value !== null ? (value as Raw) : {});
 
-const asList = (value: unknown): Raw[] =>
-  Array.isArray(value) ? value.map(asRecord) : [];
+const asList = (value: unknown): Raw[] => (Array.isArray(value) ? value.map(asRecord) : []);
 
-const asStr = (value: unknown, fallback = ""): string =>
-  typeof value === "string" ? value : fallback;
+const asStr = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 
 const asNum = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -76,7 +75,7 @@ const unavailableSummary = (value: unknown): string =>
 
 /** Extract sidebar/table summaries from a js-yaml-parsed problem document.
 
-    Tolerates partial or malformed sections — anything unreadable simply
+    Tolerates partial or malformed sections - anything unreadable simply
     yields empty rows so the UI can render while the user is still typing. */
 export function parseEntities(problem: unknown): ProblemEntities {
   const doc = asRecord(problem);
@@ -93,7 +92,8 @@ export function parseEntities(problem: unknown): ProblemEntities {
       hoursPerWeek: asNum(raw.hours_per_week) ?? 0,
       teacherIds: asStrList(raw.teacher_ids),
       groupIds: asStrList(raw.group_ids),
-      kind: asStr(raw.type, "lecture"),
+      kind: asStr(raw.type, "theory"), // mirrors the Pydantic SubjectType default
+      consecutiveHours: asNum(raw.consecutive_hours) ?? 1, // solver treats None as 1
     })),
     teachers: asList(doc.teachers).map((raw) => ({
       ...idAndName(raw),

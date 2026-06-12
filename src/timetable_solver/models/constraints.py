@@ -1,4 +1,4 @@
-"""Constraint configuration — hard (inviolable) and soft (weighted preferences)."""
+"""Constraint configuration - hard (inviolable) and soft (weighted preferences)."""
 
 from pydantic import BaseModel, Field
 

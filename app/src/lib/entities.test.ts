@@ -21,7 +21,7 @@ student_groups:
 rooms:
   - id: r101
     capacity: 50
-    type: lecture
+    type: theory
 subjects:
   - id: math
     name: Mathematics
@@ -31,6 +31,7 @@ subjects:
   - id: sci_lab
     hours_per_week: 2
     type: lab
+    consecutive_hours: 2
     teacher_ids: [t_smith]
     group_ids: [sec_a]
 pre_assignments:
@@ -48,9 +49,10 @@ describe("parseEntities", () => {
       hoursPerWeek: 4,
       teacherIds: ["t_smith"],
       groupIds: ["sec_a"],
-      kind: "lecture",
+      kind: "theory",
+      consecutiveHours: 1, // absent in YAML - mirrors the solver's "or 1" default
     });
-    expect(entities.subjects[1].kind).toBe("lab");
+    expect(entities.subjects[1]).toMatchObject({ kind: "lab", consecutiveHours: 2 });
     expect(entities.teachers[0]).toMatchObject({ name: "Dr. Smith", unavailable: "Friday 5,6" });
     expect(entities.groups[0]).toMatchObject({ name: "Section A", size: 40 });
     expect(entities.days).toEqual(["Monday", "Tuesday"]);

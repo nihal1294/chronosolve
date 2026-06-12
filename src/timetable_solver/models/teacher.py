@@ -1,4 +1,4 @@
-"""Teacher model — availability, preferences, and scheduling constraints."""
+"""Teacher model - availability, preferences, and scheduling constraints."""
 
 from typing import Literal
 
@@ -19,7 +19,7 @@ class TeacherPreferences(BaseModel):
         schedule_style: Whether to cluster ("compact") or spread classes.
         consecutive_hours: Preference for back-to-back classes.
         max_consecutive: Max consecutive teaching hours (when consecutive_hours="prefer").
-        leave_early: Per-day cutoff slot — penalize classes after this slot.
+        leave_early: Per-day cutoff slot - penalize classes after this slot.
     """
 
     slot_preferences: dict[str, dict[int, SlotPreference]] = Field(default_factory=dict)

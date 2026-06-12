@@ -1,138 +1,122 @@
 import { useEffect, useMemo, useState } from "react";
-import { load as parseYaml } from "js-yaml";
-import { solverClient, type ScheduleEntry, type SolveResult } from "./lib/solver-client";
+import { solverClient } from "./lib/solver-client";
 import { parseEntities } from "./lib/entities";
+import { countScheduled } from "./lib/grid";
+import { listEntities, type ProblemDoc } from "./lib/problem-doc";
+import { buildSessionDetails } from "./lib/session-details";
+import { REGENERATED_HINT, useProblemDoc } from "./lib/use-problem-doc";
+import { useEntityEditing } from "./lib/use-entity-editing";
+import { isTauri, useProblemFile } from "./lib/use-problem-file";
+import { useSolveShortcut } from "./lib/use-solve-shortcut";
+import { useSolveState } from "./lib/use-solve-state";
+import { useTimelineLocks } from "./lib/use-timeline-locks";
+import { usePhase } from "./lib/use-phase";
+import { ConstraintsView } from "./components/ConstraintsView";
+import { EmptyHint } from "./components/EmptyHint";
+import { EntityFormDialog } from "./components/EntityFormDialog";
+import { ImportWizard } from "./components/ImportWizard";
 import { Sidebar, type EntityKind, type NavSelection } from "./components/Sidebar";
 import { Toolbar, type WorkspaceView } from "./components/Toolbar";
 import { EditorView } from "./components/EditorView";
 import { TableView } from "./components/TableView";
 import { TimetableView } from "./components/TimetableView";
-import { Inspector, type SessionDetails } from "./components/Inspector";
-import { usePhase } from "./lib/use-phase";
+import { Inspector } from "./components/Inspector";
 
 export default function App() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [yamlText, setYamlText] = useState("");
   const [view, setView] = useState<WorkspaceView>("editor");
+  const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
+  const { result, selected, setSelected, busy, solveError, solve, invalidate } = useSolveState(
+    doc,
+    (solved) => {
+      if (solved.schedule.length > 0) setView("timeline");
+    },
+  );
+
+  // Every problem change makes a displayed schedule stale - except pin/unpin,
+  // which record slots taken from that very schedule, so it stays valid.
+  const editProblem = (next: ProblemDoc) => {
+    applyDocEdit(next);
+    invalidate();
+  };
+  const writeYaml = (text: string) => {
+    editYaml(text);
+    invalidate();
+  };
+
+  const editing = useEntityEditing(doc, editProblem, applyDocEdit);
+  const { fileError, openFile, saveFile } = useProblemFile(yamlText, writeYaml);
+  const [importing, setImporting] = useState(false);
   const [tableEntity, setTableEntity] = useState<EntityKind>("subjects");
-  const [result, setResult] = useState<SolveResult | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [solveError, setSolveError] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<ScheduleEntry | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
-  // Design-system global shortcut: Cmd/Ctrl+Enter = Start Optimization.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-        event.preventDefault();
-        solve();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  });
-
-  const parsed = useMemo(() => {
-    if (!yamlText.trim()) return { problem: null, entities: null, yamlError: null };
-    try {
-      const problem = parseYaml(yamlText);
-      return { problem, entities: parseEntities(problem), yamlError: null };
-    } catch (problem) {
-      const message = problem instanceof Error ? problem.message.split("\n")[0] : String(problem);
-      return { problem: null, entities: null, yamlError: message };
-    }
-  }, [yamlText]);
-  const { problem, entities, yamlError } = parsed;
+  // The parsed doc is canonical: entity summaries derive from it, structured
+  // editors update it, and solving posts it verbatim to the sidecar.
+  const entities = useMemo(() => (doc ? parseEntities(doc) : null), [doc]);
 
   const { phase, elapsed, summary, metrics, unresolved } = usePhase({ busy, solveError, result, entities });
 
-  // A template fetch failure is an editor problem, not a solve outcome —
+  // A template fetch failure is an editor problem, not a solve outcome -
   // it must not light up the Inspector's "Solver Error" card.
   const loadTemplate = async () => {
     setTemplateError(null);
     try {
-      setYamlText(await solverClient.template());
+      writeYaml(await solverClient.template());
     } catch (problem) {
-      setTemplateError(`Template load failed: ${problem instanceof Error ? problem.message : String(problem)}`);
+      setTemplateError(
+        `Template load failed: ${problem instanceof Error ? problem.message : String(problem)}`,
+      );
     }
   };
 
-  const solve = async () => {
-    if (busy || problem === null) return; // button is disabled, but keep the invariant explicit
-    setBusy(true);
-    setSolveError(null);
-    setResult(null);
-    setSelected(null);
-    try {
-      const solved = await solverClient.solve(problem);
-      setResult(solved);
-      if (solved.schedule.length > 0) setView("timeline");
-    } catch (problem) {
-      setSolveError(String(problem));
-    } finally {
-      setBusy(false);
-    }
-  };
+  useSolveShortcut(solve);
 
   const navSelection: NavSelection | null =
-    view === "editor" ? { kind: "editor" } : view === "table" ? { kind: "entity", entity: tableEntity } : null;
+    view === "editor" || view === "constraints"
+      ? { kind: view }
+      : view === "table"
+        ? { kind: "entity", entity: tableEntity }
+        : null;
 
   const onNav = (selection: NavSelection) => {
-    if (selection.kind === "editor") setView("editor");
-    else {
+    if (selection.kind === "entity") {
       setTableEntity(selection.entity);
       setView("table");
-    }
+    } else setView(selection.kind);
   };
 
-  const scheduledCounts = useMemo(() => {
-    if (!result) return null;
-    const counts = new Map<string, number>();
-    for (const entry of result.schedule) counts.set(entry.subject_id, (counts.get(entry.subject_id) ?? 0) + 1);
-    return counts;
-  }, [result]);
+  const schedule = useMemo(() => result?.schedule ?? [], [result]);
+  const scheduledCounts = useMemo(() => (result ? countScheduled(result.schedule) : null), [result]);
+  const locks = useTimelineLocks(entities, schedule, editing.pin, editing.unpin);
 
   const subjectNames = useMemo(
     () => new Map((entities?.subjects ?? []).map((subject) => [subject.id, subject.name])),
     [entities],
   );
 
-  const lockedKeys = useMemo(
-    () =>
-      new Set(
-        (entities?.preAssignments ?? []).map((pin) => `${pin.subjectId}|${pin.day}|${pin.slot}`),
-      ),
+  const roomNames = useMemo(
+    () => new Map((entities?.rooms ?? []).map((room) => [room.id, room.name])),
     [entities],
   );
 
-  const session: SessionDetails | null = useMemo(() => {
+  const session = useMemo(() => {
     if (!selected) return null;
-    const teacherNames = new Map((entities?.teachers ?? []).map((teacher) => [teacher.id, teacher.name]));
-    const roomNames = new Map((entities?.rooms ?? []).map((room) => [room.id, room.name]));
-    const locked = lockedKeys.has(`${selected.subject_id}|${selected.day}|${selected.slot}`);
-    return {
-      code: selected.subject_id,
-      name: subjectNames.get(selected.subject_id) ?? selected.subject_id,
-      day: selected.day,
-      slotLabel: entities?.slotLabels[selected.slot] ?? `Slot ${selected.slot}`,
-      locked,
-      rows: [
-        ["Instructor", selected.teacher_ids.map((id) => teacherNames.get(id) ?? id).join(", ") || "—"],
-        ["Room", selected.room_id ? (roomNames.get(selected.room_id) ?? selected.room_id) : "—"],
-        ["Groups", selected.group_ids.join(", ") || "—"],
-        ["Placement", locked ? "Locked (pre-assigned)" : "Solver assigned"],
-      ],
-    };
-  }, [selected, entities, subjectNames, lockedKeys]);
+    const locked = locks.lockedKeys.has(`${selected.subject_id}|${selected.day}|${selected.slot}`);
+    return buildSessionDetails(selected, entities, locked);
+  }, [selected, entities, locks.lockedKeys]);
 
   return (
     <div className="flex h-full font-sans text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-950">
-      <Sidebar entities={entities} selection={navSelection} onSelect={onNav} />
+      <Sidebar
+        entities={entities}
+        selection={navSelection}
+        onSelect={onNav}
+        onImport={() => setImporting(true)}
+      />
 
       <main className="flex-1 flex flex-col min-w-0">
         <Toolbar
@@ -141,29 +125,47 @@ export default function App() {
           theme={theme}
           onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
           busy={busy}
-          canSolve={problem !== null}
+          canSolve={doc !== null}
           onSolve={solve}
         />
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-neutral-50 dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
           {view === "editor" && (
-            <EditorView yamlText={yamlText} onChange={setYamlText} hint={yamlError ?? templateError} onLoadTemplate={loadTemplate} />
+            <EditorView
+              yamlText={yamlText}
+              onChange={writeYaml}
+              hint={parseError ?? templateError ?? fileError ?? (regenerated ? REGENERATED_HINT : null)}
+              onLoadTemplate={loadTemplate}
+              fileActions={isTauri() ? { onOpen: openFile, onSave: saveFile } : null}
+            />
           )}
+          {view === "constraints" && <ConstraintsView doc={doc} onEdit={editProblem} />}
           {view === "table" &&
             (entities ? (
-              <TableView entities={entities} entity={tableEntity} scheduledCounts={scheduledCounts} />
+              <TableView
+                entities={entities}
+                entity={tableEntity}
+                scheduledCounts={scheduledCounts}
+                onAdd={() => editing.openAdd(tableEntity)}
+                onEdit={(id) => editing.openEdit(tableEntity, id)}
+                onDelete={(id) => editing.remove(tableEntity, id)}
+              />
             ) : (
-              <EmptyHint label="No problem loaded — define one in the Problem Definition editor first." />
+              <EmptyHint label="No problem loaded - define one in the Problem Definition editor first." />
             ))}
           {view === "timeline" && (
             <TimetableView
-              schedule={result?.schedule ?? []}
+              schedule={schedule}
               days={entities?.days ?? []}
               slotCount={entities?.slotsPerDay ?? 0}
               slotLabels={entities?.slotLabels ?? {}}
               subjectNames={subjectNames}
-              lockedKeys={lockedKeys}
+              roomNames={roomNames}
+              lockedKeys={locks.lockedKeys}
               selected={selected}
               onSelect={setSelected}
+              onPin={locks.pinBlock}
+              onUnpin={locks.unpinBlock}
+              onEditSubject={(id) => editing.openEdit("subjects", id)}
             />
           )}
         </div>
@@ -177,14 +179,18 @@ export default function App() {
         metrics={metrics}
         session={session}
       />
-    </div>
-  );
-}
 
-function EmptyHint({ label }: { label: string }) {
-  return (
-    <div className="flex-1 flex items-center justify-center p-12">
-      <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center max-w-sm">{label}</p>
+      {importing && <ImportWizard doc={doc} onApply={editProblem} onClose={() => setImporting(false)} />}
+      {editing.target && doc && (
+        <EntityFormDialog
+          section={editing.target.section}
+          initial={editing.target.initial}
+          entities={entities}
+          existingIds={listEntities(doc, editing.target.section).map((entity) => String(entity.id))}
+          onSave={editing.save}
+          onClose={editing.close}
+        />
+      )}
     </div>
   );
 }

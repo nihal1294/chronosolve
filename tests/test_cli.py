@@ -22,8 +22,16 @@ class TestSolveCommand:
         out = tmp_path / "result.json"
         result = runner.invoke(
             app,
-            ["solve", str(fixtures_dir / "small_school.yaml"),
-             "-o", str(out), "--format", "json", "--time-limit", "30"],
+            [
+                "solve",
+                str(fixtures_dir / "small_school.yaml"),
+                "-o",
+                str(out),
+                "--format",
+                "json",
+                "--time-limit",
+                "30",
+            ],
         )
         assert result.exit_code == 0
         payload = json.loads(out.read_text())
@@ -37,13 +45,24 @@ class TestSolveCommand:
     def test_solve_infeasible_input_fails_validation(self, tmp_path: Path) -> None:
         """A group needing more hours than exist exits 1 before solving."""
         bad = tmp_path / "bad.yaml"
-        bad.write_text(yaml.safe_dump({
-            "time_structure": {"days": ["Monday"], "slots_per_day": 2},
-            "teachers": [{"id": "t1", "name": "T"}],
-            "student_groups": [{"id": "g1", "name": "G", "size": 10}],
-            "subjects": [{"id": "s1", "name": "S", "hours_per_week": 5,
-                          "teacher_ids": ["t1"], "group_ids": ["g1"]}],
-        }))
+        bad.write_text(
+            yaml.safe_dump(
+                {
+                    "time_structure": {"days": ["Monday"], "slots_per_day": 2},
+                    "teachers": [{"id": "t1", "name": "T"}],
+                    "student_groups": [{"id": "g1", "name": "G", "size": 10}],
+                    "subjects": [
+                        {
+                            "id": "s1",
+                            "name": "S",
+                            "hours_per_week": 5,
+                            "teacher_ids": ["t1"],
+                            "group_ids": ["g1"],
+                        }
+                    ],
+                }
+            )
+        )
         result = runner.invoke(app, ["solve", str(bad)])
         assert result.exit_code == 1
 
@@ -68,18 +87,14 @@ class TestScoreCommand:
             app,
             ["solve", str(fixtures_dir / "minimal.yaml"), "-o", str(out), "-f", "json"],
         )
-        result = runner.invoke(
-            app, ["score", str(fixtures_dir / "minimal.yaml"), str(out)]
-        )
+        result = runner.invoke(app, ["score", str(fixtures_dir / "minimal.yaml"), str(out)])
         assert result.exit_code == 0
         assert "Overall score" in result.output
 
     def test_score_unreadable_schedule_fails(self, fixtures_dir: Path, tmp_path: Path) -> None:
         bad = tmp_path / "junk.json"
         bad.write_text("not json")
-        result = runner.invoke(
-            app, ["score", str(fixtures_dir / "minimal.yaml"), str(bad)]
-        )
+        result = runner.invoke(app, ["score", str(fixtures_dir / "minimal.yaml"), str(bad)])
         assert result.exit_code == 1
 
 

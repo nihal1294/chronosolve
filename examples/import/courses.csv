@@ -1,0 +1,29 @@
+Course_ID,Course_Title,Abbrev,Hours_Per_Week,Is_Lab,Instructor_Name,Section
+MATHS-A,Generating Functions and Transform Techniques Combinatorics,Maths,4,False,Maths Faculty,sec_a
+DSD-A,Digital System Design,DSD,4,False,Raghunandan K R,sec_a
+DMS-A,Discrete Mathematical Stuctures & Graph Theory,DMS,4,False,Uday Kumar Reddy,sec_a
+CO-A,Computer Organization and Design,CO,4,False,Pradeep Nazareth,sec_a
+DS-A,Data Structures,DS,4,False,Sannidhan M S,sec_a
+DC-A,Data Communication,DC,4,False,Uday Kumar Shenoy,sec_a
+DS-DSD-LAB-A,Data Structures | Digital System Design Lab,DS | DSD Lab,6,True,"Sannidhan M S, Raghunandan K R",sec_a
+MATHS-B,Generating Functions and Transform Techniques Combinatorics,Maths,4,False,Maths Faculty,sec_b
+DSD-B,Digital System Design,DSD,4,False,Sannidhan M S,sec_b
+DMS-B,Discrete Mathematical Stuctures & Graph Theory,DMS,4,False,Minu P Abraham,sec_b
+CO-B,Computer Organization and Design,CO,4,False,Raghunandan K R,sec_b
+DS-B,Data Structures,DS,4,False,Asmitha Poojari,sec_b
+DC-B,Data Communication,DC,4,False,Radhakrishna Dodmane,sec_b
+DS-DSD-LAB-B,Data Structures | Digital System Design Lab,DS | DSD Lab,6,True,"Asmitha Poojari, Sannidhan M S",sec_b
+MATHS-C,Generating Functions and Transform Techniques Combinatorics,Maths,4,False,Maths Faculty,sec_c
+DSD-C,Digital System Design,DSD,4,False,Keerthana B C,sec_c
+DMS-C,Discrete Mathematical Stuctures & Graph Theory,DMS,4,False,Ravi B,sec_c
+CO-C,Computer Organization and Design,CO,4,False,Anisha P Rodrigues,sec_c
+DS-C,Data Structures,DS,4,False,Ramesha Shettigar,sec_c
+DC-C,Data Communication,DC,4,False,Puneeth R P,sec_c
+DS-DSD-LAB-C,Data Structures | Digital System Design Lab,DS | DSD Lab,6,True,"Ramesha Shettigar, Keerthana B C",sec_c
+MATHS-D,Generating Functions and Transform Techniques Combinatorics,Maths,4,False,Maths Faculty,sec_d
+DSD-D,Digital System Design,DSD,4,False,Pradeep Nazareth,sec_d
+DMS-D,Discrete Mathematical Stuctures & Graph Theory,DMS,4,False,Chandra Naik,sec_d
+CO-D,Computer Organization and Design,CO,4,False,Uday Kumar Shenoy,sec_d
+DS-D,Data Structures,DS,4,False,Shruthi,sec_d
+DC-D,Data Communication,DC,4,False,Krishna Prasad Rao,sec_d
+DS-DSD-LAB-D,Data Structures | Digital System Design Lab,DS | DSD Lab,6,True,"Shruthi, Pradeep Nazareth",sec_d

@@ -1,0 +1,7 @@
+Room_ID,Room_Name,Capacity,Room_Type
+lh_1,Lecture Hall 1,70,lecture
+lh_2,Lecture Hall 2,70,lecture
+lh_3,Lecture Hall 3,70,lecture
+lh_4,Lecture Hall 4,70,lecture
+cs_lab_1,CS Lab 1,70,lab
+cs_lab_2,CS Lab 2,70,lab
