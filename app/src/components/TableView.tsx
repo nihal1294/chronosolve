@@ -56,7 +56,8 @@ export function TableView({ entities, entity, scheduledCounts, onAdd, onEdit, on
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<MenuState | null>(null);
   const { title, singular, columns } = LABELS[entity];
-  const rows = buildRows(entities, entity, scheduledCounts).filter((row) =>
+  const allRows = buildRows(entities, entity, scheduledCounts);
+  const rows = allRows.filter((row) =>
     `${row.id} ${row.name}`.toLowerCase().includes(query.trim().toLowerCase()),
   );
   const showStatus = entity === "subjects" && scheduledCounts !== null;
@@ -162,6 +163,7 @@ export function TableView({ entities, entity, scheduledCounts, onAdd, onEdit, on
                   <td className="px-2 py-3 text-right">
                     <button
                       title="Row actions"
+                      aria-label="Row actions"
                       onClick={(event) => {
                         const anchor = event.currentTarget.getBoundingClientRect();
                         setMenu(rowMenu(row, anchor.right - 224, anchor.bottom + 4));
@@ -178,7 +180,7 @@ export function TableView({ entities, entity, scheduledCounts, onAdd, onEdit, on
         </div>
 
         <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-950">
-          Showing {rows.length} of {buildRows(entities, entity, scheduledCounts).length} {title}
+          Showing {rows.length} of {allRows.length} {title}
         </div>
       </div>
 

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { solverClient, type ScheduleEntry, type SolveResult } from "./lib/solver-client";
+import { solverClient } from "./lib/solver-client";
 import { parseEntities } from "./lib/entities";
 import { countScheduled } from "./lib/grid";
-import { listEntities } from "./lib/problem-doc";
+import { listEntities, type ProblemDoc } from "./lib/problem-doc";
 import { buildSessionDetails } from "./lib/session-details";
 import { REGENERATED_HINT, useProblemDoc } from "./lib/use-problem-doc";
 import { useEntityEditing } from "./lib/use-entity-editing";
 import { isTauri, useProblemFile } from "./lib/use-problem-file";
 import { useSolveShortcut } from "./lib/use-solve-shortcut";
+import { useSolveState } from "./lib/use-solve-state";
 import { usePhase } from "./lib/use-phase";
 import { ConstraintsView } from "./components/ConstraintsView";
 import { EmptyHint } from "./components/EmptyHint";
@@ -22,17 +23,31 @@ import { Inspector } from "./components/Inspector";
 
 export default function App() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
-  const editing = useEntityEditing(doc, applyDocEdit);
-  const { fileError, openFile, saveFile } = useProblemFile(yamlText, editYaml);
-  const [importing, setImporting] = useState(false);
   const [view, setView] = useState<WorkspaceView>("editor");
+  const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
+  const { result, selected, setSelected, busy, solveError, solve, invalidate } = useSolveState(
+    doc,
+    (solved) => {
+      if (solved.schedule.length > 0) setView("timeline");
+    },
+  );
+
+  // Every problem change makes a displayed schedule stale - except pin/unpin,
+  // which record slots taken from that very schedule, so it stays valid.
+  const editProblem = (next: ProblemDoc) => {
+    applyDocEdit(next);
+    invalidate();
+  };
+  const writeYaml = (text: string) => {
+    editYaml(text);
+    invalidate();
+  };
+
+  const editing = useEntityEditing(doc, editProblem, applyDocEdit);
+  const { fileError, openFile, saveFile } = useProblemFile(yamlText, writeYaml);
+  const [importing, setImporting] = useState(false);
   const [tableEntity, setTableEntity] = useState<EntityKind>("subjects");
-  const [result, setResult] = useState<SolveResult | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [solveError, setSolveError] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<ScheduleEntry | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -49,28 +64,11 @@ export default function App() {
   const loadTemplate = async () => {
     setTemplateError(null);
     try {
-      editYaml(await solverClient.template());
+      writeYaml(await solverClient.template());
     } catch (problem) {
       setTemplateError(
         `Template load failed: ${problem instanceof Error ? problem.message : String(problem)}`,
       );
-    }
-  };
-
-  const solve = async () => {
-    if (busy || doc === null) return; // button is disabled, but keep the invariant explicit
-    setBusy(true);
-    setSolveError(null);
-    setResult(null);
-    setSelected(null);
-    try {
-      const solved = await solverClient.solve(doc);
-      setResult(solved);
-      if (solved.schedule.length > 0) setView("timeline");
-    } catch (problem) {
-      setSolveError(String(problem));
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -136,13 +134,13 @@ export default function App() {
           {view === "editor" && (
             <EditorView
               yamlText={yamlText}
-              onChange={editYaml}
+              onChange={writeYaml}
               hint={parseError ?? templateError ?? fileError ?? (regenerated ? REGENERATED_HINT : null)}
               onLoadTemplate={loadTemplate}
               fileActions={isTauri() ? { onOpen: openFile, onSave: saveFile } : null}
             />
           )}
-          {view === "constraints" && <ConstraintsView doc={doc} onEdit={applyDocEdit} />}
+          {view === "constraints" && <ConstraintsView doc={doc} onEdit={editProblem} />}
           {view === "table" &&
             (entities ? (
               <TableView
@@ -184,7 +182,7 @@ export default function App() {
         session={session}
       />
 
-      {importing && <ImportWizard doc={doc} onApply={applyDocEdit} onClose={() => setImporting(false)} />}
+      {importing && <ImportWizard doc={doc} onApply={editProblem} onClose={() => setImporting(false)} />}
       {editing.target && doc && (
         <EntityFormDialog
           section={editing.target.section}

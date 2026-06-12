@@ -1,11 +1,12 @@
 import { useState } from "react";
 import Papa from "papaparse";
-import { AlertCircle, CheckCircle2, FileSpreadsheet, Loader2, X } from "lucide-react";
+import { FileSpreadsheet, X } from "lucide-react";
 import { applyMapping, autoMatch, missingRequired } from "../lib/csv-import";
 import { upsertEntity, type Entity, type EntitySection, type ProblemDoc } from "../lib/problem-doc";
 import { solverClient, type ValidationReport } from "../lib/solver-client";
 import { INPUT_CLASS } from "./EntityFieldInput";
 import { ImportMappingGrid } from "./ImportMappingGrid";
+import { ImportValidationSummary } from "./ImportValidationSummary";
 import { WizardFooter, WizardStepper } from "./ImportWizardChrome";
 
 const SECTIONS: { value: EntitySection; label: string }[] = [
@@ -86,6 +87,7 @@ export function ImportWizard({ doc, onApply, onClose }: ImportWizardProps) {
           <button
             onClick={onClose}
             title="Close"
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-neutral-500 dark:text-neutral-400 transition-colors"
           >
             <X size={16} />
@@ -147,7 +149,13 @@ export function ImportWizard({ doc, onApply, onClose }: ImportWizardProps) {
           </div>
         )}
 
-        {step === 3 && staged && <ValidationSummary staged={staged} />}
+        {step === 3 && staged && (
+          <ImportValidationSummary
+            imported={staged.imported.length}
+            rowErrors={staged.rowErrors}
+            report={staged.report}
+          />
+        )}
 
         <WizardFooter
           step={step}
@@ -162,41 +170,5 @@ export function ImportWizard({ doc, onApply, onClose }: ImportWizardProps) {
         />
       </div>
     </div>
-  );
-}
-
-function ValidationSummary({ staged }: { staged: StagedImport }) {
-  const { imported, rowErrors, report } = staged;
-  return (
-    <div className="px-6 py-5 border-t border-neutral-200 dark:border-neutral-800 flex flex-col gap-2 text-sm">
-      <p>
-        <span className="font-semibold">{imported.length}</span> row{imported.length === 1 ? "" : "s"}{" "}
-        converted{rowErrors.length > 0 && `, ${rowErrors.length} skipped`}.
-      </p>
-      {report === null ? (
-        <p className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">
-          <Loader2 size={14} className="animate-spin" /> Validating against the solver…
-        </p>
-      ) : (
-        [...rowErrors, ...report.errors].map((message) => <Issue key={message} message={message} error />)
-      )}
-      {report?.warnings.map((message) => (
-        <Issue key={message} message={message} />
-      ))}
-      {report !== null && report.errors.length === 0 && rowErrors.length === 0 && (
-        <p className="flex items-center gap-2 text-teal-600 dark:text-teal-400 font-medium">
-          <CheckCircle2 size={14} /> No validation issues - ready to import.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Issue({ message, error = false }: { message: string; error?: boolean }) {
-  const tone = error ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-400";
-  return (
-    <p className={`flex items-start gap-2 text-xs ${tone}`}>
-      <AlertCircle size={14} className="shrink-0 mt-0.5" /> {message}
-    </p>
   );
 }

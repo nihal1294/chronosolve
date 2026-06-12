@@ -67,6 +67,7 @@ export function EntityFormDialog(props: EntityFormDialogProps) {
           <button
             onClick={onClose}
             title="Close"
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-neutral-500 dark:text-neutral-400 transition-colors"
           >
             <X size={16} />

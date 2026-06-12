@@ -25,10 +25,16 @@ const toPin = (entry: ScheduleEntry): PinSlot => ({
   slot: entry.slot,
 });
 
-/** Dialog target + every doc edit the table and timeline trigger: add/edit/
-    delete entities, pin/unpin blocks. All writes flow through applyDocEdit
-    so the YAML regenerates from the canonical doc. */
-export function useEntityEditing(doc: ProblemDoc | null, applyDocEdit: (next: ProblemDoc) => void) {
+/** Dialog target + every doc edit the table and timeline trigger. Two write
+    channels because they differ in what they do to a displayed schedule:
+    applyEdit (add/edit/delete) changes the problem, so the caller invalidates
+    the solve result; applyPin records a slot from the shown schedule, which
+    keeps that schedule valid, so the result survives. */
+export function useEntityEditing(
+  doc: ProblemDoc | null,
+  applyEdit: (next: ProblemDoc) => void,
+  applyPin: (next: ProblemDoc) => void,
+) {
   const [target, setTarget] = useState<EditorTarget | null>(null);
 
   const openAdd = (kind: EntityKind) => setTarget({ section: sectionForKind(kind), initial: null });
@@ -43,19 +49,19 @@ export function useEntityEditing(doc: ProblemDoc | null, applyDocEdit: (next: Pr
   const close = () => setTarget(null);
 
   const save = (entity: Entity) => {
-    if (doc && target) applyDocEdit(upsertEntity(doc, target.section, entity));
+    if (doc && target) applyEdit(upsertEntity(doc, target.section, entity));
   };
 
   const remove = (kind: EntityKind, id: string) => {
-    if (doc) applyDocEdit(removeEntity(doc, sectionForKind(kind), id));
+    if (doc) applyEdit(removeEntity(doc, sectionForKind(kind), id));
   };
 
   const pin = (entry: ScheduleEntry) => {
-    if (doc) applyDocEdit(pinAssignment(doc, toPin(entry)));
+    if (doc) applyPin(pinAssignment(doc, toPin(entry)));
   };
 
   const unpin = (entry: ScheduleEntry) => {
-    if (doc) applyDocEdit(unpinAssignment(doc, toPin(entry)));
+    if (doc) applyPin(unpinAssignment(doc, toPin(entry)));
   };
 
   return { target, openAdd, openEdit, close, save, remove, pin, unpin };
