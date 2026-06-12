@@ -9,6 +9,7 @@ import { useEntityEditing } from "./lib/use-entity-editing";
 import { isTauri, useProblemFile } from "./lib/use-problem-file";
 import { useSolveShortcut } from "./lib/use-solve-shortcut";
 import { useSolveState } from "./lib/use-solve-state";
+import { useTimelineLocks } from "./lib/use-timeline-locks";
 import { usePhase } from "./lib/use-phase";
 import { ConstraintsView } from "./components/ConstraintsView";
 import { EmptyHint } from "./components/EmptyHint";
@@ -88,7 +89,9 @@ export default function App() {
     } else setView(selection.kind);
   };
 
+  const schedule = useMemo(() => result?.schedule ?? [], [result]);
   const scheduledCounts = useMemo(() => (result ? countScheduled(result.schedule) : null), [result]);
+  const locks = useTimelineLocks(entities, schedule, editing.pin, editing.unpin);
 
   const subjectNames = useMemo(
     () => new Map((entities?.subjects ?? []).map((subject) => [subject.id, subject.name])),
@@ -100,16 +103,11 @@ export default function App() {
     [entities],
   );
 
-  const lockedKeys = useMemo(
-    () => new Set((entities?.preAssignments ?? []).map((pin) => `${pin.subjectId}|${pin.day}|${pin.slot}`)),
-    [entities],
-  );
-
   const session = useMemo(() => {
     if (!selected) return null;
-    const locked = lockedKeys.has(`${selected.subject_id}|${selected.day}|${selected.slot}`);
+    const locked = locks.lockedKeys.has(`${selected.subject_id}|${selected.day}|${selected.slot}`);
     return buildSessionDetails(selected, entities, locked);
-  }, [selected, entities, lockedKeys]);
+  }, [selected, entities, locks.lockedKeys]);
 
   return (
     <div className="flex h-full font-sans text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-950">
@@ -156,17 +154,17 @@ export default function App() {
             ))}
           {view === "timeline" && (
             <TimetableView
-              schedule={result?.schedule ?? []}
+              schedule={schedule}
               days={entities?.days ?? []}
               slotCount={entities?.slotsPerDay ?? 0}
               slotLabels={entities?.slotLabels ?? {}}
               subjectNames={subjectNames}
               roomNames={roomNames}
-              lockedKeys={lockedKeys}
+              lockedKeys={locks.lockedKeys}
               selected={selected}
               onSelect={setSelected}
-              onPin={editing.pin}
-              onUnpin={editing.unpin}
+              onPin={locks.pinBlock}
+              onUnpin={locks.unpinBlock}
               onEditSubject={(id) => editing.openEdit("subjects", id)}
             />
           )}

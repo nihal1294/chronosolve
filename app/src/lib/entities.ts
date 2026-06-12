@@ -8,6 +8,8 @@ export interface SubjectRow {
   teacherIds: string[];
   groupIds: string[];
   kind: string;
+  /** Block size; 1 = independently schedulable single slots. */
+  consecutiveHours: number;
 }
 
 export interface TeacherRow {
@@ -91,6 +93,7 @@ export function parseEntities(problem: unknown): ProblemEntities {
       teacherIds: asStrList(raw.teacher_ids),
       groupIds: asStrList(raw.group_ids),
       kind: asStr(raw.type, "theory"), // mirrors the Pydantic SubjectType default
+      consecutiveHours: asNum(raw.consecutive_hours) ?? 1, // solver treats None as 1
     })),
     teachers: asList(doc.teachers).map((raw) => ({
       ...idAndName(raw),
