@@ -1,10 +1,10 @@
 import { Loader2, Moon, Play, Sun } from "lucide-react";
 
-export type WorkspaceView = "editor" | "constraints" | "table" | "timeline";
+export type WorkspaceView = "editor" | "constraints" | "table" | "timeline" | "analytics";
 
 interface ToolbarProps {
   view: WorkspaceView;
-  onView: (view: "table" | "timeline") => void;
+  onView: (view: "table" | "timeline" | "analytics") => void;
   theme: "dark" | "light";
   onToggleTheme: () => void;
   busy: boolean;
@@ -29,6 +29,9 @@ export function Toolbar({ view, onView, theme, onToggleTheme, busy, canSolve, on
         </button>
         <button className={pillClass(view === "table")} onClick={() => onView("table")}>
           Table View
+        </button>
+        <button className={pillClass(view === "analytics")} onClick={() => onView("analytics")}>
+          Analytics
         </button>
       </div>
 

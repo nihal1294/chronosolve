@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { SolveResult } from "./solver-client";
+import type { SolveProgress, SolveResult } from "./solver-client";
 import type { ProblemEntities } from "./entities";
 import type { SolverPhase } from "../components/SolverStateCard";
 
@@ -8,6 +8,8 @@ interface PhaseInputs {
   solveError: string | null;
   result: SolveResult | null;
   entities: ProblemEntities | null;
+  /** Live stream snapshot while solving; null before the first solution. */
+  progress: SolveProgress | null;
 }
 
 interface PhaseState {
@@ -66,20 +68,36 @@ export function usePhase(inputs: PhaseInputs): PhaseState {
   }, [inputs.busy]);
 
   const phase = derivePhase(inputs);
-  const { result } = inputs;
+  const { result, progress } = inputs;
   const succeeded = phase === "optimal" || phase === "feasible";
 
   return {
     phase,
     elapsed,
     summary: buildSummary(phase, inputs),
-    metrics:
-      succeeded && result
-        ? [
-            ["Quality Score", result.quality_score !== null ? String(result.quality_score) : "-"],
-            ["Solve Time", `${result.solve_time_seconds.toFixed(2)}s`],
-          ]
-        : null,
+    metrics: buildMetrics(phase, succeeded, result, progress),
     unresolved: phase === "infeasible" || phase === "timeout" ? (result?.unresolved ?? []) : [],
   };
+}
+
+/** Solving shows the live stream; success shows the final result numbers. */
+function buildMetrics(
+  phase: SolverPhase,
+  succeeded: boolean,
+  result: SolveResult | null,
+  progress: SolveProgress | null,
+): [string, string][] | null {
+  if (phase === "solving" && progress) {
+    return [
+      ["Best Objective", String(progress.objective)],
+      ["Solutions Found", String(progress.solution_count)],
+    ];
+  }
+  if (succeeded && result) {
+    return [
+      ["Quality Score", result.quality_score !== null ? String(result.quality_score) : "-"],
+      ["Solve Time", `${result.solve_time_seconds.toFixed(2)}s`],
+    ];
+  }
+  return null;
 }
