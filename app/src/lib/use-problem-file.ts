@@ -2,10 +2,11 @@ import { useState } from "react";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 
-const FILTERS = [{ name: "Timetable problem", extensions: ["yaml", "yml", "json"] }];
+// isTauri lives in env.ts now; re-export so existing callers of this module
+// keep working while export utilities import it from env directly.
+export { isTauri } from "./env";
 
-/** Native dialogs need the Tauri shell; the browser preview rig has none. */
-export const isTauri = (): boolean => "__TAURI_INTERNALS__" in window;
+const FILTERS = [{ name: "Timetable problem", extensions: ["yaml", "yml", "json"] }];
 
 const describe = (problem: unknown): string => (problem instanceof Error ? problem.message : String(problem));
 

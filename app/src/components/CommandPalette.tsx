@@ -79,15 +79,18 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
                 <div className="text-[10px] font-bold px-2 py-1 uppercase text-neutral-500 dark:text-neutral-400">
                   {group}
                 </div>
-                {items.map((command) => (
-                  <PaletteRow
-                    key={command.id}
-                    command={command}
-                    active={matches.indexOf(command) === activeIndex}
-                    onHover={() => setActive(matches.indexOf(command))}
-                    onRun={() => run(command)}
-                  />
-                ))}
+                {items.map((command) => {
+                  const matchIndex = matches.indexOf(command);
+                  return (
+                    <PaletteRow
+                      key={command.id}
+                      command={command}
+                      active={matchIndex === activeIndex}
+                      onHover={() => setActive(matchIndex)}
+                      onRun={() => run(command)}
+                    />
+                  );
+                })}
               </div>
             );
           })}

@@ -1,22 +1,21 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import type { Command } from "../lib/use-commands";
 import { Kbd } from "./Kbd";
 
-const GROUPS: { title: string; rows: { label: string; keys: string[] }[] }[] = [
-  { title: "Application", rows: [{ label: "Command Palette", keys: ["⌘", "K"] }] },
-  {
-    title: "Solver Control",
-    rows: [
-      { label: "Start Optimization", keys: ["⌘", "Enter"] },
-      { label: "Halt / Cancel Solver", keys: ["⌘", "."] },
-    ],
-  },
-  { title: "Timeline Grid", rows: [{ label: "Lock / Unlock Selected Block", keys: ["L"] }] },
-];
+// ⌘K toggles the palette itself, so the command center handles it directly
+// rather than as a registry Command - it's the one binding listed statically.
+const APP_ROWS: { label: string; keys: string[] }[] = [{ label: "Command Palette", keys: ["⌘", "K"] }];
 
-/** Global-shortcuts cheat sheet (Command Palette spec) - only bindings that
-    actually exist in the app are listed. */
-export function ShortcutSheet({ onClose }: { onClose: () => void }) {
+interface ShortcutSheetProps {
+  commands: Command[];
+  onClose: () => void;
+}
+
+/** Global-shortcuts cheat sheet (Command Palette spec). Every binding except
+    ⌘K is derived from the command registry, so adding a shortcut there shows
+    up here automatically - the chips and the sheet can't drift apart. */
+export function ShortcutSheet({ commands, onClose }: ShortcutSheetProps) {
   // The sheet has no focusable input to catch Escape (unlike the palette), so
   // close it from a window listener to match every other dialog's behaviour.
   useEffect(() => {
@@ -26,6 +25,12 @@ export function ShortcutSheet({ onClose }: { onClose: () => void }) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
+
+  const bound = commands.filter((command) => command.shortcut && command.keys);
+  const groups: { title: string; rows: { label: string; keys: string[] }[] }[] = [
+    { title: "Application", rows: APP_ROWS },
+    { title: "Commands", rows: bound.map((command) => ({ label: command.label, keys: command.keys! })) },
+  ];
 
   return (
     <div
@@ -48,7 +53,7 @@ export function ShortcutSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="space-y-6">
-          {GROUPS.map((group) => (
+          {groups.map((group) => (
             <div key={group.title}>
               <div className="text-xs font-bold border-b border-neutral-200 dark:border-neutral-800 pb-2 mb-3">
                 {group.title}

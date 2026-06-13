@@ -44,7 +44,7 @@ const groupValues = (doc: ProblemDoc, group: "hard" | "soft"): Record<string, un
 };
 
 const ROW_CLASS =
-  "flex items-center gap-3 p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/50";
+  "flex flex-wrap items-center gap-x-3 gap-y-2 p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/50";
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (next: boolean) => void }) {
   return (
@@ -75,7 +75,7 @@ function ConstraintCard(props: {
   return (
     <section className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
       <header
-        className={`px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between ${tone.header}`}
+        className={`px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-2 ${tone.header}`}
       >
         <div className="flex items-center gap-2">
           <Icon size={16} className={tone.icon} />
@@ -136,7 +136,7 @@ export function ConstraintsView({ doc, onEdit }: ConstraintsViewProps) {
           {SOFT_WEIGHTS.map((pref) => (
             <div key={pref.key} className={ROW_CLASS}>
               <span className="text-sm">{pref.label}</span>
-              <div className="ml-auto flex items-center gap-2 text-xs">
+              <div className="ml-auto flex shrink-0 items-center gap-2 text-xs">
                 <span className="text-neutral-500 dark:text-neutral-400">Penalty Weight:</span>
                 <input
                   type="number"

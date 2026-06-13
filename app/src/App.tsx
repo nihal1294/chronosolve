@@ -110,7 +110,6 @@ export default function App() {
         onSelect={nav.onNav}
         onImport={() => setImporting(true)}
       />
-
       <main className="flex-1 flex flex-col min-w-0">
         <Toolbar
           view={view}
@@ -181,9 +180,10 @@ export default function App() {
         metrics={metrics}
         session={session}
       />
-
       {palette.paletteOpen && <CommandPalette commands={palette.commands} onClose={palette.closePalette} />}
-      {palette.shortcutsOpen && <ShortcutSheet onClose={palette.closeShortcuts} />}
+      {palette.shortcutsOpen && (
+        <ShortcutSheet commands={palette.commands} onClose={palette.closeShortcuts} />
+      )}
       {importing && <ImportWizard doc={doc} onApply={editProblem} onClose={() => setImporting(false)} />}
       {editing.target && doc && (
         <EntityFormDialog

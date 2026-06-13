@@ -91,8 +91,8 @@ export function TableView({ entities, entity, scheduledCounts, onAdd, onEdit, on
   return (
     <div className="flex-1 p-6 min-h-0 overflow-auto">
       <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-sm flex flex-col">
-        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-4">
-          <div className="relative w-64">
+        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-2">
+          <div className="relative w-64 max-w-full">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400"

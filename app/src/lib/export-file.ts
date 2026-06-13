@@ -1,6 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { isTauri } from "./use-problem-file";
+import { isTauri } from "./env";
 import type { ScheduleEntry } from "./solver-client";
 
 /** RFC 4180: quote a field when it contains a delimiter, quote, or newline. */

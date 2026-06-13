@@ -43,6 +43,8 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
           setProgress(snapshot);
         },
       });
+      // Order is load-bearing: publish the *previous* solve's objective as the
+      // baseline before overwriting the ref with this solve's final objective.
       setLastObjective(completedObjectiveRef.current);
       completedObjectiveRef.current = finalObjective;
       setResult(solved);

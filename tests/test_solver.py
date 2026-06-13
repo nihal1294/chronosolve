@@ -38,6 +38,24 @@ class TestFixtureSolves:
         assert len(events) >= 1
         assert events[-1].solution_count == len(events)
 
+    def test_cancel_check_halts_search_early(self, fixtures_dir: Path) -> None:
+        # A department-scale problem improves its objective over several
+        # incumbents, so an always-true cancel_check must stop the search at
+        # the first one (proving StopSearch is wired, not run-to-time-limit).
+        problem = load_problem(fixtures_dir / "vtu_department.yaml")
+        baseline: list[object] = []
+        solve(problem, time_limit=10, on_progress=baseline.append)
+        assert len(baseline) > 1, (
+            "fixture must yield multiple incumbents for this test to be meaningful"
+        )
+
+        cancelled: list[object] = []
+        result = solve(
+            problem, time_limit=10, on_progress=cancelled.append, cancel_check=lambda: True
+        )
+        assert len(cancelled) == 1  # stopped right after the first incumbent
+        assert result.schedule  # ...which is still a usable schedule
+
 
 class TestPreAssignments:
     def test_pre_assigned_slot_respected(self, fixtures_dir: Path) -> None:

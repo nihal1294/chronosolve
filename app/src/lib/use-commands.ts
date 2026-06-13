@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   BarChart3,
   Database,
@@ -172,7 +172,24 @@ const isEditable = (target: EventTarget | null): boolean =>
 export function useCommandCenter(deps: CommandDeps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const commands = buildCommands(deps, () => setShortcutsOpen(true));
+  // `deps` is a fresh object each render; memoize over the fields buildCommands
+  // actually reads so the registry (and the stateRef sync below) is stable.
+  const commands = useMemo(
+    () => buildCommands(deps, () => setShortcutsOpen(true)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      deps.canSolve,
+      deps.busy,
+      deps.solve,
+      deps.cancel,
+      deps.loadTemplate,
+      deps.openImport,
+      deps.fileActions,
+      deps.goToView,
+      deps.goToTable,
+      deps.toggleSelectedLock,
+    ],
+  );
 
   const stateRef = useRef({ commands, paletteOpen });
   useEffect(() => {

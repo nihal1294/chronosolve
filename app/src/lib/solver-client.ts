@@ -140,12 +140,17 @@ export const solverClient = {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      parser.feed(decoder.decode(value, { stream: true }));
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        parser.feed(decoder.decode(value, { stream: true }));
+      }
+      parser.flush();
+    } finally {
+      // Release the stream even if a malformed payload makes parser.feed throw.
+      reader.cancel().catch(() => {});
     }
-    parser.flush();
 
     if (failure !== null) throw new Error(`Solve failed: ${failure}`);
     if (result === null) throw new Error("Solve stream ended without a result");
