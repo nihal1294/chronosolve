@@ -27,10 +27,14 @@ export function useTimelineLocks(
   }, [entities, schedule, blockSizes]);
 
   const toAnchor = (entry: ScheduleEntry) => blockAnchor(schedule, entry, blockSizes);
+  const pinBlock = (entry: ScheduleEntry) => pin(toAnchor(entry));
+  const unpinBlock = (entry: ScheduleEntry) => unpin(toAnchor(entry));
 
-  return {
-    lockedKeys,
-    pinBlock: (entry: ScheduleEntry) => pin(toAnchor(entry)),
-    unpinBlock: (entry: ScheduleEntry) => unpin(toAnchor(entry)),
+  /** Pin or unpin depending on the entry's current lock state ("L" key). */
+  const toggleLock = (entry: ScheduleEntry) => {
+    const locked = lockedKeys.has(scheduleKey(entry.subject_id, entry.day, entry.slot));
+    (locked ? unpinBlock : pinBlock)(entry);
   };
+
+  return { lockedKeys, pinBlock, unpinBlock, toggleLock };
 }

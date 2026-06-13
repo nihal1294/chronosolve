@@ -22,20 +22,34 @@ class ProgressEvent:
 
 
 class ProgressCallback(cp_model.CpSolverSolutionCallback):
-    """Invokes a plain-function callback on every incumbent solution."""
+    """Reports each incumbent solution and stops the search on request.
 
-    def __init__(self, on_progress: Callable[[ProgressEvent], None]) -> None:
+    `should_stop` enables cooperative cancellation: CP-SAT has no external
+    interrupt, but it checks this callback on every improved solution, so a
+    caller (e.g. the streaming server when its client disconnects) can halt a
+    running solve at the next incumbent instead of waiting out the time limit.
+    """
+
+    def __init__(
+        self,
+        on_progress: Callable[[ProgressEvent], None] | None = None,
+        should_stop: Callable[[], bool] | None = None,
+    ) -> None:
         super().__init__()
         self._on_progress = on_progress
+        self._should_stop = should_stop
         self._count = 0
 
     def on_solution_callback(self) -> None:
         """Called by CP-SAT from the search thread on each new solution."""
         self._count += 1
-        self._on_progress(
-            ProgressEvent(
-                objective=self.objective_value,
-                wall_time_seconds=self.wall_time,
-                solution_count=self._count,
+        if self._on_progress is not None:
+            self._on_progress(
+                ProgressEvent(
+                    objective=self.objective_value,
+                    wall_time_seconds=self.wall_time,
+                    solution_count=self._count,
+                )
             )
-        )
+        if self._should_stop is not None and self._should_stop():
+            self.stop_search()

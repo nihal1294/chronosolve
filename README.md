@@ -100,7 +100,7 @@ npm run test        # frontend unit tests (Vitest)
 
 Python solver complete: CP-SAT core (hard + 10 weighted soft constraints, room assignment, lab blocks, pre-assignments), independent quality scorer, statistics, CLI, FastAPI sidecar with SSE progress, and simulated-annealing refinement.
 
-Desktop app (Tauri): three-pane editing shell with YAML editor, entity tables with add/edit/delete dialogs and right-click menus, timeline with pin/unpin, constraints editor, native file open/save, and a CSV import wizard with column auto-matching and solver-side validation. Next: live solve progress (SSE), score reports + exports, then packaging.
+Desktop app (Tauri): three-pane editing shell with YAML editor, entity tables with add/edit/delete dialogs and right-click menus, timeline with pin/unpin, constraints editor, native file open/save, and a CSV import wizard with column auto-matching and solver-side validation. Solving streams live progress over SSE (best objective + solutions found per improved solution) and can be cancelled mid-search; an Analytics & Export view reports schedule quality, room utilization, and the soft-constraint penalty breakdown, with CSV export. A ⌘K command palette and keyboard shortcuts (⌘Enter solve, ⌘. halt, L lock block) drive every action. Next: packaging - PyInstaller sidecar bundle, signed macOS .dmg then Windows installer, plus PDF/ICS exporters.
 
 ## License
 

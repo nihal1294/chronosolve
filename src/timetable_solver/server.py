@@ -76,6 +76,9 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
     problem = _parse_problem(request.problem)
     queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
     loop = asyncio.get_running_loop()
+    # Set when the client disconnects so the CPU-bound solve stops cooperatively
+    # instead of running to its time limit in an orphaned background thread.
+    cancelled = threading.Event()
 
     def on_progress(event: Any) -> None:
         # Called from CP-SAT's search thread - hop back onto the event loop.
@@ -93,7 +96,9 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
 
     async def run_solver() -> None:
         try:
-            result = await asyncio.to_thread(solve, problem, request.time_limit, on_progress)
+            result = await asyncio.to_thread(
+                solve, problem, request.time_limit, on_progress, cancel_check=cancelled.is_set
+            )
             await queue.put({"event": "result", "data": result.model_dump()})
         except Exception as exc:  # surface solver crashes to the client
             await queue.put({"event": "error", "data": {"message": str(exc)}})
@@ -106,6 +111,9 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
             while (item := await queue.get()) is not None:
                 yield {"event": item["event"], "data": json.dumps(item["data"])}
         finally:
+            # Client gone or stream done: signal the solver to stop, then drain
+            # the task so no orphaned solve thread outlives the request.
+            cancelled.set()
             await task
 
     return EventSourceResponse(event_source())

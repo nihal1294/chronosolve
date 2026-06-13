@@ -43,6 +43,7 @@ def solve(
     time_limit: int = 60,
     on_progress: Callable[[ProgressEvent], None] | None = None,
     refine: bool = False,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> SolveResult:
     """Solve a timetable problem using CP-SAT.
 
@@ -51,6 +52,9 @@ def solve(
         time_limit: Maximum solver wall time in seconds.
         on_progress: Optional callback invoked on each improved solution.
         refine: Run simulated annealing on the CP-SAT solution afterwards.
+        cancel_check: Optional predicate polled on each incumbent solution;
+            when it returns True the search stops cooperatively (used by the
+            streaming server to abort a solve once its client disconnects).
 
     Returns:
         SolveResult with status, schedule entries, and solve metadata.
@@ -68,7 +72,8 @@ def solve(
     solver.parameters.max_time_in_seconds = float(time_limit)
     solver.parameters.num_workers = os.cpu_count() or 8
 
-    progress = ProgressCallback(on_progress) if on_progress else None
+    needs_callback = on_progress is not None or cancel_check is not None
+    progress = ProgressCallback(on_progress, cancel_check) if needs_callback else None
     status = solver.solve(model, progress)
     result = extract_solution(solver, status, variables, problem)
     if result.schedule:
