@@ -22,6 +22,9 @@ export interface GroupRow {
   id: string;
   name: string;
   size: number | null;
+  /** Optional grouping labels used only for timetable filtering. */
+  department: string;
+  semester: string;
 }
 
 export interface RoomRow {
@@ -55,6 +58,11 @@ const asRecord = (value: unknown): Raw => (typeof value === "object" && value !=
 const asList = (value: unknown): Raw[] => (Array.isArray(value) ? value.map(asRecord) : []);
 
 const asStr = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
+
+/** Like asStr but also accepts numbers, mirroring the Pydantic model's
+    coerce_numbers_to_str so a YAML `semester: 3` survives as "3". */
+const asLabel = (value: unknown): string =>
+  typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
 
 const asNum = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -102,6 +110,8 @@ export function parseEntities(problem: unknown): ProblemEntities {
     groups: asList(doc.student_groups).map((raw) => ({
       ...idAndName(raw),
       size: asNum(raw.size),
+      department: asLabel(raw.department),
+      semester: asLabel(raw.semester),
     })),
     rooms: asList(doc.rooms).map((raw) => ({
       ...idAndName(raw),

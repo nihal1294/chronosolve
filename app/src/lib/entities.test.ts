@@ -18,6 +18,8 @@ student_groups:
   - id: sec_a
     name: Section A
     size: 40
+    department: CSE
+    semester: 3
 rooms:
   - id: r101
     capacity: 50
@@ -54,7 +56,14 @@ describe("parseEntities", () => {
     });
     expect(entities.subjects[1]).toMatchObject({ kind: "lab", consecutiveHours: 2 });
     expect(entities.teachers[0]).toMatchObject({ name: "Dr. Smith", unavailable: "Friday 5,6" });
-    expect(entities.groups[0]).toMatchObject({ name: "Section A", size: 40 });
+    // semester is a YAML number; parseEntities coerces it to a string to
+    // match the Pydantic model's coerce_numbers_to_str (filtering contract).
+    expect(entities.groups[0]).toMatchObject({
+      name: "Section A",
+      size: 40,
+      department: "CSE",
+      semester: "3",
+    });
     expect(entities.days).toEqual(["Monday", "Tuesday"]);
     expect(entities.slotsPerDay).toBe(6);
     expect(entities.slotLabels[1]).toBe("9:00 - 9:55");

@@ -58,7 +58,13 @@ export const ENTITY_FIELDS: Record<EntitySection, readonly EntityField[]> = {
     },
   ],
   teachers: [ID_FIELD, NAME_FIELD, UNAVAILABLE_FIELD],
-  student_groups: [ID_FIELD, NAME_FIELD, { key: "size", label: "Size", kind: "int", required: true }],
+  student_groups: [
+    ID_FIELD,
+    NAME_FIELD,
+    { key: "size", label: "Size", kind: "int", required: true },
+    { key: "department", label: "Department", kind: "text", help: "Optional, for filtering, e.g. CSE" },
+    { key: "semester", label: "Semester", kind: "text", help: "Optional, for filtering, e.g. 3" },
+  ],
   rooms: [
     ID_FIELD,
     NAME_FIELD,

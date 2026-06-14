@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AlertCircle, CheckCircle2, Copy, Edit2, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import type { ProblemEntities } from "../lib/entities";
-import type { EntityKind } from "./Sidebar";
+import type { EntityKind } from "../lib/entity-forms";
 import { ContextMenu, type MenuState } from "./ContextMenu";
 
 interface TableViewProps {
@@ -27,8 +27,8 @@ const LABELS: Record<EntityKind, { title: string; singular: string; columns: str
     singular: "course",
     columns: ["Hours / Week", "Instructors", "Groups", "Status"],
   },
-  teachers: { title: "professors", singular: "professor", columns: ["Unavailable"] },
-  groups: { title: "student groups", singular: "group", columns: ["Size"] },
+  teachers: { title: "instructors", singular: "instructor", columns: ["Unavailable"] },
+  groups: { title: "student groups", singular: "group", columns: ["Size", "Department", "Semester"] },
   rooms: { title: "rooms", singular: "room", columns: ["Capacity", "Type"] },
 };
 
@@ -36,7 +36,10 @@ function buildRows(entities: ProblemEntities, entity: EntityKind, counts: Map<st
   if (entity === "teachers")
     return entities.teachers.map((row) => ({ ...row, cells: [row.unavailable || "-"] }));
   if (entity === "groups")
-    return entities.groups.map((row) => ({ ...row, cells: [row.size?.toString() ?? "-"] }));
+    return entities.groups.map((row) => ({
+      ...row,
+      cells: [row.size?.toString() ?? "-", row.department || "-", row.semester || "-"],
+    }));
   if (entity === "rooms")
     return entities.rooms.map((row) => ({ ...row, cells: [row.capacity?.toString() ?? "-", row.type] }));
   return entities.subjects.map((row) => ({

@@ -14,6 +14,10 @@
 
 ChronoSolve generates conflict-free timetables for educational institutions. Unlike rigid, institution-specific tools, it treats every scheduling detail; days, time slots, rooms, teacher preferences, etc; as configurable input rather than hardcoded assumptions.
 
+**Works for any level of education.** Because days, slots, rooms, student groups, and constraints are all configuration (never hardcoded), the same solver schedules schools (K-12), pre-university and junior colleges, colleges, universities, and coaching or training centers. A "student group" is any cohort that attends classes together (a class, section, batch, or year), so any institution that schedules groups against teachers, rooms, and time slots is in scope.
+
+The one case it does not model is fully individualized per-student timetables, where every student picks a unique combination of electives and needs a personal schedule. ChronoSolve schedules at the group level, which fits the vast majority of schools and university programs.
+
 **Core solver:** [Google OR-Tools CP-SAT](https://developers.google.com/optimization/cp/cp_solver) - a production-grade constraint programming solver that finds optimal (or near-optimal) schedules while respecting hard constraints and maximizing soft preferences.
 
 **Hard constraints** (must be satisfied):
@@ -38,7 +42,7 @@ ChronoSolve generates conflict-free timetables for educational institutions. Unl
 | Data models | Pydantic v2 |
 | Input format | YAML / JSON |
 | CLI | Typer |
-| Desktop app | Tauri v2 · React · TypeScript · Tailwind CSS _(planned)_ |
+| Desktop app | Tauri v2 · React · TypeScript · Tailwind CSS |
 | Package manager | uv |
 
 ## Quick Start
