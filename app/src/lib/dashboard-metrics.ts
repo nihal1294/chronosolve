@@ -12,8 +12,23 @@ export interface DashboardMetrics {
   solveStatus: SolveResult["status"] | null;
   qualityScore: number | null;
   /** true once a feasible/optimal solution exists (CP-SAT guarantees hard
-      constraints there), false when infeasible, null before any solve. */
+      constraints there), false when no schedule yet (infeasible OR timeout),
+      null before any solve. Use solveOutcome to tell timeout from infeasible. */
   hardConstraintsMet: boolean | null;
+}
+
+/** The Dashboard's output-step state. Timeout is kept SEPARATE from infeasible:
+    a timeout means CP-SAT ran out of time without finding or disproving a
+    schedule (rerun / raise the limit), whereas infeasible means it proved none
+    exists (fix the data or constraints). Collapsing both into one "failed"
+    branch wrongly tells a timed-out user to change their inputs. */
+export type SolveOutcome = "pending" | "running" | "solved" | "timeout" | "infeasible";
+
+export function solveOutcome(metrics: DashboardMetrics, busy: boolean): SolveOutcome {
+  if (busy) return "running";
+  if (!metrics.solveStatus) return "pending";
+  if (metrics.hardConstraintsMet) return "solved";
+  return metrics.solveStatus === "timeout" ? "timeout" : "infeasible";
 }
 
 const FEASIBLE: SolveResult["status"][] = ["optimal", "feasible"];

@@ -10,7 +10,7 @@ import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
 import { useTimelineLocks } from "./use-timeline-locks";
 
-/** The whole keep-the-model layer App.tsx used to assemble, lifted into one
+/** The whole keep-the-model layer the pre-router shell used to assemble, lifted into one
     hook so every route reads the same document, solve state, and derived
     facts through a context instead of prop-drilling from a single window.
     Routing is deliberately absent (this runs outside the router); navigation
@@ -23,7 +23,7 @@ export function useWorkspaceDoc() {
   // command palette) opens the one confirm the shell renders.
   const [pendingNewProblem, setPendingNewProblem] = useState(false);
 
-  // Two write channels mirror App.tsx: a problem edit invalidates the shown
+  // Two write channels mirror the pre-router shell: a problem edit invalidates the shown
   // schedule, while pin/unpin (applyDocEdit) records slots from it and keeps it.
   const editProblem = (next: ProblemDoc) => {
     applyDocEdit(next);

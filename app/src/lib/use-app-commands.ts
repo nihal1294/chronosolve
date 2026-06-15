@@ -57,7 +57,7 @@ const NAV: NavSpec[] = [
   { path: "/", label: "Go to Dashboard", icon: LayoutTemplate },
   { path: "/data", label: "Go to Data", icon: Database },
   { path: "/constraints", label: "Go to Constraints", icon: Network },
-  { path: "/solver", label: "Go to Solver", icon: Activity },
+  { path: "/solver", label: "Go to Scheduler", icon: Activity },
   { path: "/timetable", label: "Go to Timetable", icon: CalendarDays },
   {
     path: "/settings",
@@ -75,7 +75,7 @@ function buildActions(deps: AppCommandDeps, openShortcuts: () => void): Command[
       ? {
           id: "solve",
           group: "Actions",
-          label: "Run OR-Tools Solver",
+          label: "Run scheduler",
           icon: Play,
           keys: ["⌘", "Enter"],
           shortcut: { meta: true, key: "enter" },
@@ -86,7 +86,7 @@ function buildActions(deps: AppCommandDeps, openShortcuts: () => void): Command[
       ? {
           id: "halt",
           group: "Actions",
-          label: "Halt / Cancel Solver",
+          label: "Halt scheduler",
           icon: Square,
           keys: ["⌘", "."],
           shortcut: { meta: true, key: "." },

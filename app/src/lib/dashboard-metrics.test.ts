@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { dashboardMetrics } from "./dashboard-metrics";
+import { dashboardMetrics, solveOutcome } from "./dashboard-metrics";
 import type { ProblemEntities } from "./entities";
 import type { SolveResult } from "./solver-client";
 
@@ -78,5 +78,23 @@ describe("dashboardMetrics", () => {
     const m = dashboardMetrics(entities, result("infeasible", null));
     expect(m.hardConstraintsMet).toBe(false);
     expect(m.qualityScore).toBeNull();
+  });
+});
+
+describe("solveOutcome", () => {
+  const at = (status: SolveResult["status"]) => dashboardMetrics(entities, result(status, null));
+
+  test("a timeout stays distinct from infeasible (rerun, don't 'fix your data')", () => {
+    // Regression guard for the Codex P2: both have an empty schedule and
+    // hardConstraintsMet === false, but only infeasible should read as failed.
+    expect(solveOutcome(at("timeout"), false)).toBe("timeout");
+    expect(solveOutcome(at("infeasible"), false)).toBe("infeasible");
+  });
+
+  test("optimal/feasible are solved; no solve is pending; busy is running", () => {
+    expect(solveOutcome(at("optimal"), false)).toBe("solved");
+    expect(solveOutcome(at("feasible"), false)).toBe("solved");
+    expect(solveOutcome(dashboardMetrics(entities, null), false)).toBe("pending");
+    expect(solveOutcome(dashboardMetrics(entities, null), true)).toBe("running");
   });
 });

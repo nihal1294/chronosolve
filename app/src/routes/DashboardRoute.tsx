@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleDashed,
+  Clock,
   Database,
   FilePlus2,
   FileText,
@@ -15,21 +16,26 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
-import { dashboardMetrics } from "../lib/dashboard-metrics";
+import { dashboardMetrics, solveOutcome } from "../lib/dashboard-metrics";
 import { useWorkspace } from "../providers/problem-doc-provider";
 
-type Tone = "ready" | "pending" | "running" | "done" | "failed";
+type Tone = "ready" | "pending" | "running" | "done" | "failed" | "timeout";
 
 const TONE: Record<Tone, { chip: string; icon: LucideIcon; label: string }> = {
   ready: { chip: "text-teal-600 dark:text-teal-400 bg-teal-500/10", icon: CheckCircle2, label: "Ready" },
-  done: { chip: "text-teal-600 dark:text-teal-400 bg-teal-500/10", icon: CheckCircle2, label: "Solved" },
-  running: { chip: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10", icon: Loader2, label: "Solving" },
+  done: { chip: "text-teal-600 dark:text-teal-400 bg-teal-500/10", icon: CheckCircle2, label: "Scheduled" },
+  running: {
+    chip: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10",
+    icon: Loader2,
+    label: "Scheduling",
+  },
   pending: {
     chip: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
     icon: CircleDashed,
     label: "Pending",
   },
-  failed: { chip: "text-red-600 dark:text-red-400 bg-red-500/10", icon: XCircle, label: "Infeasible" },
+  failed: { chip: "text-red-600 dark:text-red-400 bg-red-500/10", icon: XCircle, label: "No solution" },
+  timeout: { chip: "text-amber-600 dark:text-amber-400 bg-amber-500/10", icon: Clock, label: "Timed out" },
 };
 
 const card =
@@ -72,21 +78,21 @@ export function DashboardRoute() {
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <button
               onClick={ws.loadTemplate}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
             >
               <FileText size={16} />
-              Load example template
+              Load example
             </button>
             <button
               onClick={ws.openFile}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
               <FolderOpen size={16} />
-              Open file (YAML / JSON)
+              Open file
             </button>
             <button
               onClick={() => navigate("/data?import=1")}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
               <UploadCloud size={16} />
               Import CSV
@@ -100,20 +106,18 @@ export function DashboardRoute() {
     );
   }
 
-  const outputTone: Tone = ws.busy
-    ? "running"
-    : m.solveStatus
-      ? m.hardConstraintsMet
-        ? "done"
-        : "failed"
-      : "pending";
-  const outputSub = ws.busy
-    ? "Optimizing…"
-    : m.solveStatus
-      ? m.hardConstraintsMet
-        ? `Quality ${m.qualityScore ?? "—"} / 100`
-        : "No feasible solution"
-      : "Ready to run";
+  const outcome = solveOutcome(m, ws.busy);
+  const outputTone: Tone = outcome === "solved" ? "done" : outcome === "infeasible" ? "failed" : outcome;
+  const outputSub =
+    outcome === "running"
+      ? "Scheduling…"
+      : outcome === "pending"
+        ? "Ready to run"
+        : outcome === "solved"
+          ? `Quality ${m.qualityScore ?? "—"} / 100`
+          : outcome === "timeout"
+            ? "Timed out - rerun or raise the time limit"
+            : "No feasible solution";
 
   const steps = [
     {
@@ -130,15 +134,15 @@ export function DashboardRoute() {
       sub: "Hard rules + soft priorities",
       tone: "ready" as Tone,
     },
-    { to: "/solver", icon: CalendarDays, title: "3 · Solve", sub: outputSub, tone: outputTone },
+    { to: "/solver", icon: CalendarDays, title: "3 · Schedule", sub: outputSub, tone: outputTone },
   ];
 
   const cta = ws.busy
-    ? { label: "View solver progress", icon: Loader2, run: () => navigate("/solver") }
+    ? { label: "View scheduler progress", icon: Loader2, run: () => navigate("/solver") }
     : m.hardConstraintsMet
       ? { label: "View timetable", icon: CalendarDays, run: () => navigate("/timetable") }
       : {
-          label: "Run solver",
+          label: "Run scheduler",
           icon: Play,
           run: () => {
             ws.solve();

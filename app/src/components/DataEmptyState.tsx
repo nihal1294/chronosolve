@@ -8,9 +8,9 @@ interface DataEmptyStateProps {
 }
 
 const primary =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700";
 const ghost =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800";
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800";
 
 /** Get-started panel for the Data route's Tables view when no problem is loaded.
     Offers all three input paths so YAML/JSON is as obvious as CSV. */
@@ -31,7 +31,7 @@ export function DataEmptyState({ onLoadTemplate, onOpenFile, onImport, error }: 
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <button onClick={onLoadTemplate} className={primary}>
             <FileText size={16} />
-            Load example template
+            Load example
           </button>
           <button onClick={onOpenFile} className={ghost}>
             <FolderOpen size={16} />

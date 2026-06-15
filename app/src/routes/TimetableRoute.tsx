@@ -74,7 +74,7 @@ export function TimetableRoute() {
       <CenteredState
         icon={Database}
         title="No problem loaded"
-        body="Add courses, instructors, rooms, and groups first - then run the solver to see the timetable."
+        body="Add courses, instructors, rooms, and groups first - then run the scheduler to see the timetable."
       >
         <button
           onClick={() => navigate("/data")}
@@ -91,7 +91,7 @@ export function TimetableRoute() {
       <CenteredState
         icon={CalendarDays}
         title="No timetable yet"
-        body="Run the solver to generate a conflict-free schedule. It will appear here, filterable by class, teacher, room, type, department, and semester."
+        body="Run the scheduler to generate a conflict-free timetable. It will appear here, filterable by class, teacher, room, type, department, and semester."
       >
         <button
           onClick={() => {
@@ -101,7 +101,7 @@ export function TimetableRoute() {
           className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
         >
           <Play size={16} className={ws.busy ? "animate-spin" : ""} />
-          Run solver
+          Run scheduler
         </button>
       </CenteredState>
     );

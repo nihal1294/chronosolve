@@ -19,17 +19,17 @@ const WORKSPACE: { to: string; end?: boolean; icon: LucideIcon; label: string }[
   { to: "/", end: true, icon: LayoutTemplate, label: "Dashboard" },
   { to: "/data", icon: Database, label: "Data" },
   { to: "/constraints", icon: Network, label: "Constraints" },
-  { to: "/solver", icon: Activity, label: "Solver" },
+  { to: "/solver", icon: Activity, label: "Scheduler" },
   { to: "/timetable", icon: CalendarDays, label: "Timetable" },
 ];
 
 const ENGINE: Record<EngineStatus, { dot: string; label: string }> = {
-  ready: { dot: "bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]", label: "Engine Ready" },
+  ready: { dot: "bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]", label: "Ready" },
   connecting: {
     dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)] animate-pulse",
     label: "Connecting…",
   },
-  offline: { dot: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]", label: "Engine Offline" },
+  offline: { dot: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]", label: "Offline" },
 };
 
 /** A link's classes; collapses to a centered icon below the lg breakpoint so a
@@ -105,10 +105,12 @@ export function ApplicationShell() {
             ))}
           </nav>
 
-          <div className={`p-4 border-t text-xs text-neutral-400 flex items-center bg-black/20 ${border}`}>
+          <div
+            className={`p-4 border-t text-xs flex items-center text-neutral-600 dark:text-neutral-400 ${border}`}
+          >
             <HelpSpotlight
-              title="Solver Engine"
-              content="Live status of the local OR-Tools solver sidecar this app talks to."
+              title="Scheduler"
+              content="Live status of the local scheduling service this app runs on."
               position="top"
             >
               <div className="flex items-center gap-2" data-tour="engine-status">
@@ -120,7 +122,7 @@ export function ApplicationShell() {
         </aside>
 
         <div className="flex-1 min-w-0 flex flex-col relative z-10 overflow-hidden bg-neutral-50 dark:bg-neutral-950">
-          <div className="absolute inset-0 pointer-events-none hidden dark:block bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] bg-[size:32px_32px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]" />
           <Outlet />
         </div>
       </div>

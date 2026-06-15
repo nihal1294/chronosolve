@@ -9,13 +9,13 @@ const primary =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700";
 
 const SUMMARY: Record<SolverPhase, string> = {
-  idle: "Run the solver to generate a conflict-free schedule.",
-  solving: "Optimizing - the best schedule found so far improves as it runs.",
-  optimal: "Optimal schedule found: no better arrangement exists for these constraints.",
-  feasible: "Feasible schedule found within the time limit.",
-  infeasible: "No feasible schedule. Relax a hard constraint or fix the data, then run again.",
-  timeout: "Stopped at the time limit with the best schedule found so far.",
-  error: "The solver could not complete.",
+  idle: "Run the scheduler to generate a conflict-free timetable.",
+  solving: "Scheduling - the best timetable found so far improves as it runs.",
+  optimal: "Optimal timetable found: no better arrangement exists for these constraints.",
+  feasible: "Valid timetable found within the time limit.",
+  infeasible: "No valid timetable. Relax a constraint or fix the data, then run again.",
+  timeout: "Stopped at the time limit with the best timetable found so far.",
+  error: "The scheduler could not complete.",
 };
 
 export function SolverMonitorRoute() {
@@ -34,7 +34,7 @@ export function SolverMonitorRoute() {
             No problem loaded
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
-            Add courses, instructors, rooms, and groups before running the solver.
+            Add courses, instructors, rooms, and groups before running the scheduler.
           </p>
           <button onClick={() => navigate("/data")} className={`mt-6 ${primary}`}>
             Go to Data
@@ -54,7 +54,7 @@ export function SolverMonitorRoute() {
       ? [
           { label: "Quality", value: result.quality_score !== null ? `${result.quality_score} / 100` : "-" },
           { label: "Status", value: result.status },
-          { label: "Solve time", value: `${result.solve_time_seconds.toFixed(2)}s` },
+          { label: "Time taken", value: `${result.solve_time_seconds.toFixed(2)}s` },
           { label: "Sessions", value: String(result.schedule.length) },
         ]
       : null;
@@ -63,9 +63,12 @@ export function SolverMonitorRoute() {
     <div className="relative z-10 h-full overflow-y-auto p-8 md:p-10" data-tour="solver">
       <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">Solver</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+            Scheduler
+          </h1>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Run the CP-SAT engine and watch it converge. Results feed the timetable.
+            Run the scheduler and watch it find the best conflict-free timetable. Results feed the Timetable
+            view.
           </p>
         </div>
         {ws.busy ? (
@@ -79,7 +82,7 @@ export function SolverMonitorRoute() {
         ) : (
           <button onClick={ws.solve} className={primary}>
             {result ? <RotateCcw size={16} /> : <Play size={16} />}
-            {result ? "Run again" : "Run solver"}
+            {result ? "Run again" : "Run scheduler"}
           </button>
         )}
       </div>

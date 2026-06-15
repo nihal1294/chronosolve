@@ -14,10 +14,10 @@ interface RoutePlaceholderProps {
 export function RoutePlaceholder({ title, subtitle, tour, children }: RoutePlaceholderProps) {
   return (
     <div className="relative z-10 h-full overflow-y-auto p-8" data-tour={tour}>
-      <h1 className="text-2xl font-bold tracking-tight text-neutral-100">{title}</h1>
-      <p className="mt-2 max-w-prose text-sm text-neutral-400">{subtitle}</p>
-      <div className="mt-6 inline-flex items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-400">
-        This surface lands in a later M5 phase
+      <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{title}</h1>
+      <p className="mt-2 max-w-prose text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
+      <div className="mt-6 inline-flex items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+        Coming soon
       </div>
       {children}
     </div>
