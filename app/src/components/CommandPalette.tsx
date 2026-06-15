@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
-import type { Command } from "../lib/use-commands";
+import type { Command } from "../lib/use-app-commands";
 import { Kbd } from "./Kbd";
 
 interface CommandPaletteProps {

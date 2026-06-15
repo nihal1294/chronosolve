@@ -35,6 +35,8 @@ student_groups:
   - id: sec_a
     name: Section A
     size: 40
+    department: CSE                      # optional labels, only used to
+    semester: 3                          # group and filter timetable views
 
 rooms:                                  # optional - omit to skip room constraints
   - id: r101

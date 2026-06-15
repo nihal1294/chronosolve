@@ -51,7 +51,7 @@ const STYLES: Record<SolverPhase, Style> = {
     title: "",
     body: NEUTRAL_TEXT,
     icon: Cpu,
-    heading: "Ready to Solve",
+    heading: "Ready to Schedule",
   },
   solving: {
     card: NEUTRAL_CARD,
@@ -59,13 +59,13 @@ const STYLES: Record<SolverPhase, Style> = {
     title: "",
     body: NEUTRAL_TEXT,
     icon: Loader2,
-    heading: "Optimizing Schedule...",
+    heading: "Building Timetable...",
   },
-  optimal: { ...TEAL, icon: CheckCircle2, heading: "Optimal Solution Found" },
-  feasible: { ...TEAL, icon: CheckCircle2, heading: "Feasible Solution Found" },
-  infeasible: { ...RED, icon: AlertTriangle, heading: "Model is Infeasible" },
+  optimal: { ...TEAL, icon: CheckCircle2, heading: "Optimal Timetable Found" },
+  feasible: { ...TEAL, icon: CheckCircle2, heading: "Valid Timetable Found" },
+  infeasible: { ...RED, icon: AlertTriangle, heading: "No Valid Timetable" },
   timeout: { ...AMBER, icon: Clock, heading: "Time Limit Reached" },
-  error: { ...RED, icon: AlertTriangle, heading: "Solver Error" },
+  error: { ...RED, icon: AlertTriangle, heading: "Scheduler Error" },
 };
 
 /** Solver feedback card, following the design system's Solver States patterns. */

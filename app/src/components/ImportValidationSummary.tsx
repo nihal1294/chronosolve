@@ -23,7 +23,7 @@ export function ImportValidationSummary({ imported, rowErrors, report }: ImportV
       </p>
       {report === null ? (
         <p className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">
-          <Loader2 size={14} className="animate-spin" /> Validating against the solver…
+          <Loader2 size={14} className="animate-spin" /> Validating against the scheduler…
         </p>
       ) : (
         errors.map((message, index) => <Issue key={index} message={message} error />)

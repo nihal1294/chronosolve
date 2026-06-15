@@ -14,6 +14,10 @@
 
 ChronoSolve generates conflict-free timetables for educational institutions. Unlike rigid, institution-specific tools, it treats every scheduling detail; days, time slots, rooms, teacher preferences, etc; as configurable input rather than hardcoded assumptions.
 
+**Works for any level of education.** Because days, slots, rooms, student groups, and constraints are all configuration (never hardcoded), the same solver schedules schools (K-12), pre-university and junior colleges, colleges, universities, and coaching or training centers. A "student group" is any cohort that attends classes together (a class, section, batch, or year), so any institution that schedules groups against teachers, rooms, and time slots is in scope.
+
+The one case it does not model is fully individualized per-student timetables, where every student picks a unique combination of electives and needs a personal schedule. ChronoSolve schedules at the group level, which fits the vast majority of schools and university programs.
+
 **Core solver:** [Google OR-Tools CP-SAT](https://developers.google.com/optimization/cp/cp_solver) - a production-grade constraint programming solver that finds optimal (or near-optimal) schedules while respecting hard constraints and maximizing soft preferences.
 
 **Hard constraints** (must be satisfied):
@@ -38,7 +42,7 @@ ChronoSolve generates conflict-free timetables for educational institutions. Unl
 | Data models | Pydantic v2 |
 | Input format | YAML / JSON |
 | CLI | Typer |
-| Desktop app | Tauri v2 · React · TypeScript · Tailwind CSS _(planned)_ |
+| Desktop app | Tauri v2 · React · TypeScript · Tailwind CSS |
 | Package manager | uv |
 
 ## Quick Start
@@ -96,11 +100,25 @@ npm run tauri dev   # opens the ChronoSolve window
 npm run test        # frontend unit tests (Vitest)
 ```
 
+### Using the desktop app
+
+The left sidebar follows the workflow top to bottom:
+
+1. **Dashboard** - your home base. Load the worked example, open a YAML/JSON file, or import CSV to get started. Shows live entity counts and a Data -> Constraints -> Schedule progress pipeline.
+2. **Data** - edit courses, instructors, student groups, and rooms as tables, or switch to the YAML view to edit the raw definition. Import entities from CSV with column auto-matching.
+3. **Constraints** - toggle the hard rules every timetable must satisfy and weight the soft preferences. _(in progress)_
+4. **Scheduler** - run the solver and watch it converge live (best result and solutions-found stream in); cancel any time.
+5. **Timetable** - view the generated schedule by class, teacher, or room (or a master overview), filter by type/department/semester, and pin sessions you want to keep.
+
+A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes.
+
 ## Status
 
-Python solver complete: CP-SAT core (hard + 10 weighted soft constraints, room assignment, lab blocks, pre-assignments), independent quality scorer, statistics, CLI, FastAPI sidecar with SSE progress, and simulated-annealing refinement.
+**Solver (complete):** CP-SAT core with hard constraints plus 10 weighted soft constraints, room assignment, lab blocks, and pre-assignments; an independent quality scorer and statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
 
-Desktop app (Tauri): three-pane editing shell with YAML editor, entity tables with add/edit/delete dialogs and right-click menus, timeline with pin/unpin, constraints editor, native file open/save, and a CSV import wizard with column auto-matching and solver-side validation. Solving streams live progress over SSE (best objective + solutions found per improved solution) and can be cancelled mid-search; an Analytics & Export view reports schedule quality, room utilization, and the soft-constraint penalty breakdown, with CSV export. A ⌘K command palette and keyboard shortcuts (⌘Enter solve, ⌘. halt, L lock block) drive every action. Next: packaging - PyInstaller sidecar bundle, signed macOS .dmg then Windows installer, plus PDF/ICS exporters.
+**Desktop app (in progress):** a route-based shell with a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a live Scheduler monitor (SSE progress, cancellable), and a filterable Timetable view with pin/unpin. The Constraints and Settings screens, plus analytics and export, are being rebuilt onto the new shell.
+
+**Next:** constraint rule cards, analytics and export, then packaging (PyInstaller sidecar bundle, signed macOS .dmg and Windows installer) and PDF/ICS exporters.
 
 ## License
 

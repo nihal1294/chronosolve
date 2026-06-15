@@ -1,13 +1,22 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router";
+import { ThemeProvider } from "./providers/theme-provider";
+import { ProblemDocProvider } from "./providers/problem-doc-provider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import "./styles.css";
+import { router } from "./routes";
+import "./styles/index.css";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
+// ProblemDocProvider sits OUTSIDE the router so the document + solve state
+// survive route changes instead of being scoped to one window component.
+createRoot(document.getElementById("root") as HTMLElement).render(
+  <StrictMode>
     <ErrorBoundary>
-      <App />
+      <ThemeProvider>
+        <ProblemDocProvider>
+          <RouterProvider router={router} />
+        </ProblemDocProvider>
+      </ThemeProvider>
     </ErrorBoundary>
-  </React.StrictMode>,
+  </StrictMode>,
 );

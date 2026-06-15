@@ -45,10 +45,11 @@ Commands:
     End-to-end CLI smoke: template -> validate -> solve (TIME_LIMIT seconds).
 
   clean
-    Remove repo caches and build artifacts.
+    Remove repo caches, build artifacts, and stray temp files
+    (__pycache__, .coverage, .DS_Store). Installed dependencies are kept.
 
   clean-all
-    clean + node_modules + the Rust target directory.
+    clean + the Rust target directory. node_modules is left in place.
 
 Environment overrides:
   TIME_LIMIT (solve time limit in seconds, default 30)
@@ -184,14 +185,26 @@ do_clean() {
     "${REPO_ROOT}/.pytest_cache" \
     "${REPO_ROOT}/.ruff_cache" \
     "${REPO_ROOT}/htmlcov" \
+    "${REPO_ROOT}/.uv-cache" \
+    "${REPO_ROOT}/dist" \
+    "${REPO_ROOT}/build" \
     "${APP_DIR}/dist"
-  rm -f "${REPO_ROOT}/.coverage" "${REPO_ROOT}/coverage.xml"
-  find "${REPO_ROOT}/src" "${REPO_ROOT}/tests" -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+  rm -f "${REPO_ROOT}/coverage.xml"
+  # Repo-wide sweep of stray temp files, everywhere including inside
+  # node_modules/.venv/target (a __pycache__ or .coverage there is just a
+  # regenerable cache, never the dependency itself). Only .git is skipped so we
+  # never touch VCS internals. Installed packages are left in place.
+  find "${REPO_ROOT}" \
+    -name .git -prune -o \
+    \( -type d -name __pycache__ -o -type f -name .coverage -o -type f -name .DS_Store \) \
+    -exec rm -rf {} +
 }
 
 do_clean_all() {
+  # Heavier clean: also drop the Rust build cache. node_modules is intentionally
+  # left in place - re-fetching it makes dev/test iteration slow.
   do_clean
-  rm -rf "${APP_DIR}/node_modules" "${TAURI_DIR}/target"
+  rm -rf "${TAURI_DIR}/target"
 }
 
 main() {

@@ -11,7 +11,7 @@ import { WizardFooter, WizardStepper } from "./ImportWizardChrome";
 
 const SECTIONS: { value: EntitySection; label: string }[] = [
   { value: "subjects", label: "Courses" },
-  { value: "teachers", label: "Professors" },
+  { value: "teachers", label: "Instructors" },
   { value: "student_groups", label: "Student Groups" },
   { value: "rooms", label: "Rooms" },
 ];

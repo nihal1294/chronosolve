@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import type { Command } from "../lib/use-commands";
+import type { Command } from "../lib/use-app-commands";
 import { Kbd } from "./Kbd";
 
 // ⌘K toggles the palette itself, so the command center handles it directly
