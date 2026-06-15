@@ -3,6 +3,7 @@ import {
   Activity,
   CalendarDays,
   Database,
+  FilePlus2,
   FileText,
   FolderOpen,
   Keyboard,
@@ -32,9 +33,13 @@ export interface Command {
 interface AppCommandDeps {
   canSolve: boolean;
   busy: boolean;
+  /** A document is loaded - gates the "New problem" action. */
+  hasDoc: boolean;
   solve: () => void;
   cancel: () => void;
   loadTemplate: () => void;
+  /** Clear to a fresh problem (the shell confirms before discarding). */
+  requestNewProblem: () => void;
   /** null outside the Tauri shell (browser preview hides file commands). */
   fileActions: { onOpen: () => void; onSave: () => void } | null;
   navigate: (path: string) => void;
@@ -88,13 +93,23 @@ function buildActions(deps: AppCommandDeps, openShortcuts: () => void): Command[
           run: deps.cancel,
         }
       : null,
+    deps.hasDoc
+      ? {
+          id: "new",
+          group: "Actions",
+          label: "New Problem…",
+          icon: FilePlus2,
+          run: deps.requestNewProblem,
+        }
+      : null,
     { id: "template", group: "Actions", label: "Load Template", icon: FileText, run: deps.loadTemplate },
     {
       id: "import",
       group: "Actions",
       label: "Import CSV…",
+      // ?import=1 is read by the Data route to open the wizard from any route.
       icon: UploadCloud,
-      run: () => deps.navigate("/data"),
+      run: () => deps.navigate("/data?import=1"),
     },
     f ? { id: "open", group: "Actions", label: "Open Problem…", icon: FolderOpen, run: f.onOpen } : null,
     f ? { id: "save", group: "Actions", label: "Save Problem…", icon: Save, run: f.onSave } : null,
@@ -129,7 +144,17 @@ export function useAppCommands(deps: AppCommandDeps) {
   const commands = useMemo(
     () => [...buildActions(deps, () => setShortcutsOpen(true)), ...buildNav(deps)],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deps.canSolve, deps.busy, deps.solve, deps.cancel, deps.loadTemplate, deps.fileActions, deps.navigate],
+    [
+      deps.canSolve,
+      deps.busy,
+      deps.hasDoc,
+      deps.solve,
+      deps.cancel,
+      deps.loadTemplate,
+      deps.requestNewProblem,
+      deps.fileActions,
+      deps.navigate,
+    ],
   );
 
   const stateRef = useRef({ commands, paletteOpen });

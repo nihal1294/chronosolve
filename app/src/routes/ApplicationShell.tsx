@@ -4,10 +4,10 @@ import { Toaster } from "sonner";
 import { Activity, CalendarDays, Database, LayoutTemplate, Network, type LucideIcon } from "lucide-react";
 import { BrandLogo } from "../components/BrandLogo";
 import { CommandPalette } from "../components/CommandPalette";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { HelpSpotlight } from "../components/HelpSpotlight";
 import { ShortcutSheet } from "../components/ShortcutSheet";
 import { WindowChrome } from "../components/WindowChrome";
-import { isTauri } from "../lib/env";
 import { useAppCommands } from "../lib/use-app-commands";
 import { useEngineStatus, type EngineStatus } from "../lib/use-engine-status";
 import { useWorkspace } from "../providers/problem-doc-provider";
@@ -51,10 +51,14 @@ export function ApplicationShell() {
   const palette = useAppCommands({
     canSolve: ws.doc !== null,
     busy: ws.busy,
+    hasDoc: ws.doc !== null,
     solve: ws.solve,
     cancel: ws.cancel,
     loadTemplate: ws.loadTemplate,
-    fileActions: isTauri() ? { onOpen: ws.openFile, onSave: ws.saveFile } : null,
+    requestNewProblem: ws.requestNewProblem,
+    // Open/Save work in the browser too now (file input + download), so the
+    // commands are no longer Tauri-gated.
+    fileActions: { onOpen: ws.openFile, onSave: ws.saveFile },
     navigate,
   });
 
@@ -124,6 +128,19 @@ export function ApplicationShell() {
       {palette.paletteOpen && <CommandPalette commands={palette.commands} onClose={palette.closePalette} />}
       {palette.shortcutsOpen && (
         <ShortcutSheet commands={palette.commands} onClose={palette.closeShortcuts} />
+      )}
+      {ws.pendingNewProblem && (
+        <ConfirmDialog
+          title="Start a new problem?"
+          message="This clears the current data, constraints, and any solved timetable. Save your work first if you want to keep it."
+          confirmLabel="Start new"
+          destructive
+          onConfirm={() => {
+            ws.newProblem();
+            navigate("/");
+          }}
+          onClose={ws.cancelNewProblem}
+        />
       )}
       <Toaster theme={isDark ? "dark" : "light"} position="bottom-right" />
     </div>

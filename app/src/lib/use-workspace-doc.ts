@@ -19,6 +19,9 @@ export function useWorkspaceDoc() {
   const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
   const solveState = useSolveState(doc, () => {});
   const [templateError, setTemplateError] = useState<string | null>(null);
+  // Shared "start a new problem" intent so any surface (Dashboard button,
+  // command palette) opens the one confirm the shell renders.
+  const [pendingNewProblem, setPendingNewProblem] = useState(false);
 
   // Two write channels mirror App.tsx: a problem edit invalidates the shown
   // schedule, while pin/unpin (applyDocEdit) records slots from it and keeps it.
@@ -44,6 +47,18 @@ export function useWorkspaceDoc() {
     }
   };
 
+  // Clear everything back to the blank get-started state (doc -> null), so a
+  // user can start a fresh run with different inputs. writeYaml("") also
+  // invalidates any shown solve result.
+  const newProblem = () => {
+    setTemplateError(null);
+    setPendingNewProblem(false);
+    writeYaml("");
+  };
+  // Open the discard confirm (no-op when there is nothing to clear).
+  const requestNewProblem = () => doc && setPendingNewProblem(true);
+  const cancelNewProblem = () => setPendingNewProblem(false);
+
   const entities = useMemo(() => (doc ? parseEntities(doc) : null), [doc]);
   const schedule = useMemo(() => solveState.result?.schedule ?? [], [solveState.result]);
   const scheduledCounts = useMemo(
@@ -63,6 +78,10 @@ export function useWorkspaceDoc() {
     writeYaml,
     applyDocEdit,
     loadTemplate,
+    newProblem,
+    requestNewProblem,
+    cancelNewProblem,
+    pendingNewProblem,
     templateError,
     isTauri: isTauri(),
     fileError: file.fileError,

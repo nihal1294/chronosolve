@@ -5,7 +5,9 @@ import {
   CheckCircle2,
   CircleDashed,
   Database,
+  FilePlus2,
   FileText,
+  FolderOpen,
   Loader2,
   Network,
   Play,
@@ -76,22 +78,23 @@ export function DashboardRoute() {
               Load example template
             </button>
             <button
-              onClick={() => navigate("/data")}
+              onClick={ws.openFile}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            >
+              <FolderOpen size={16} />
+              Open file (YAML / JSON)
+            </button>
+            <button
+              onClick={() => navigate("/data?import=1")}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
               <UploadCloud size={16} />
-              Import data (CSV)
+              Import CSV
             </button>
           </div>
-          {ws.isTauri && (
-            <button
-              onClick={ws.openFile}
-              className="mt-3 text-xs font-medium text-neutral-500 underline-offset-4 hover:underline dark:text-neutral-400"
-            >
-              or open an existing problem file
-            </button>
+          {(ws.templateError || ws.fileError) && (
+            <p className="mt-4 text-xs text-red-500">{ws.templateError ?? ws.fileError}</p>
           )}
-          {ws.templateError && <p className="mt-4 text-xs text-red-500">{ws.templateError}</p>}
         </div>
       </div>
     );
@@ -162,13 +165,22 @@ export function DashboardRoute() {
             schedule.
           </p>
         </div>
-        <button
-          onClick={cta.run}
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
-        >
-          <cta.icon size={16} className={ws.busy ? "animate-spin" : ""} />
-          {cta.label}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={ws.requestNewProblem}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          >
+            <FilePlus2 size={16} />
+            New problem
+          </button>
+          <button
+            onClick={cta.run}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+          >
+            <cta.icon size={16} className={ws.busy ? "animate-spin" : ""} />
+            {cta.label}
+          </button>
+        </div>
       </div>
 
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
