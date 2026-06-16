@@ -108,13 +108,5 @@ jobs:
       - name: Check formatting
         run: cargo fmt --check
 
-      # tauri-build errors at compile time if the binaries/solver resource glob
-      # (bundle.resources in tauri.conf.json) matches nothing. The staged sidecar
-      # is gitignored, so it is absent in a fresh CI checkout; a real build runs
-      # scripts/build_sidecar.sh, but for the lint job a stub satisfies the glob.
-      # Mirrors ensure_sidecar_stub in scripts/workflow.sh.
-      - name: Stage solver sidecar stub
-        run: mkdir -p binaries/solver && echo "ci stub; real onedir staged by scripts/build_sidecar.sh" > binaries/solver/stub.txt
-
       - name: Clippy
         run: cargo clippy -- -D warnings

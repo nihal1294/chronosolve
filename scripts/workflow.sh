@@ -52,7 +52,7 @@ Commands:
     Remove repo caches, build artifacts, and stray temp files
     (__pycache__, .coverage, .DS_Store). Drops the packaging outputs too:
     packaging/build + packaging/dist, the staged sidecar (app/src-tauri/
-    binaries), and the Tauri bundle (.app/.dmg). Installed dependencies and the
+    binaries/solver), and the Tauri bundle (.app/.dmg). Installed dependencies and the
     Rust compile cache are kept.
 
   clean-all
@@ -76,21 +76,6 @@ step() {
   printf '\n==> %s\n' "$1"
 }
 
-# The Tauri bundle references binaries/solver as a resource, and tauri-build
-# errors at compile time if that glob matches nothing - which breaks `cargo`,
-# `tauri dev`, and `just check` on a fresh clone or after `clean`, even though
-# dev mode runs the sidecar from source (uv), not the bundled copy. Drop a tiny
-# stub so the glob always matches; a packaging build (build_sidecar.sh)
-# overwrites it with the real onedir.
-ensure_sidecar_stub() {
-  local dir="${TAURI_DIR}/binaries/solver"
-  if [[ -z "$(ls -A "$dir" 2>/dev/null)" ]]; then
-    mkdir -p "$dir"
-    echo "placeholder; replaced by scripts/build_sidecar.sh for packaging" \
-      >"${dir}/stub.txt"
-  fi
-}
-
 do_sync() {
   ensure_command uv
   ensure_command npm
@@ -104,7 +89,6 @@ do_check() {
   ensure_command uv
   ensure_command npm
   ensure_command cargo
-  ensure_sidecar_stub
   step "Python: ruff format --check"
   (cd "$REPO_ROOT" && uv run ruff format --check .)
   step "Python: ruff check"
@@ -189,7 +173,6 @@ do_dev() {
   ensure_command uv
   ensure_command npm
   ensure_command cargo
-  ensure_sidecar_stub
   (cd "$APP_DIR" && npm run tauri dev)
 }
 
@@ -229,7 +212,7 @@ do_clean() {
     "${APP_DIR}/dist" \
     "${REPO_ROOT}/packaging/build" \
     "${REPO_ROOT}/packaging/dist" \
-    "${TAURI_DIR}/binaries" \
+    "${TAURI_DIR}/binaries/solver" \
     "${TAURI_DIR}/target/release/bundle"
   rm -f "${REPO_ROOT}/coverage.xml"
   # Repo-wide sweep of stray temp files, everywhere including inside
