@@ -19,6 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = ["pytest==9.0.3", "pytest-cov==7.0.0", "ruff==0.15.5", "httpx==0.28.1"]
+packaging = ["pyinstaller==6.21.0"]
 
 [project.scripts]
 timetable = "timetable_solver.cli:app"

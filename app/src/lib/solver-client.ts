@@ -21,7 +21,11 @@ export interface SolveResult {
   unresolved: string[];
 }
 
-const READY_POLLS = 20;
+// 120 x 500ms = 60s. A packaged app's FIRST launch can take ~30-50s while macOS
+// validates the bundled solver's native libraries; warm launches are ~6s, so
+// this ceiling only bites on a cold first run or a genuine failure. The shell's
+// engine-status dot shows "Connecting..." during this window.
+const READY_POLLS = 120;
 const READY_POLL_MS = 500;
 
 async function baseUrl(): Promise<string> {
@@ -35,7 +39,7 @@ async function baseUrl(): Promise<string> {
     if (port) return `http://127.0.0.1:${port}`;
     await new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
   }
-  throw new Error("Solver did not start within 10s - check the app logs (is uv on PATH?)");
+  throw new Error("Solver did not start in time - check the app logs.");
 }
 
 /** FastAPI wraps errors as {"detail": "..."} - surface the text, not the JSON. */
