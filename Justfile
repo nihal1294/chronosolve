@@ -37,6 +37,10 @@ web:
 dev:
     ./scripts/workflow.sh dev
 
+# Build the distributable: PyInstaller sidecar + Tauri .dmg (macOS)
+package:
+    ./scripts/workflow.sh package
+
 # CLI smoke: template -> validate -> solve (TIME_LIMIT=30 to override)
 solve:
     ./scripts/workflow.sh solve

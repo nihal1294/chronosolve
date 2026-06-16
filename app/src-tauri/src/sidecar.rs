@@ -1,21 +1,26 @@
 //! Spawns the Python solver sidecar and tracks its port and process handle.
 //!
-//! Dev mode runs the server from the repo checkout via `uv`; the server
-//! announces its auto-selected port by printing `PORT=<n>` to stdout.
-//! A bundled PyInstaller sidecar replaces this in the packaging milestone.
+//! Dev runs the server from the repo checkout via `uv`; a release build runs
+//! the bundled PyInstaller onedir binary from the app's resource directory.
+//! Either way the server prints `PORT=<n>` to stdout once it is listening, and
+//! exits when its stdin pipe closes (i.e. when this app goes away).
 
+use std::io::{BufRead, BufReader};
+use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
 
 #[derive(Default)]
 pub struct SidecarState {
     pub port: Mutex<Option<u16>>,
-    pub child: Mutex<Option<CommandChild>>,
+    pub child: Mutex<Option<Child>>,
+    // Holding the child's stdin keeps the watchdog pipe open; dropping it (on
+    // exit or kill) closes the pipe and the `--parent-watchdog` server exits.
+    pub stdin: Mutex<Option<ChildStdin>>,
 }
 
-/// Repo root is two levels above src-tauri (repo/app/src-tauri).
+/// Repo root is two levels above src-tauri (repo/app/src-tauri) - dev only.
+#[cfg(debug_assertions)]
 fn repo_root() -> std::path::PathBuf {
     let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     manifest
@@ -25,51 +30,78 @@ fn repo_root() -> std::path::PathBuf {
         .to_path_buf()
 }
 
+/// Dev: run the server from the repo via `uv` (no packaging build needed).
+#[cfg(debug_assertions)]
+fn build_command(_app: &AppHandle) -> Command {
+    let mut cmd = Command::new("uv");
+    cmd.args([
+        "run",
+        "python",
+        "-m",
+        "timetable_solver.server",
+        "--parent-watchdog",
+    ])
+    .current_dir(repo_root());
+    cmd
+}
+
+/// Release: run the bundled PyInstaller onedir binary from resources. The exe
+/// and its `_internal/` libs must stay siblings, so the whole folder ships as a
+/// resource; resources can lose the +x bit, so restore it before spawning.
+#[cfg(not(debug_assertions))]
+fn build_command(app: &AppHandle) -> Command {
+    let dir = app
+        .path()
+        .resource_dir()
+        .expect("resource dir")
+        .join("binaries/solver");
+    let bin = dir.join("solver");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = std::fs::metadata(&bin) {
+            let mut perms = meta.permissions();
+            perms.set_mode(0o755);
+            let _ = std::fs::set_permissions(&bin, perms);
+        }
+    }
+    let mut cmd = Command::new(&bin);
+    cmd.arg("--parent-watchdog").current_dir(&dir);
+    cmd
+}
+
 pub fn spawn_sidecar(app: &AppHandle) -> tauri::Result<()> {
-    // --parent-watchdog: the server exits itself when our stdin pipe closes,
-    // covering every shutdown path (including crashes) - kill() below is only
-    // the fast path and cannot reach through the `uv run` wrapper process.
-    let (mut rx, child) = app
-        .shell()
-        .command("uv")
-        .args([
-            "run",
-            "python",
-            "-m",
-            "timetable_solver.server",
-            "--parent-watchdog",
-        ])
-        .current_dir(repo_root())
+    let mut child = build_command(app)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-        .expect("failed to spawn solver sidecar (is uv on PATH?)");
+        .expect("failed to spawn solver sidecar");
+
+    let stdout = child.stdout.take().expect("sidecar stdout pipe");
+    let stderr = child.stderr.take().expect("sidecar stderr pipe");
+    let stdin = child.stdin.take();
 
     let state = app.state::<SidecarState>();
+    *state.stdin.lock().unwrap() = stdin;
     *state.child.lock().unwrap() = Some(child);
 
+    // Watch stdout for the port announcement.
     let handle = app.clone();
-    tauri::async_runtime::spawn(async move {
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(line) => {
-                    let text = String::from_utf8_lossy(&line);
-                    if let Some(port) = text.trim().strip_prefix("PORT=") {
-                        if let Ok(port) = port.parse::<u16>() {
-                            eprintln!("chronosolve: solver sidecar ready on port {port}");
-                            let state = handle.state::<SidecarState>();
-                            *state.port.lock().unwrap() = Some(port);
-                        }
-                    }
+    std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if let Some(port) = line.trim().strip_prefix("PORT=") {
+                if let Ok(port) = port.parse::<u16>() {
+                    eprintln!("chronosolve: solver sidecar ready on port {port}");
+                    *handle.state::<SidecarState>().port.lock().unwrap() = Some(port);
                 }
-                // Surface sidecar diagnostics - a silent solver death is undebuggable.
-                CommandEvent::Stderr(line) => {
-                    eprintln!("sidecar: {}", String::from_utf8_lossy(&line).trim_end());
-                }
-                CommandEvent::Error(message) => eprintln!("sidecar error: {message}"),
-                CommandEvent::Terminated(payload) => {
-                    eprintln!("sidecar terminated: {:?}", payload.code);
-                }
-                _ => {}
             }
+        }
+    });
+    // Surface sidecar diagnostics - a silent solver death is undebuggable.
+    std::thread::spawn(move || {
+        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            eprintln!("sidecar: {line}");
         }
     });
     Ok(())
@@ -83,10 +115,10 @@ pub fn solver_port(state: tauri::State<'_, SidecarState>) -> Option<u16> {
 
 pub fn kill_sidecar(app: &AppHandle) {
     let state = app.state::<SidecarState>();
-    // Take the child out in its own statement so the MutexGuard temporary
-    // drops before `state` (E0597 when the if-let is the trailing expression).
+    // Drop stdin first (closes the watchdog pipe), then hard-kill as a backstop.
+    let _ = state.stdin.lock().unwrap().take();
     let child = state.child.lock().unwrap().take();
-    if let Some(child) = child {
+    if let Some(mut child) = child {
         let _ = child.kill();
     }
 }

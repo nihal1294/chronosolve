@@ -41,15 +41,23 @@ Commands:
   dev
     Full desktop app dev mode (Tauri manages the sidecar). Needs Rust + uv.
 
+  package
+    Build the distributable: PyInstaller solver sidecar + Tauri .dmg (macOS).
+    Needs Rust + uv + npm.
+
   solve
     End-to-end CLI smoke: template -> validate -> solve (TIME_LIMIT seconds).
 
   clean
     Remove repo caches, build artifacts, and stray temp files
-    (__pycache__, .coverage, .DS_Store). Installed dependencies are kept.
+    (__pycache__, .coverage, .DS_Store). Drops the packaging outputs too:
+    packaging/build + packaging/dist, the staged sidecar (app/src-tauri/
+    binaries/solver), and the Tauri bundle (.app/.dmg). Installed dependencies and the
+    Rust compile cache are kept.
 
   clean-all
-    clean + the Rust target directory. node_modules is left in place.
+    clean + the rest of the Rust target directory (the compile cache).
+    node_modules is left in place.
 
 Environment overrides:
   TIME_LIMIT (solve time limit in seconds, default 30)
@@ -168,6 +176,19 @@ do_dev() {
   (cd "$APP_DIR" && npm run tauri dev)
 }
 
+do_package() {
+  ensure_command uv
+  ensure_command npm
+  ensure_command cargo
+  ensure_command rustc
+  step "Building solver sidecar (PyInstaller onedir)"
+  "${REPO_ROOT}/scripts/build_sidecar.sh"
+  step "Building Tauri bundle (.dmg)"
+  (cd "$APP_DIR" && npm run tauri build)
+  step "Bundle output:"
+  ls "${TAURI_DIR}/target/release/bundle/dmg/" 2>/dev/null || true
+}
+
 do_solve() {
   ensure_command uv
   local work_dir
@@ -188,7 +209,11 @@ do_clean() {
     "${REPO_ROOT}/.uv-cache" \
     "${REPO_ROOT}/dist" \
     "${REPO_ROOT}/build" \
-    "${APP_DIR}/dist"
+    "${APP_DIR}/dist" \
+    "${REPO_ROOT}/packaging/build" \
+    "${REPO_ROOT}/packaging/dist" \
+    "${TAURI_DIR}/binaries/solver" \
+    "${TAURI_DIR}/target/release/bundle"
   rm -f "${REPO_ROOT}/coverage.xml"
   # Repo-wide sweep of stray temp files, everywhere including inside
   # node_modules/.venv/target (a __pycache__ or .coverage there is just a
@@ -220,6 +245,7 @@ main() {
     server) do_server ;;
     web) do_web ;;
     dev) do_dev ;;
+    package) do_package ;;
     solve) do_solve ;;
     clean) do_clean ;;
     clean-all) do_clean_all ;;

@@ -21,6 +21,11 @@ htmlcov/
 node_modules/
 app/src-tauri/target/
 
+# PyInstaller sidecar onedir, staged for the Tauri resource bundle (regenerated
+# by scripts/build_sidecar.sh). binaries/README.md is committed as a placeholder
+# so the resource glob is never empty on a fresh checkout.
+app/src-tauri/binaries/solver/
+
 # IDE
 .vscode/
 .idea/

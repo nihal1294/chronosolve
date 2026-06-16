@@ -1,0 +1,92 @@
+name: release
+
+# Cut a macOS release by pushing a version tag:
+#   git tag v0.1.0 && git push origin v0.1.0
+# The build is unsigned + ad-hoc (no Apple Developer ID yet), so the published
+# .dmg is a DRAFT release - notarization is deferred. workflow_dispatch builds
+# the same .dmg and uploads it as a workflow artifact without cutting a release,
+# so the pipeline can be exercised without tagging.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub release + upload assets
+
+jobs:
+  release-macos:
+    name: release-macos (aarch64)
+    runs-on: macos-14 # Apple Silicon -> aarch64 .dmg
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Set up Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: app
+
+      # Builds the PyInstaller onedir into app/src-tauri/binaries/solver (a
+      # gitignored resource) so the Tauri bundle below can pick it up. The script
+      # runs `uv run --group packaging pyinstaller`, which syncs the packaging
+      # group on demand from uv.lock.
+      - name: Build solver sidecar (PyInstaller onedir)
+        run: ./scripts/build_sidecar.sh
+
+      - name: Build + publish Tauri release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: app
+          tagName: ${{ github.ref_name }}
+          releaseName: "ChronoSolve __VERSION__"
+          releaseBody: |
+            Unsigned macOS build (Apple Silicon). Gatekeeper will block it on
+            first open because it is not notarized yet - see the README's
+            "Download & install" section to clear the quarantine flag.
+          releaseDraft: true
+          prerelease: false
+
+      - name: Build Tauri app (manual run, no release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npm run tauri build
+        working-directory: app
+
+      - name: Upload .dmg artifact (manual run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChronoSolve-macos-aarch64
+          path: app/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error

@@ -89,6 +89,23 @@ just web     # browser dev mode: sidecar + Vite wired together
 just dev     # full desktop app (Tauri)
 ```
 
+### Download & install (macOS)
+
+Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Apple
+Silicon / `aarch64` for now):
+
+1. Download `ChronoSolve_<version>_aarch64.dmg`, open it, and drag **ChronoSolve**
+   into your Applications folder.
+2. The build is **not signed or notarized yet**, so macOS Gatekeeper blocks the
+   first launch. Clear it once, either way:
+   - Control-click (right-click) ChronoSolve in Applications, choose **Open**,
+     then **Open** again in the dialog. macOS remembers the choice.
+   - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/ChronoSolve.app`
+
+The first launch can take up to a minute while macOS validates the unsigned
+libraries bundled with the solver; later launches start in a few seconds. The app
+runs entirely on your machine - the solver is bundled in, nothing is uploaded.
+
 ### Desktop app (development)
 
 Requires Node 20+, Rust (via [rustup](https://rustup.rs)), and `uv` on PATH - the app spawns the solver sidecar with `uv run` and discovers its port automatically:
@@ -116,9 +133,9 @@ A ⌘K command palette and keyboard shortcuts drive every action, and the whole 
 
 **Solver (complete):** CP-SAT core with hard constraints plus 10 weighted soft constraints, room assignment, lab blocks, and pre-assignments; an independent quality scorer and statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
 
-**Desktop app (in progress):** a route-based shell with a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a live Scheduler monitor (SSE progress, cancellable), and a filterable Timetable view with pin/unpin. The Constraints and Settings screens, plus analytics and export, are being rebuilt onto the new shell.
+**Desktop app (in progress):** a route-based shell with a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a live Scheduler monitor (SSE progress, cancellable), and a filterable Timetable view with pin/unpin. The Constraints and Settings screens, plus analytics and export, are being rebuilt onto the new shell. It now packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
 
-**Next:** constraint rule cards, analytics and export, then packaging (PyInstaller sidecar bundle, signed macOS .dmg and Windows installer) and PDF/ICS exporters.
+**Next:** constraint rule cards, analytics and export, then code signing + notarization (and a Windows installer) and PDF/ICS exporters.
 
 ## License
 
