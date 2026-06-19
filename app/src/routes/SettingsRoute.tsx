@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { useTheme } from "next-themes";
 import { Bell, Clock, Info, Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
-import { DEFAULT_PREFERENCES, usePreferences } from "../lib/use-preferences";
+import {
+  clampTimeLimit,
+  DEFAULT_PREFERENCES,
+  MAX_TIME_LIMIT,
+  MIN_TIME_LIMIT,
+  usePreferences,
+} from "../lib/use-preferences";
 
 const CARD =
   "rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm";
@@ -53,8 +59,8 @@ export function SettingsRoute() {
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                min={1}
-                max={600}
+                min={MIN_TIME_LIMIT}
+                max={MAX_TIME_LIMIT}
                 value={prefs.timeLimit}
                 onChange={(event) => setPref("timeLimit", clampSeconds(event.target.value))}
                 className="w-20 rounded-lg border border-neutral-300 bg-transparent px-3 py-1.5 text-right text-sm tabular-nums focus:border-indigo-500 focus:outline-none dark:border-neutral-700"
@@ -180,10 +186,10 @@ function AboutCard() {
   );
 }
 
-/** Keep the persisted limit a whole number of seconds in [1, 600]; a
-    non-numeric field falls back to the default rather than persisting NaN. */
+/** Keep the persisted limit a whole number of seconds within the supported
+    range; a non-numeric field falls back to the default rather than persisting NaN. */
 function clampSeconds(raw: string): number {
   const seconds = Math.round(Number(raw));
   if (!Number.isFinite(seconds)) return DEFAULT_PREFERENCES.timeLimit;
-  return Math.min(600, Math.max(1, seconds));
+  return clampTimeLimit(seconds);
 }

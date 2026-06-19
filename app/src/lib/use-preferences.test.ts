@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from "./use-preferences";
+import { DEFAULT_PREFERENCES, loadPreferences, MAX_TIME_LIMIT, savePreferences } from "./use-preferences";
 
 // This jsdom build does not implement localStorage, so back it with an
 // in-memory map for the round-trip (the real app uses the browser's).
@@ -41,5 +41,12 @@ describe("preferences persistence", () => {
       timeLimit: DEFAULT_PREFERENCES.timeLimit,
       notifyOnComplete: false,
     });
+  });
+
+  it("caps a stored time limit above the supported maximum", () => {
+    // A positive-but-out-of-range blob (older build, manual edit) must not reach
+    // the solver above the advertised cap - load clamps it, not just the input.
+    localStorage.setItem("chronosolve-prefs", JSON.stringify({ timeLimit: 9999, notifyOnComplete: true }));
+    expect(loadPreferences().timeLimit).toBe(MAX_TIME_LIMIT);
   });
 });

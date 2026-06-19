@@ -11,6 +11,17 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = { timeLimit: 60, notifyOnComplete: true };
 
+/** Supported solver time-limit bounds (seconds). Enforced on BOTH the Settings
+    input and the loaded value so an out-of-range blob (older build, manual edit,
+    partial corruption) never reaches the solver. */
+export const MIN_TIME_LIMIT = 1;
+export const MAX_TIME_LIMIT = 600;
+
+/** Clamp a time limit to the supported [MIN, MAX] range. */
+export function clampTimeLimit(seconds: number): number {
+  return Math.min(MAX_TIME_LIMIT, Math.max(MIN_TIME_LIMIT, seconds));
+}
+
 const KEY = "chronosolve-prefs";
 
 /** Read persisted preferences, falling back to a default per field for missing
@@ -23,7 +34,7 @@ export function loadPreferences(): Preferences {
     return {
       timeLimit:
         typeof parsed.timeLimit === "number" && parsed.timeLimit > 0
-          ? parsed.timeLimit
+          ? clampTimeLimit(parsed.timeLimit)
           : DEFAULT_PREFERENCES.timeLimit,
       notifyOnComplete:
         typeof parsed.notifyOnComplete === "boolean"
