@@ -27,7 +27,7 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
     setProgress(null);
   };
 
-  const solve = async () => {
+  const solve = async (timeLimit = 60) => {
     if (busy || doc === null) return; // button is disabled, but keep the invariant explicit
     setBusy(true);
     setSolveError(null);
@@ -36,7 +36,7 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
     controllerRef.current = controller;
     let finalObjective: number | null = null;
     try {
-      const solved = await solverClient.solveStream(doc, 60, {
+      const solved = await solverClient.solveStream(doc, timeLimit, {
         signal: controller.signal,
         onProgress: (snapshot) => {
           finalObjective = snapshot.objective;
