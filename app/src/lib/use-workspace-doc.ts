@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { parseEntities } from "./entities";
 import { countScheduled } from "./grid";
 import type { ProblemDoc } from "./problem-doc";
-import { solverClient } from "./solver-client";
+import { solverClient, type SolveResult } from "./solver-client";
 import { useProblemDoc } from "./use-problem-doc";
 import { useSolveState } from "./use-solve-state";
+import { loadPreferences } from "./use-preferences";
 import { isTauri, useProblemFile } from "./use-problem-file";
 import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
@@ -17,7 +19,16 @@ import { useTimelineLocks } from "./use-timeline-locks";
     side effects live in the shell. */
 export function useWorkspaceDoc() {
   const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
-  const solveState = useSolveState(doc, () => {});
+  // Notify on solve completion when the user enabled it (Toaster lives in the shell).
+  const notifyOnSolved = (solved: SolveResult) => {
+    if (!loadPreferences().notifyOnComplete) return;
+    if (solved.status === "optimal" || solved.status === "feasible") {
+      toast.success(`Timetable ready (${solved.status})`);
+    } else {
+      toast.warning(`No timetable found (${solved.status})`);
+    }
+  };
+  const solveState = useSolveState(doc, notifyOnSolved);
   const [templateError, setTemplateError] = useState<string | null>(null);
   // Shared "start a new problem" intent so any surface (Dashboard button,
   // command palette) opens the one confirm the shell renders.
@@ -68,6 +79,9 @@ export function useWorkspaceDoc() {
   const locks = useTimelineLocks(entities, schedule, editing.pin, editing.unpin);
   const { subjectNames, roomNames } = useEntityNames(entities);
 
+  // Each solve reads the latest saved time limit (Settings persists it).
+  const solve = () => solveState.solve(loadPreferences().timeLimit);
+
   return {
     yamlText,
     doc,
@@ -94,7 +108,7 @@ export function useWorkspaceDoc() {
     solveError: solveState.solveError,
     progress: solveState.progress,
     lastObjective: solveState.lastObjective,
-    solve: solveState.solve,
+    solve,
     cancel: solveState.cancel,
     invalidate: solveState.invalidate,
     schedule,

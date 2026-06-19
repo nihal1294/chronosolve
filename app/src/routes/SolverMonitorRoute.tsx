@@ -2,6 +2,8 @@ import { useNavigate } from "react-router";
 import { CalendarDays, Database, Play, RotateCcw, Square } from "lucide-react";
 import { useWorkspace } from "../providers/problem-doc-provider";
 import { SolverStateCard, type SolverPhase } from "../components/SolverStateCard";
+import { SolveAnalytics } from "../components/SolveAnalytics";
+import { ExportCard } from "../components/ExportCard";
 
 const card =
   "rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm";
@@ -48,16 +50,6 @@ export function SolverMonitorRoute() {
   const elapsed = ws.progress?.elapsed ?? result?.solve_time_seconds ?? 0;
   const feasible = result !== null && (result.status === "optimal" || result.status === "feasible");
   const summary = phase === "error" ? (ws.solveError ?? SUMMARY.error) : SUMMARY[phase];
-
-  const stats =
-    result && feasible
-      ? [
-          { label: "Quality", value: result.quality_score !== null ? `${result.quality_score} / 100` : "-" },
-          { label: "Status", value: result.status },
-          { label: "Time taken", value: `${result.solve_time_seconds.toFixed(2)}s` },
-          { label: "Sessions", value: String(result.schedule.length) },
-        ]
-      : null;
 
   return (
     <div className="relative z-10 h-full overflow-y-auto p-8 md:p-10" data-tour="solver">
@@ -114,10 +106,18 @@ export function SolverMonitorRoute() {
           </div>
         )}
 
-        {stats && (
+        {result && feasible && (
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {stats.map((stat) => (
+              {[
+                {
+                  label: "Quality",
+                  value: result.quality_score !== null ? `${result.quality_score} / 100` : "-",
+                },
+                { label: "Status", value: result.status },
+                { label: "Time taken", value: `${result.solve_time_seconds.toFixed(2)}s` },
+                { label: "Sessions", value: String(result.schedule.length) },
+              ].map((stat) => (
                 <div key={stat.label} className={`p-4 ${card}`}>
                   <div className="text-2xl font-bold capitalize text-neutral-900 dark:text-neutral-100">
                     {stat.value}
@@ -128,6 +128,10 @@ export function SolverMonitorRoute() {
                 </div>
               ))}
             </div>
+
+            <SolveAnalytics doc={ws.doc} result={result} entities={ws.entities} />
+            <ExportCard schedule={result.schedule} />
+
             <button onClick={() => navigate("/timetable")} className={`w-full ${primary}`}>
               <CalendarDays size={16} />
               View timetable

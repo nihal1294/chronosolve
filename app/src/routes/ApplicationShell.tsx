@@ -1,7 +1,15 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { useTheme } from "next-themes";
 import { Toaster } from "sonner";
-import { Activity, CalendarDays, Database, LayoutTemplate, Network, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  Database,
+  LayoutTemplate,
+  Network,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 import { BrandLogo } from "../components/BrandLogo";
 import { CommandPalette } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -105,19 +113,25 @@ export function ApplicationShell() {
             ))}
           </nav>
 
-          <div
-            className={`p-4 border-t text-xs flex items-center text-neutral-600 dark:text-neutral-400 ${border}`}
-          >
-            <HelpSpotlight
-              title="Scheduler"
-              content="Live status of the local scheduling service this app runs on."
-              position="top"
-            >
-              <div className="flex items-center gap-2" data-tour="engine-status">
-                <div className={`w-2 h-2 rounded-full ${engine.dot}`} />
-                <span className="hidden lg:inline">{engine.label}</span>
-              </div>
-            </HelpSpotlight>
+          <div className={`border-t ${border}`}>
+            <div className="px-3 pt-3">
+              <NavLink to="/settings" title="Settings" className={({ isActive }) => navClass(isActive)}>
+                <Settings size={16} />
+                <span className="hidden lg:inline">Settings</span>
+              </NavLink>
+            </div>
+            <div className="p-4 text-xs flex items-center text-neutral-600 dark:text-neutral-400">
+              <HelpSpotlight
+                title="Scheduler"
+                content="Live status of the local scheduling service this app runs on."
+                position="top"
+              >
+                <div className="flex items-center gap-2" data-tour="engine-status">
+                  <div className={`w-2 h-2 rounded-full ${engine.dot}`} />
+                  <span className="hidden lg:inline">{engine.label}</span>
+                </div>
+              </HelpSpotlight>
+            </div>
           </div>
         </aside>
 
