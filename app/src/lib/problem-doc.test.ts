@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  getHardFlag,
+  getSoftWeight,
   parseDoc,
   pinAssignment,
   removeEntity,
@@ -115,5 +117,19 @@ describe("pinAssignment / unpinAssignment", () => {
     const unpinned = unpinAssignment(doc, pin);
     expect(unpinned.pre_assignments).toEqual([other, "malformed"]);
     expect(unpinAssignment(parseDoc(YAML), pin).pre_assignments).toBeUndefined();
+  });
+});
+
+describe("constraint readers", () => {
+  it("getHardFlag falls back when unset and reads a stored flag", () => {
+    expect(getHardFlag({}, "room_no_clash", true)).toBe(true);
+    const doc = setHardFlag({}, "room_no_clash", false);
+    expect(getHardFlag(doc, "room_no_clash", true)).toBe(false);
+  });
+
+  it("getSoftWeight is 0 when unset and reads a stored weight", () => {
+    expect(getSoftWeight({}, "workload_balance")).toBe(0);
+    const doc = setSoftWeight({}, "workload_balance", 75);
+    expect(getSoftWeight(doc, "workload_balance")).toBe(75);
   });
 });
