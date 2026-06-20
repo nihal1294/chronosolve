@@ -47,3 +47,22 @@ export function humanizeMetric(name: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+/** Each metric's share of the total penalty (gap to 100), keyed by metric name.
+    Satisfied metrics map to 0; an all-satisfied report maps every key to 0.
+    Shares are rounded independently and may not sum to exactly 100 (largest-
+    remainder); each value is only used for its own bar width, never summed. */
+export function impactShares(metrics: Record<string, number>): Record<string, number> {
+  const penalties: Record<string, number> = {};
+  let total = 0;
+  for (const [name, score] of Object.entries(metrics)) {
+    const penalty = Math.max(0, 100 - score);
+    penalties[name] = penalty;
+    total += penalty;
+  }
+  const shares: Record<string, number> = {};
+  for (const name of Object.keys(metrics)) {
+    shares[name] = total === 0 ? 0 : Math.round((penalties[name] / total) * 100);
+  }
+  return shares;
+}

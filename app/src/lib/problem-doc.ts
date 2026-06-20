@@ -67,6 +67,20 @@ export function setSoftWeight(doc: ProblemDoc, name: string, weight: number): Pr
   return withConstraint(doc, "soft", name, weight);
 }
 
+/** Read a hard flag, falling back when it has never been set (defaults are on). */
+export function getHardFlag(doc: ProblemDoc, flag: string, fallback: boolean): boolean {
+  const group = (doc.constraints as { hard?: Record<string, unknown> } | undefined)?.hard;
+  const value = group?.[flag];
+  return typeof value === "boolean" ? value : fallback;
+}
+
+/** Read a soft weight, 0 when unset. */
+export function getSoftWeight(doc: ProblemDoc, name: string): number {
+  const group = (doc.constraints as { soft?: Record<string, unknown> } | undefined)?.soft;
+  const value = group?.[name];
+  return typeof value === "number" ? value : 0;
+}
+
 /** One fixed placement: a subject pinned to a (day, slot). */
 export interface PinSlot {
   subjectId: string;

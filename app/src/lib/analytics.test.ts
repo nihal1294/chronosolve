@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { humanizeMetric, penaltyShares, roomUtilization } from "./analytics";
+import { humanizeMetric, impactShares, penaltyShares, roomUtilization } from "./analytics";
 import type { QualityReport, ScheduleEntry } from "./solver-client";
 
 const entry = (over: Partial<ScheduleEntry>): ScheduleEntry => ({
@@ -53,5 +53,16 @@ describe("penaltyShares", () => {
 describe("humanizeMetric", () => {
   it("turns snake_case metric keys into title case labels", () => {
     expect(humanizeMetric("teacher_time_preferences")).toBe("Teacher Time Preferences");
+  });
+});
+
+describe("impactShares", () => {
+  it("is all-zero when every metric is perfect", () => {
+    expect(impactShares({ a: 100, b: 100 })).toEqual({ a: 0, b: 0 });
+  });
+
+  it("splits the total penalty proportionally", () => {
+    // a penalty 40, b penalty 10 -> total 50 -> 80% / 20%
+    expect(impactShares({ a: 60, b: 90 })).toEqual({ a: 80, b: 20 });
   });
 });
