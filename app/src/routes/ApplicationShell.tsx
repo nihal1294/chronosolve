@@ -14,9 +14,11 @@ import { BrandLogo } from "../components/BrandLogo";
 import { CommandPalette } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { HelpSpotlight } from "../components/HelpSpotlight";
+import { HowToUse } from "../components/HowToUse";
 import { ShortcutSheet } from "../components/ShortcutSheet";
 import { WindowChrome } from "../components/WindowChrome";
 import { useAppCommands } from "../lib/use-app-commands";
+import { useMenuEvents } from "../lib/use-menu-events";
 import { useEngineStatus, type EngineStatus } from "../lib/use-engine-status";
 import { useWorkspace } from "../providers/problem-doc-provider";
 
@@ -68,6 +70,14 @@ export function ApplicationShell() {
     // commands are no longer Tauri-gated.
     fileActions: { onOpen: ws.openFile, onSave: ws.saveFile },
     navigate,
+  });
+
+  // Native menu-bar items dispatch through the same command registry as the
+  // palette; the state flags grey out items whose command isn't available now.
+  useMenuEvents(palette.commands, {
+    canSolve: ws.doc !== null,
+    busy: ws.busy,
+    hasDoc: ws.doc !== null,
   });
 
   const border = isDark ? "border-neutral-800" : "border-neutral-200";
@@ -142,9 +152,8 @@ export function ApplicationShell() {
       </div>
 
       {palette.paletteOpen && <CommandPalette commands={palette.commands} onClose={palette.closePalette} />}
-      {palette.shortcutsOpen && (
-        <ShortcutSheet commands={palette.commands} onClose={palette.closeShortcuts} />
-      )}
+      {palette.shortcutsOpen && <ShortcutSheet onClose={palette.closeShortcuts} />}
+      {palette.guideOpen && <HowToUse onClose={palette.closeGuide} />}
       {ws.pendingNewProblem && (
         <ConfirmDialog
           title="Start a new problem?"

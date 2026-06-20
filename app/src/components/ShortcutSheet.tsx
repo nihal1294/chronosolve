@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import type { Command } from "../lib/use-app-commands";
+import { SHORTCUTS } from "../lib/command-catalog";
 import { Kbd } from "./Kbd";
 
 // ⌘K toggles the palette itself, so the command center handles it directly
@@ -8,14 +8,14 @@ import { Kbd } from "./Kbd";
 const APP_ROWS: { label: string; keys: string[] }[] = [{ label: "Command Palette", keys: ["⌘", "K"] }];
 
 interface ShortcutSheetProps {
-  commands: Command[];
   onClose: () => void;
 }
 
-/** Global-shortcuts cheat sheet (Command Palette spec). Every binding except
-    ⌘K is derived from the command registry, so adding a shortcut there shows
-    up here automatically - the chips and the sheet can't drift apart. */
-export function ShortcutSheet({ commands, onClose }: ShortcutSheetProps) {
+/** Global-shortcuts cheat sheet. Lists EVERY shortcut from the canonical
+    `SHORTCUTS` registry (plus ⌘K) regardless of whether the command is
+    available right now - so this is the exhaustive reference, and it can't drift
+    from the chips/bindings, which read the same registry. */
+export function ShortcutSheet({ onClose }: ShortcutSheetProps) {
   // The sheet has no focusable input to catch Escape (unlike the palette), so
   // close it from a window listener to match every other dialog's behaviour.
   useEffect(() => {
@@ -26,10 +26,9 @@ export function ShortcutSheet({ commands, onClose }: ShortcutSheetProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const bound = commands.filter((command) => command.shortcut && command.keys);
   const groups: { title: string; rows: { label: string; keys: string[] }[] }[] = [
     { title: "Application", rows: APP_ROWS },
-    { title: "Commands", rows: bound.map((command) => ({ label: command.label, keys: command.keys! })) },
+    { title: "Commands", rows: SHORTCUTS.map((spec) => ({ label: spec.label, keys: spec.keys })) },
   ];
 
   return (
