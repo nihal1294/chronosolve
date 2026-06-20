@@ -49,7 +49,9 @@ export function humanizeMetric(name: string): string {
 }
 
 /** Each metric's share of the total penalty (gap to 100), keyed by metric name.
-    Satisfied metrics map to 0; an all-satisfied report maps every key to 0. */
+    Satisfied metrics map to 0; an all-satisfied report maps every key to 0.
+    Shares are rounded independently and may not sum to exactly 100 (largest-
+    remainder); each value is only used for its own bar width, never summed. */
 export function impactShares(metrics: Record<string, number>): Record<string, number> {
   const penalties: Record<string, number> = {};
   let total = 0;

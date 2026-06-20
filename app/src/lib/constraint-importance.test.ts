@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SOFT_CONSTRAINTS } from "./constraint-catalog";
 import {
   IMPORTANCE_BANDS,
   PRESETS,
@@ -36,6 +37,8 @@ describe("presets", () => {
   it("defines a weight for all 10 soft constraints in every preset", () => {
     const keys = Object.keys(PRESETS.Balanced);
     expect(keys).toHaveLength(10);
+    // Drift guard: presets must cover exactly the catalog's soft constraints.
+    expect(keys).toEqual(SOFT_CONSTRAINTS.map((c) => c.key));
     PRESET_NAMES.forEach((name) => {
       expect(Object.keys(PRESETS[name])).toEqual(keys);
     });

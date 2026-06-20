@@ -26,8 +26,10 @@ export function HardConstraintRow({
         )}
       </div>
       <button
+        type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={def.label}
         onClick={() => onToggle(!checked)}
         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
           checked ? "bg-indigo-600" : "bg-neutral-300 dark:bg-neutral-700"

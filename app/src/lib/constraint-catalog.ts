@@ -86,8 +86,8 @@ export const SOFT_CONSTRAINTS: SoftConstraintDef[] = [
   },
   {
     key: "compact_schedules",
-    label: "Compact days",
-    description: "Pack each day's classes together with fewer holes.",
+    label: "Match preferred day shape",
+    description: "Honor each teacher's choice to pack their classes together or spread them out.",
     scored: true,
     metricKey: "compactness",
   },
@@ -100,8 +100,8 @@ export const SOFT_CONSTRAINTS: SoftConstraintDef[] = [
   },
   {
     key: "avoid_consecutive_hours",
-    label: "Avoid back-to-back hours",
-    description: "Discourage long unbroken runs of the same class.",
+    label: "Match back-to-back preferences",
+    description: "Honor each teacher's choice to avoid or prefer back-to-back teaching hours.",
     scored: false,
   },
   {

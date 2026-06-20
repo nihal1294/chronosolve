@@ -39,6 +39,8 @@ export function ConstraintEngineRoute() {
     return () => {
       active = false;
     };
+    // feasible is read in the guard above, so exhaustive-deps requires it here
+    // even though it is derived from result in the same render.
   }, [doc, result, feasible]);
 
   if (!doc) {
@@ -62,8 +64,11 @@ export function ConstraintEngineRoute() {
     );
   }
 
-  // A score only counts while it matches the current result (which a constraint
-  // edit invalidates), so a stale solve never shows an impact line.
+  // A score only counts while it matches the current result, so a stale solve
+  // never shows an impact line. Editing a constraint goes through ws.editProblem,
+  // which calls invalidate() -> result becomes null, so this reference check fails
+  // and the impact clears. (The pin path, applyDocEdit, deliberately keeps result
+  // and must not be used for constraint edits.)
   const metrics = score.forResult === result ? (score.report?.metrics ?? null) : null;
   const shares = metrics ? impactShares(metrics) : null;
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import type { SoftConstraintDef } from "../lib/constraint-catalog";
 import { ImportanceMeter } from "./ImportanceMeter";
@@ -26,6 +27,10 @@ export function SoftConstraintCard({
   onWeightChange: (weight: number) => void;
   impact: ConstraintImpact | null;
 }) {
+  // A local draft lets the field hold a transient empty/partial value mid-edit
+  // without committing weight 0 (which would invalidate the solve). Valid input
+  // commits immediately; blur snaps the field back to the stored weight.
+  const [draft, setDraft] = useState<string | null>(null);
   return (
     <div className={`${CARD} p-5`}>
       <div className="flex items-center justify-between gap-4">
@@ -40,8 +45,12 @@ export function SoftConstraintCard({
               type="number"
               min={0}
               max={100}
-              value={weight}
-              onChange={(event) => onWeightChange(clampWeight(event.target.value))}
+              value={draft ?? String(weight)}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                if (event.target.value.trim() !== "") onWeightChange(clampWeight(event.target.value));
+              }}
+              onBlur={() => setDraft(null)}
               className="w-16 rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-right text-sm tabular-nums focus:border-indigo-500 focus:outline-none dark:border-neutral-700"
             />
           </label>
