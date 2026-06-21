@@ -18,7 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "=2.6.2", features = [] }
 
 [dependencies]
-tauri = { version = "=2.11.2", features = [] }
+# image-png: lets us decode the embedded app icon for the native About panel
+# (Image::from_bytes); not in tauri's default feature set.
+tauri = { version = "=2.11.2", features = ["image-png"] }
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.150"
 tauri-plugin-dialog = "=2.7.1"

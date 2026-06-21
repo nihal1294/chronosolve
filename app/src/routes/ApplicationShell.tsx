@@ -14,9 +14,11 @@ import { BrandLogo } from "../components/BrandLogo";
 import { CommandPalette } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { HelpSpotlight } from "../components/HelpSpotlight";
+import { HowToUse } from "../components/HowToUse";
 import { ShortcutSheet } from "../components/ShortcutSheet";
 import { WindowChrome } from "../components/WindowChrome";
 import { useAppCommands } from "../lib/use-app-commands";
+import { useMenuEvents } from "../lib/use-menu-events";
 import { useEngineStatus, type EngineStatus } from "../lib/use-engine-status";
 import { useWorkspace } from "../providers/problem-doc-provider";
 
@@ -54,12 +56,21 @@ export function ApplicationShell() {
   const isDark = resolvedTheme !== "light";
   const navigate = useNavigate();
   const ws = useWorkspace();
-  const engine = ENGINE[useEngineStatus()];
+  const engineStatus = useEngineStatus();
+  const engine = ENGINE[engineStatus];
+
+  // Run needs a loaded problem AND a reachable engine - enabling it while the
+  // solver is offline/connecting offers an action that's known to fail. Save
+  // needs only text to save (an invalid-YAML draft has no parsed doc but is
+  // still worth saving), matching the Data editor's own Save button.
+  const canSolve = ws.doc !== null && engineStatus === "ready";
+  const canSave = ws.yamlText.trim().length > 0;
 
   const palette = useAppCommands({
-    canSolve: ws.doc !== null,
+    canSolve,
     busy: ws.busy,
     hasDoc: ws.doc !== null,
+    canSave,
     solve: ws.solve,
     cancel: ws.cancel,
     loadTemplate: ws.loadTemplate,
@@ -68,6 +79,15 @@ export function ApplicationShell() {
     // commands are no longer Tauri-gated.
     fileActions: { onOpen: ws.openFile, onSave: ws.saveFile },
     navigate,
+  });
+
+  // Native menu-bar items dispatch through the same command registry as the
+  // palette; the state flags grey out items whose command isn't available now.
+  useMenuEvents(palette.commands, {
+    canSolve,
+    busy: ws.busy,
+    hasDoc: ws.doc !== null,
+    canSave,
   });
 
   const border = isDark ? "border-neutral-800" : "border-neutral-200";
@@ -142,9 +162,8 @@ export function ApplicationShell() {
       </div>
 
       {palette.paletteOpen && <CommandPalette commands={palette.commands} onClose={palette.closePalette} />}
-      {palette.shortcutsOpen && (
-        <ShortcutSheet commands={palette.commands} onClose={palette.closeShortcuts} />
-      )}
+      {palette.shortcutsOpen && <ShortcutSheet onClose={palette.closeShortcuts} />}
+      {palette.guideOpen && <HowToUse onClose={palette.closeGuide} />}
       {ws.pendingNewProblem && (
         <ConfirmDialog
           title="Start a new problem?"
