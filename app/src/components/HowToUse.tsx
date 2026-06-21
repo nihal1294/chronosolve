@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { CalendarDays, Database, Network, Play, X, type LucideIcon } from "lucide-react";
+import { useDialogFocus } from "../lib/use-dialog-focus";
 
 interface Step {
   icon: LucideIcon;
@@ -37,6 +38,8 @@ const STEPS: Step[] = [
 /** In-app "how to use" guide (Help ▸ How to Use). The four-step journey the
     whole app is built around, so non-technical users never need the README. */
 export function HowToUse({ onClose }: { onClose: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onDialogKeyDown = useDialogFocus(dialogRef);
   // No focusable input to catch Escape, so close from a window listener - the
   // same pattern every other dialog uses.
   useEffect(() => {
@@ -53,11 +56,19 @@ export function HowToUse({ onClose }: { onClose: () => void }) {
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="howto-title"
+        onKeyDown={onDialogKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-2xl ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-lg rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-2xl ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 duration-200 outline-none"
       >
         <div className="flex items-start justify-between mb-1">
-          <h2 className="text-lg font-bold">How to use ChronoSolve</h2>
+          <h2 id="howto-title" className="text-lg font-bold">
+            How to use ChronoSolve
+          </h2>
           <button
             onClick={onClose}
             title="Close"

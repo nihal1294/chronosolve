@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { SHORTCUTS } from "../lib/command-catalog";
+import { useDialogFocus } from "../lib/use-dialog-focus";
 import { Kbd } from "./Kbd";
 
 // ⌘K toggles the palette itself, so the command center handles it directly
@@ -16,6 +17,8 @@ interface ShortcutSheetProps {
     available right now - so this is the exhaustive reference, and it can't drift
     from the chips/bindings, which read the same registry. */
 export function ShortcutSheet({ onClose }: ShortcutSheetProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onDialogKeyDown = useDialogFocus(dialogRef);
   // The sheet has no focusable input to catch Escape (unlike the palette), so
   // close it from a window listener to match every other dialog's behaviour.
   useEffect(() => {
@@ -37,11 +40,19 @@ export function ShortcutSheet({ onClose }: ShortcutSheetProps) {
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-title"
+        onKeyDown={onDialogKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-2xl ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-2xl ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 duration-200 outline-none"
       >
         <div className="flex items-start justify-between mb-4">
-          <h2 className="text-lg font-bold">Keyboard Shortcuts</h2>
+          <h2 id="shortcuts-title" className="text-lg font-bold">
+            Keyboard Shortcuts
+          </h2>
           <button
             onClick={onClose}
             title="Close"

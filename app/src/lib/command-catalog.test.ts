@@ -43,8 +43,9 @@ describe("command catalog shortcuts", () => {
     const onOpen = vi.fn();
     const onSave = vi.fn();
     const requestNewProblem = vi.fn();
+    const navigate = vi.fn();
     const commands = buildActions(
-      deps({ solve, requestNewProblem, fileActions: { onOpen, onSave } }),
+      deps({ solve, requestNewProblem, navigate, fileActions: { onOpen, onSave } }),
       vi.fn(),
       vi.fn(),
     );
@@ -58,6 +59,8 @@ describe("command catalog shortcuts", () => {
     byId.open.run();
     byId.save.run();
     expect(solve).toHaveBeenCalledOnce();
+    // Run jumps to the Scheduler route so its panel can show progress/errors.
+    expect(navigate).toHaveBeenCalledWith("/solver");
     expect(requestNewProblem).toHaveBeenCalledOnce();
     expect(onOpen).toHaveBeenCalledOnce();
     expect(onSave).toHaveBeenCalledOnce();

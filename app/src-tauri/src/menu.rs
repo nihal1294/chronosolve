@@ -112,9 +112,11 @@ pub fn install(app: &App) -> tauri::Result<()> {
     });
     app.on_menu_event(|app, event| {
         match event.id().0.as_str() {
-            // External links open in the browser straight from here; everything
-            // else (custom items + predefined ids) goes to the webview, which
-            // runs the matching command or simply ignores an unknown id.
+            // `help-issues` is handled entirely here (open the URL) and is
+            // deliberately NOT forwarded to the webview - there is no matching
+            // frontend command, so it never double-dispatches. Every other id
+            // (custom items + predefined ids) goes to the webview, which runs
+            // the matching command or simply ignores an unknown id.
             "help-issues" => open_url("https://github.com/nihal1294/chronosolve/issues"),
             _ => {
                 let _ = app.emit("menu", event.id().0.clone());

@@ -110,7 +110,14 @@ export function buildActions(
           label: "Run scheduler",
           icon: Play,
           ...bindingOf("solve"),
-          run: deps.solve,
+          // Mirror the Dashboard/Timetable Run buttons: jump to the Scheduler
+          // route so its live panel surfaces progress AND any solve error (e.g.
+          // the engine being unreachable) - otherwise a menu/⌘↵ Run triggered
+          // from another route would fail silently with nowhere to show it.
+          run: () => {
+            deps.solve();
+            deps.navigate("/solver");
+          },
         }
       : null,
     deps.busy

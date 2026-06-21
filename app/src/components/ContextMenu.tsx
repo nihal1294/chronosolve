@@ -3,6 +3,10 @@ import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import { nextItemIndex } from "../lib/menu-nav";
 
+// Approx. rendered height of one menu row (px), used to keep the panel on-screen
+// when it opens near the bottom edge. Matches the py-1.5 + text-sm row styling.
+const ROW_HEIGHT_PX = 30;
+
 export interface MenuItem {
   label: string;
   icon: LucideIcon;
@@ -112,7 +116,7 @@ export function ContextMenu({ menu, onClose }: { menu: MenuState; onClose: () =>
   const width = menu.width ?? "w-56";
   const rows = menu.items.length + (menu.header ? 2 : 0);
   const x = Math.max(8, Math.min(menu.x, window.innerWidth - (width === "w-64" ? 256 : 224) - 8));
-  const y = Math.max(8, Math.min(menu.y, window.innerHeight - rows * 30 - 20));
+  const y = Math.max(8, Math.min(menu.y, window.innerHeight - rows * ROW_HEIGHT_PX - 20));
 
   return createPortal(
     <div

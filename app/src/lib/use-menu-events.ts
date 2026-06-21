@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { isTauri } from "./env";
 import { dispatchMenuCommand } from "./menu-commands";
-import type { Command } from "./use-app-commands";
+import type { Command } from "./command-catalog";
 
 /** Availability flags that gate the state-dependent native menu items. */
 export interface MenuState {
