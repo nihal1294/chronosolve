@@ -92,7 +92,10 @@ just dev     # full desktop app (Tauri)
 ### Download & install (macOS)
 
 Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Apple
-Silicon / `aarch64` for now):
+Silicon / `aarch64` for now). Releases are **automated**: merges to `main` accumulate
+into a "Release" pull request that, when merged, bumps the version, updates the
+changelog, and drafts a GitHub release with a freshly built `.dmg` attached - a
+maintainer just publishes the draft (no manual tagging). To install:
 
 1. Download `ChronoSolve_<version>_aarch64.dmg`, open it, and drag **ChronoSolve**
    into your Applications folder.
@@ -123,7 +126,7 @@ The left sidebar follows the workflow top to bottom:
 
 1. **Dashboard** - your home base. Load the worked example, open a YAML/JSON file, or import CSV to get started. Shows live entity counts and a Data -> Constraints -> Schedule progress pipeline.
 2. **Data** - edit courses, instructors, student groups, and rooms as tables, or switch to the YAML view to edit the raw definition. Import entities from CSV with column auto-matching.
-3. **Constraints** - toggle the hard rules every timetable must satisfy and weight the soft preferences. _(in progress)_
+3. **Constraints** - toggle the hard rules every timetable must satisfy and set how much each soft preference matters, with quick presets and a live impact preview.
 4. **Scheduler** - run the solver and watch it converge live (best result and solutions-found stream in); cancel any time.
 5. **Timetable** - view the generated schedule by class, teacher, or room (or a master overview), filter by type/department/semester, and pin sessions you want to keep.
 
@@ -133,9 +136,9 @@ A ⌘K command palette and keyboard shortcuts drive every action, and the whole 
 
 **Solver (complete):** CP-SAT core with hard constraints plus 10 weighted soft constraints, room assignment, lab blocks, and pre-assignments; an independent quality scorer and statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
 
-**Desktop app (in progress):** a route-based shell with a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a live Scheduler monitor (SSE progress, cancellable), and a filterable Timetable view with pin/unpin. The Constraints and Settings screens, plus analytics and export, are being rebuilt onto the new shell. It now packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
+**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles plus soft preferences weighted by importance), a live Scheduler monitor (SSE progress, cancellable) with post-solve analytics and export, a filterable Timetable view with pin/unpin, and a Settings screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
 
-**Next:** constraint rule cards, analytics and export, then code signing + notarization (and a Windows installer) and PDF/ICS exporters.
+**Next:** code signing + notarization (to drop the Gatekeeper warning), Windows and Linux builds, and PDF / calendar (ICS) export.
 
 ## License
 

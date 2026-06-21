@@ -11,7 +11,8 @@ import {
 
 const CARD =
   "rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm";
-const APP_VERSION = "0.1.0";
+// release-please keeps this in sync with the app version on each release.
+const APP_VERSION = "0.1.0"; // x-release-please-version
 
 const THEMES: { value: string; label: string; icon: LucideIcon }[] = [
   { value: "system", label: "System", icon: Monitor },

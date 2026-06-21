@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "draft": true,
+  "include-component-in-tag": false,
+  "bootstrap-sha": "b7fda4294bdffd29db0d4597fd1b7f19fcb684e6",
+  "packages": {
+    ".": {
+      "package-name": "chronosolve",
+      "extra-files": [
+        { "type": "json", "path": "app/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "app/src-tauri/tauri.conf.json", "jsonpath": "$.version" },
+        { "type": "generic", "path": "app/src/routes/SettingsRoute.tsx" },
+        { "type": "generic", "path": "src/timetable_solver/server.py" }
+      ]
+    }
+  }
+}
