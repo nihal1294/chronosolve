@@ -9,7 +9,9 @@
       "package-name": "chronosolve",
       "extra-files": [
         { "type": "json", "path": "app/package.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "app/src-tauri/tauri.conf.json", "jsonpath": "$.version" }
+        { "type": "json", "path": "app/src-tauri/tauri.conf.json", "jsonpath": "$.version" },
+        { "type": "generic", "path": "app/src/routes/SettingsRoute.tsx" },
+        { "type": "generic", "path": "src/timetable_solver/server.py" }
       ]
     }
   }
