@@ -39,7 +39,11 @@ export function SettingsRoute() {
           </p>
         </header>
 
-        <Section title="Appearance" description="Pick a theme or follow your system.">
+        <Section
+          title="Appearance"
+          description="Pick a theme or follow your system."
+          dataTour="settings-appearance"
+        >
           <div className="flex gap-2">
             {THEMES.map((option) => (
               <ThemeButton
@@ -55,6 +59,7 @@ export function SettingsRoute() {
         <Section
           title="Scheduler"
           description="How long the solver searches before returning its best timetable."
+          dataTour="settings-scheduler"
         >
           <SettingRow icon={Clock} label="Max execution time">
             <div className="flex items-center gap-2">
@@ -90,13 +95,15 @@ function Section({
   title,
   description,
   children,
+  dataTour,
 }: {
   title: string;
   description: string;
   children: ReactNode;
+  dataTour?: string;
 }) {
   return (
-    <section className={`p-6 ${CARD}`}>
+    <section className={`p-6 ${CARD}`} data-tour={dataTour}>
       <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
       <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{description}</p>
       <div className="mt-4">{children}</div>
@@ -171,6 +178,8 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 }
 
 function AboutCard() {
+  // App identity only. The guided tour and help hints live in the Help menu
+  // (top bar + native Help), so About no longer carries a replay button.
   return (
     <section className={`flex items-start gap-3 p-6 ${CARD}`}>
       <div className="rounded-lg bg-indigo-500/10 p-2 text-indigo-500">

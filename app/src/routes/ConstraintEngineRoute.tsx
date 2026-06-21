@@ -101,7 +101,7 @@ export function ConstraintEngineRoute() {
       </div>
 
       <div className="mx-auto max-w-3xl space-y-8">
-        <section className={`${card} p-6`}>
+        <section className={`${card} p-6`} data-tour="constraints-hard">
           <div className="mb-2 flex items-center gap-2">
             <ShieldAlert size={16} className="text-red-500" />
             <h2 className="text-sm font-semibold">Hard rules (must satisfy)</h2>
@@ -134,7 +134,10 @@ export function ConstraintEngineRoute() {
             </label>
           </div>
 
-          <div className="flex w-max flex-wrap gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1.5 dark:border-neutral-800 dark:bg-neutral-900">
+          <div
+            data-tour="constraints-presets"
+            className="flex w-max flex-wrap gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1.5 dark:border-neutral-800 dark:bg-neutral-900"
+          >
             {PRESET_NAMES.map((name) => (
               <button
                 key={name}

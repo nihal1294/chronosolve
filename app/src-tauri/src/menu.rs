@@ -83,8 +83,16 @@ pub fn install(app: &App) -> tauri::Result<()> {
         .item(&halt)
         .build()?;
 
+    // "How to Use" launches the guided tour (its `help-guide` id maps to the
+    // tour command in the webview). "Show Help Hints" carries the Cmd-/
+    // accelerator so the native menu owns it on desktop; the JS dispatcher steps
+    // aside there (see `use-app-commands.ts`), so the toggle fires exactly once.
+    let help_hints = MenuItemBuilder::with_id("toggle-help-hints", "Show Help Hints")
+        .accelerator("CmdOrCtrl+/")
+        .build(app)?;
     let help_menu = SubmenuBuilder::new(app, "Help")
         .text("help-guide", "How to Use")
+        .item(&help_hints)
         .text("shortcuts", "Keyboard Shortcuts")
         .separator()
         .text("help-issues", "Report an Issue")

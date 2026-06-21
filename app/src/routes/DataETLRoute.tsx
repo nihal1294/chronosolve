@@ -73,7 +73,7 @@ export function DataETLRoute() {
               Edit as structured tables or as raw YAML. Open a file, or import entities from CSV.
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2" data-tour="data-actions">
             <button onClick={ws.openFile} className={headerBtn}>
               <FolderOpen size={16} />
               Open file
@@ -85,7 +85,7 @@ export function DataETLRoute() {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3" data-tour="data-views">
           <div className={groupBox}>
             <button onClick={() => setView("tables")} className={segment(view === "tables")}>
               Tables

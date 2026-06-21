@@ -75,7 +75,7 @@ export function DashboardRoute() {
             Start from a worked example, or bring your own courses, instructors, rooms, and groups.
             ChronoSolve finds a conflict-free schedule that respects your constraints.
           </p>
-          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row" data-tour="dashboard-actions">
             <button
               onClick={ws.loadTemplate}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
@@ -169,7 +169,7 @@ export function DashboardRoute() {
             schedule.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2" data-tour="dashboard-actions">
           <button
             onClick={ws.requestNewProblem}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
@@ -190,7 +190,7 @@ export function DashboardRoute() {
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
         Scheduling pipeline
       </h2>
-      <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-3" data-tour="dashboard-pipeline">
         {steps.map((step) => (
           <button
             key={step.to}

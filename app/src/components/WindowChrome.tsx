@@ -1,33 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Command as CmdIcon, HelpCircle, Moon, Search, Sun } from "lucide-react";
+import { setHelpMode, toggleHelpMode, useHelpMode } from "../lib/onboarding/help-mode";
+import { HelpMenu } from "./HelpMenu";
 
 interface WindowChromeProps {
   /** Opens the shell-owned command palette (single source of truth for Cmd+K). */
   onOpenPalette: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  /** Launch (or replay) the guided tour from the Help menu. */
+  onStartTour: () => void;
+  /** Open the keyboard-shortcuts sheet from the Help menu. */
+  onOpenShortcuts: () => void;
 }
 
 /** In-window top bar beneath the native OS title bar (EX-3: native window
     decorations are kept, the decorative traffic lights are dropped). Provides
-    the centered Cmd+K search pill, a theme toggle, and the Help Mode switch
-    (Cmd+/), which sets body.help-mode-active for every <HelpSpotlight>. */
-export function WindowChrome({ onOpenPalette, isDark, onToggleTheme }: WindowChromeProps) {
-  const [helpMode, setHelpMode] = useState(false);
+    the centered Cmd+K search pill, a theme toggle, and the Help menu - whose
+    "Show help hints" item (and Cmd+/) sets body.help-mode-active to light up the
+    HelpHintsLayer. Esc clears Help Mode. */
+export function WindowChrome({
+  onOpenPalette,
+  isDark,
+  onToggleTheme,
+  onStartTour,
+  onOpenShortcuts,
+}: WindowChromeProps) {
+  const helpMode = useHelpMode();
 
-  useEffect(() => {
-    document.body.classList.toggle("help-mode-active", helpMode);
-    return () => document.body.classList.remove("help-mode-active");
-  }, [helpMode]);
-
+  // Cmd-/ to toggle hints is owned by the command system (toggle-help-hints):
+  // the JS dispatcher in the browser, the native menu accelerator on desktop.
+  // Esc-to-clear lives here because it is not a menu accelerator.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "/") {
-        event.preventDefault();
-        setHelpMode((on) => !on);
-      } else if (event.key === "Escape") {
-        setHelpMode((on) => (on ? false : on));
-      }
+      if (event.key === "Escape") setHelpMode(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -68,19 +74,18 @@ export function WindowChrome({ onOpenPalette, isDark, onToggleTheme }: WindowChr
             onClick={onToggleTheme}
             title="Toggle theme"
             aria-label="Toggle theme"
+            data-tour="theme-toggle"
             className={`p-1.5 rounded transition-colors ${iconBtn}`}
           >
             {isDark ? <Sun size={14} /> : <Moon size={14} />}
           </button>
-          <button
-            onClick={() => setHelpMode((on) => !on)}
-            className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded transition-colors ${
-              helpMode ? "bg-indigo-500/20 text-indigo-400" : iconBtn
-            }`}
-          >
-            <HelpCircle size={14} />
-            Help
-          </button>
+          <HelpMenu
+            helpMode={helpMode}
+            iconBtn={iconBtn}
+            onStartTour={onStartTour}
+            onToggleHints={toggleHelpMode}
+            onOpenShortcuts={onOpenShortcuts}
+          />
         </div>
       </div>
 

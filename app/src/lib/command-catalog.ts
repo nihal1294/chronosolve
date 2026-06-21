@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Keyboard,
   LayoutTemplate,
+  Lightbulb,
   Network,
   Play,
   Save,
@@ -48,6 +49,10 @@ export interface AppCommandDeps {
   /** null outside the Tauri shell (browser preview hides file commands). */
   fileActions: { onOpen: () => void; onSave: () => void } | null;
   navigate: (path: string) => void;
+  /** Start (or replay) the guided tour - the "How to Use" entry. */
+  startTour: () => void;
+  /** Flip ambient help hints (also bound to Cmd-/). */
+  toggleHints: () => void;
 }
 
 export interface ShortcutSpec {
@@ -74,6 +79,7 @@ export const SHORTCUTS: ShortcutSpec[] = [
   { id: "open", label: "Open problem", keys: ["⌘", "O"], shortcut: { meta: true, key: "o" } },
   { id: "save", label: "Save problem", keys: ["⌘", "S"], shortcut: { meta: true, key: "s" } },
   { id: "nav-/settings", label: "Settings", keys: ["⌘", ","], shortcut: { meta: true, key: "," } },
+  { id: "toggle-help-hints", label: "Show help hints", keys: ["⌘", "/"], shortcut: { meta: true, key: "/" } },
 ];
 
 /** Just the binding fields for a command id, spreadable into a Command. */
@@ -97,13 +103,9 @@ const NAV: NavSpec[] = [
   { path: "/settings", label: "Go to Settings", icon: SettingsIcon },
 ];
 
-/** The Actions group. `openShortcuts`/`openGuide` open the two Help overlays;
-    their state lives in the hook. */
-export function buildActions(
-  deps: AppCommandDeps,
-  openShortcuts: () => void,
-  openGuide: () => void,
-): Command[] {
+/** The Actions group. `openShortcuts` opens the Keyboard Shortcuts sheet (its
+    state lives in the hook); the tour and help hints are driven through deps. */
+export function buildActions(deps: AppCommandDeps, openShortcuts: () => void): Command[] {
   const f = deps.fileActions;
   const specs: (Command | null)[] = [
     deps.canSolve && !deps.busy
@@ -172,7 +174,17 @@ export function buildActions(
           run: f.onSave,
         }
       : null,
-    { id: "help-guide", group: "Actions", label: "How to Use", icon: BookOpen, run: openGuide },
+    // "How to Use" launches the guided tour - the same entry the native Help
+    // menu item and the first-run welcome card use.
+    { id: "help-guide", group: "Actions", label: "How to Use", icon: BookOpen, run: deps.startTour },
+    {
+      id: "toggle-help-hints",
+      group: "Actions",
+      label: "Show help hints",
+      icon: Lightbulb,
+      ...bindingOf("toggle-help-hints"),
+      run: deps.toggleHints,
+    },
     { id: "shortcuts", group: "Actions", label: "Keyboard Shortcuts", icon: Keyboard, run: openShortcuts },
   ];
   return specs.filter((command): command is Command => command !== null);

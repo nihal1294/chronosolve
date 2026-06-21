@@ -13,17 +13,9 @@ const isEditable = (target: EventTarget | null): boolean =>
 export function useAppCommands(deps: AppCommandDeps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
 
   const commands = useMemo(
-    () => [
-      ...buildActions(
-        deps,
-        () => setShortcutsOpen(true),
-        () => setGuideOpen(true),
-      ),
-      ...buildNav(deps),
-    ],
+    () => [...buildActions(deps, () => setShortcutsOpen(true)), ...buildNav(deps)],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       deps.canSolve,
@@ -35,6 +27,8 @@ export function useAppCommands(deps: AppCommandDeps) {
       deps.requestNewProblem,
       deps.fileActions,
       deps.navigate,
+      deps.startTour,
+      deps.toggleHints,
     ],
   );
 
@@ -76,8 +70,7 @@ export function useAppCommands(deps: AppCommandDeps) {
     openPalette: () => setPaletteOpen(true),
     closePalette: () => setPaletteOpen(false),
     shortcutsOpen,
+    openShortcuts: () => setShortcutsOpen(true),
     closeShortcuts: () => setShortcutsOpen(false),
-    guideOpen,
-    closeGuide: () => setGuideOpen(false),
   };
 }
