@@ -6,6 +6,7 @@ function deps(over: Partial<AppCommandDeps> = {}): AppCommandDeps {
     canSolve: true,
     busy: false,
     hasDoc: true,
+    canSave: true,
     solve: vi.fn(),
     cancel: vi.fn(),
     loadTemplate: vi.fn(),
@@ -64,6 +65,15 @@ describe("command catalog shortcuts", () => {
     expect(requestNewProblem).toHaveBeenCalledOnce();
     expect(onOpen).toHaveBeenCalledOnce();
     expect(onSave).toHaveBeenCalledOnce();
+  });
+
+  it("Save is offered whenever there is text to save, hidden when there is not", () => {
+    const fileActions = { onOpen: vi.fn(), onSave: vi.fn() };
+    // canSave true even with no parsed doc (an invalid YAML draft is still savable).
+    const savable = buildActions(deps({ hasDoc: false, canSave: true, fileActions }), vi.fn(), vi.fn());
+    expect(savable.find((c) => c.id === "save")).toBeDefined();
+    const empty = buildActions(deps({ canSave: false, fileActions }), vi.fn(), vi.fn());
+    expect(empty.find((c) => c.id === "save")).toBeUndefined();
   });
 
   it("settings nav carries Cmd+, and exposes an exhaustive shortcut list", () => {

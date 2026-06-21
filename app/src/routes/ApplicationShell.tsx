@@ -56,12 +56,21 @@ export function ApplicationShell() {
   const isDark = resolvedTheme !== "light";
   const navigate = useNavigate();
   const ws = useWorkspace();
-  const engine = ENGINE[useEngineStatus()];
+  const engineStatus = useEngineStatus();
+  const engine = ENGINE[engineStatus];
+
+  // Run needs a loaded problem AND a reachable engine - enabling it while the
+  // solver is offline/connecting offers an action that's known to fail. Save
+  // needs only text to save (an invalid-YAML draft has no parsed doc but is
+  // still worth saving), matching the Data editor's own Save button.
+  const canSolve = ws.doc !== null && engineStatus === "ready";
+  const canSave = ws.yamlText.trim().length > 0;
 
   const palette = useAppCommands({
-    canSolve: ws.doc !== null,
+    canSolve,
     busy: ws.busy,
     hasDoc: ws.doc !== null,
+    canSave,
     solve: ws.solve,
     cancel: ws.cancel,
     loadTemplate: ws.loadTemplate,
@@ -75,9 +84,10 @@ export function ApplicationShell() {
   // Native menu-bar items dispatch through the same command registry as the
   // palette; the state flags grey out items whose command isn't available now.
   useMenuEvents(palette.commands, {
-    canSolve: ws.doc !== null,
+    canSolve,
     busy: ws.busy,
     hasDoc: ws.doc !== null,
+    canSave,
   });
 
   const border = isDark ? "border-neutral-800" : "border-neutral-200";

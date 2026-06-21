@@ -37,6 +37,9 @@ export interface AppCommandDeps {
   busy: boolean;
   /** A document is loaded - gates the "New problem" action. */
   hasDoc: boolean;
+  /** There is YAML text to save (even an invalid draft) - gates "Save". A
+      broken-YAML draft has no parsed doc but is still worth saving/recovering. */
+  canSave: boolean;
   solve: () => void;
   cancel: () => void;
   loadTemplate: () => void;
@@ -159,7 +162,7 @@ export function buildActions(
           run: f.onOpen,
         }
       : null,
-    f
+    f && deps.canSave
       ? {
           id: "save",
           group: "Actions",

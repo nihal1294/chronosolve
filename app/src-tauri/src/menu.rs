@@ -139,18 +139,21 @@ pub struct MenuItemHandles {
 }
 
 /// Mirror the frontend command availability onto the native menu items. Called
-/// whenever canSolve/busy/hasDoc change (see `use-menu-events.ts`).
+/// whenever canSolve/busy/hasDoc/canSave change (see `use-menu-events.ts`).
+/// Save tracks `can_save` (any YAML text present), NOT `has_doc` (a parsed
+/// document) - an invalid-YAML draft has no parsed doc but is still savable.
 #[tauri::command]
 pub fn set_menu_states(
     handles: tauri::State<'_, MenuItemHandles>,
     can_solve: bool,
     busy: bool,
     has_doc: bool,
+    can_save: bool,
 ) {
     let _ = handles.solve.set_enabled(can_solve && !busy);
     let _ = handles.halt.set_enabled(busy);
     let _ = handles.new_item.set_enabled(has_doc);
-    let _ = handles.save.set_enabled(has_doc);
+    let _ = handles.save.set_enabled(can_save);
 }
 
 /// About-panel metadata carrying our app icon, embedded at compile time. A

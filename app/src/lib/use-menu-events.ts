@@ -10,6 +10,8 @@ export interface MenuState {
   canSolve: boolean;
   busy: boolean;
   hasDoc: boolean;
+  /** There is YAML text to save (gates native Save, even for an invalid draft). */
+  canSave: boolean;
 }
 
 /** In the Tauri shell, route native menu-bar clicks to the matching app command
@@ -42,6 +44,7 @@ export function useMenuEvents(commands: Command[], state: MenuState): void {
       canSolve: state.canSolve,
       busy: state.busy,
       hasDoc: state.hasDoc,
+      canSave: state.canSave,
     }).catch(() => {});
-  }, [state.canSolve, state.busy, state.hasDoc]);
+  }, [state.canSolve, state.busy, state.hasDoc, state.canSave]);
 }
