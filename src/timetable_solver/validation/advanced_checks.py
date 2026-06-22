@@ -151,13 +151,16 @@ def _check_global_break_capacity(problem: TimetableProblem, issues: list[Validat
     if not breaks:
         return
     days = set(problem.time_structure.days)
-    blocked = 0
+    # Track (day, slot) pairs across every break entry: the solver blocks each
+    # pair once, so a slot repeated in two break objects must not be subtracted
+    # twice (that would falsely reject a feasible problem).
+    blocked_pairs: set[tuple[str, int]] = set()
     for brk in breaks:
         if brk.day not in days:
             continue
         max_slot = problem.time_structure.get_slots_for_day(brk.day)
-        blocked += len({s for s in brk.slots if 1 <= s <= max_slot})
-    available = problem.time_structure.total_slots() - blocked
+        blocked_pairs.update((brk.day, s) for s in brk.slots if 1 <= s <= max_slot)
+    available = problem.time_structure.total_slots() - len(blocked_pairs)
     group_hours: dict[str, int] = {}
     for subj in problem.subjects:
         for gid in subj.group_ids:

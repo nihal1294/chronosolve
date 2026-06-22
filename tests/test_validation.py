@@ -314,6 +314,34 @@ class TestAdvancedRuleChecks:
         issues = validate_problem(problem)
         assert any(i.severity == Severity.ERROR and "break" in i.message.lower() for i in issues)
 
+    def test_duplicate_break_slots_not_double_counted(self) -> None:
+        # Two break entries repeat Mon slot 1; the solver blocks (Mon, 1) once, so
+        # capacity is 6 - 1 = 5, exactly the 5 required hours. Counting the slot
+        # twice would wrongly report 4 < 5 and reject a feasible problem.
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="s",
+                    name="S",
+                    hours_per_week=5,
+                    max_per_day=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                )
+            ],
+            slots=2,
+            advanced={
+                "global_breaks": [
+                    GlobalBreak(day="Mon", slots=[1]),
+                    GlobalBreak(day="Mon", slots=[1]),
+                ]
+            },
+        )
+        issues = validate_problem(problem)
+        assert not any(
+            i.severity == Severity.ERROR and "break" in i.message.lower() for i in issues
+        )
+
 
 class TestAdvancedReferenceChecks:
     def _problem(self, *, advanced, rooms=None):
