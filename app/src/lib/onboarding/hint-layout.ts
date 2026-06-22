@@ -72,3 +72,16 @@ export function tooltipPosition(
   top = Math.max(8, Math.min(top, vp.height - tipH - 8));
   return { top: Math.round(top), left: Math.round(left) };
 }
+
+/** Pull a hint's ring rect inside the viewport by `margin` px so every edge
+ *  stays on screen even when the anchor is taller/wider than the window or flush
+ *  to an edge (the timetable grid, the full-height sidebar). A small anchor that
+ *  already fits is returned unchanged - the ring still hugs it exactly. An anchor
+ *  scrolled fully out collapses to zero size, which the caller drops. */
+export function clampRectToViewport(rect: Rect, vp: Viewport, margin = 8): Rect {
+  const left = Math.max(margin, rect.left);
+  const top = Math.max(margin, rect.top);
+  const right = Math.min(vp.width - margin, rect.left + rect.width);
+  const bottom = Math.min(vp.height - margin, rect.top + rect.height);
+  return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}

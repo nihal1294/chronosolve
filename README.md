@@ -130,13 +130,13 @@ The left sidebar follows the workflow top to bottom:
 4. **Scheduler** - run the solver and watch it converge live (best result and solutions-found stream in); cancel any time.
 5. **Timetable** - view the generated schedule by class, teacher, or room (or a master overview), filter by type/department/semester, and pin sessions you want to keep.
 
-A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes.
+A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes. New here? On first launch a welcome card offers a quick guided tour or a self-guided look around, and you can reopen either later from the **Help** menu - replay the tour, or press ⌘/ to toggle ambient hints that label whatever is on screen.
 
 ## Status
 
 **Solver (complete):** CP-SAT core with hard constraints plus 10 weighted soft constraints, room assignment, lab blocks, and pre-assignments; an independent quality scorer and statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
 
-**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles plus soft preferences weighted by importance), a live Scheduler monitor (SSE progress, cancellable) with post-solve analytics and export, a filterable Timetable view with pin/unpin, and a Settings screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
+**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles plus soft preferences weighted by importance), a live Scheduler monitor (SSE progress, cancellable) with post-solve analytics and export, a filterable Timetable view with pin/unpin, and a Settings screen, plus built-in onboarding - a first-run welcome card, a replayable guided tour, and toggleable ambient hints that explain each screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
 
 **Next:** code signing + notarization (to drop the Gatekeeper warning), Windows and Linux builds, and PDF / calendar (ICS) export.
 

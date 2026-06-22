@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { useHelpMode } from "../lib/onboarding/help-mode";
-import { computeHints, tooltipPosition, type HintPlacement } from "../lib/onboarding/hint-layout";
+import {
+  clampRectToViewport,
+  computeHints,
+  tooltipPosition,
+  type HintPlacement,
+} from "../lib/onboarding/hint-layout";
 
 /** Ambient help overlay. While Help Mode is on, it lights up every help anchor
  *  currently on screen with an indigo dot (the hover target) ringed around the
@@ -54,26 +59,34 @@ export function HelpHintsLayer() {
     // assistive tech so the hover-only tooltips aren't announced as stray text.
     <div className="fixed inset-0 z-[90] pointer-events-none" aria-hidden="true">
       {hints.map((hint) => {
-        const tip = tooltipPosition(hint.rect, hint.side, vp);
+        // Clamp the ring into the viewport so every edge stays visible for an
+        // anchor larger than the screen (grid, sidebar); a small one is unchanged.
+        // An anchor scrolled fully out collapses to nothing and is skipped.
+        const rect = clampRectToViewport(hint.rect, vp);
+        if (rect.width <= 0 || rect.height <= 0) return null;
+        const tip = tooltipPosition(rect, hint.side, vp);
         return (
+          // z-tiers within this one stacking context: rings (z-0) under dots
+          // (z-10) under tooltips (z-20), so a tooltip is never painted behind a
+          // later anchor's ring regardless of DOM order.
           <div key={hint.id} className="group">
             <div
-              className="fixed rounded-lg ring-2 ring-indigo-500/40 pointer-events-none"
+              className="fixed z-0 rounded-lg ring-2 ring-indigo-500/40 pointer-events-none"
               style={{
-                top: hint.rect.top,
-                left: hint.rect.left,
-                width: hint.rect.width,
-                height: hint.rect.height,
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
               }}
             />
             <div
-              className="fixed h-3 w-3 cursor-help rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.85)] animate-pulse pointer-events-auto"
-              style={{ top: hint.rect.top - 5, left: hint.rect.left + hint.rect.width - 7 }}
+              className="fixed z-10 h-3 w-3 cursor-help rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.85)] animate-pulse pointer-events-auto"
+              style={{ top: rect.top - 5, left: rect.left + rect.width - 7 }}
               aria-hidden="true"
             />
             <div
               role="tooltip"
-              className="fixed w-64 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-xl opacity-0 transition-opacity duration-150 group-hover:opacity-100 pointer-events-none dark:border-neutral-800 dark:bg-neutral-900"
+              className="fixed z-20 w-64 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-xl opacity-0 transition-opacity duration-150 group-hover:opacity-100 pointer-events-none dark:border-neutral-800 dark:bg-neutral-900"
               style={{ top: tip.top, left: tip.left }}
             >
               <div className="flex items-center gap-2">

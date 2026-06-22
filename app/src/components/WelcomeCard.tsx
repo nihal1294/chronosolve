@@ -1,37 +1,43 @@
 import { useEffect, useRef } from "react";
-import { Compass, MousePointerClick, X } from "lucide-react";
+import { Compass, Loader2, MousePointerClick, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { useDialogFocus } from "../lib/use-dialog-focus";
 
 interface WelcomeCardProps {
   isDark: boolean;
-  /** Launch the guided tour (and mark the user welcomed). */
+  /** Launch the guided tour (and mark the user welcomed). May be async while the
+   *  first-run example finishes loading. */
   onTakeTour: () => void;
   /** Turn on ambient help hints and let the user explore (marks welcomed). */
   onLookAround: () => void;
   /** Dismiss without choosing - also marks welcomed so it shows only once. */
   onClose: () => void;
+  /** The tour was chosen but the first-run example is still loading; freeze the
+   *  card and show progress so the tour doesn't open onto empty screens. */
+  pending?: boolean;
 }
 
 /** First-run greeting. Offers the two onboarding paths the design settled on - a
  *  guided tour or self-directed exploration with ambient hints - rather than
  *  forcing the tour on the user. Shown once (persisted via markWelcomed); every
  *  help affordance stays reachable afterwards from the Help menu. */
-export function WelcomeCard({ isDark, onTakeTour, onLookAround, onClose }: WelcomeCardProps) {
+export function WelcomeCard({ isDark, onTakeTour, onLookAround, onClose, pending }: WelcomeCardProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const onDialogKeyDown = useDialogFocus(dialogRef);
   useEffect(() => {
+    // While the example is loading for the tour, ignore Escape too - dismissing
+    // mid-load would strand the pending tour start.
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !pending) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, pending]);
 
   return (
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-6"
-      onMouseDown={onClose}
+      onMouseDown={pending ? undefined : onClose}
     >
       <div
         ref={dialogRef}
@@ -45,9 +51,10 @@ export function WelcomeCard({ isDark, onTakeTour, onLookAround, onClose }: Welco
       >
         <button
           onClick={onClose}
+          disabled={pending}
           title="Close"
           aria-label="Close"
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-black/5 dark:text-neutral-500 dark:hover:bg-white/5"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-black/5 disabled:opacity-40 dark:text-neutral-500 dark:hover:bg-white/5"
         >
           <X size={16} />
         </button>
@@ -69,14 +76,16 @@ export function WelcomeCard({ isDark, onTakeTour, onLookAround, onClose }: Welco
         <div className="mt-6 space-y-2.5">
           <button
             onClick={onTakeTour}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+            disabled={pending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-default disabled:hover:bg-indigo-600"
           >
-            <Compass size={16} />
-            Take the quick tour
+            {pending ? <Loader2 size={16} className="animate-spin" /> : <Compass size={16} />}
+            {pending ? "Setting up the example…" : "Take the quick tour"}
           </button>
           <button
             onClick={onLookAround}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            disabled={pending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
           >
             <MousePointerClick size={16} />
             I&apos;ll look around

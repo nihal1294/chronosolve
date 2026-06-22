@@ -12,6 +12,14 @@ import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
 import { useTimelineLocks } from "./use-timeline-locks";
 
+/** Is there user work the first-run template bootstrap must not clobber? A parsed
+ *  doc OR a non-empty (possibly malformed) yamlText draft both count - the latter
+ *  is doc === null yet savable, so checking doc alone would let the background
+ *  load overwrite a draft the user opened or typed. Mirrors the canSave signal. */
+export function hasWorkspaceContent(doc: ProblemDoc | null, yamlText: string): boolean {
+  return doc !== null || yamlText.trim().length > 0;
+}
+
 /** The whole keep-the-model layer the pre-router shell used to assemble, lifted into one
     hook so every route reads the same document, solve state, and derived
     facts through a context instead of prop-drilling from a single window.
@@ -19,12 +27,16 @@ import { useTimelineLocks } from "./use-timeline-locks";
     side effects live in the shell. */
 export function useWorkspaceDoc() {
   const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
-  // Live handle on the current doc so an async guard (loadTemplate) can re-check
-  // it at write time rather than trusting the stale value its closure captured.
+  // Live handles on the current doc AND raw text so an async guard (the first-run
+  // template load) re-checks them at write time rather than trusting the stale
+  // values its closure captured. Both matter: a malformed-YAML draft keeps
+  // doc === null while yamlText stays non-empty (see hasWorkspaceContent).
   const docRef = useRef(doc);
+  const yamlTextRef = useRef(yamlText);
   useEffect(() => {
     docRef.current = doc;
-  }, [doc]);
+    yamlTextRef.current = yamlText;
+  }, [doc, yamlText]);
   // Notify on solve completion when the user enabled it (Toaster lives in the shell).
   const notifyOnSolved = (solved: SolveResult) => {
     if (!loadPreferences().notifyOnComplete) return;
@@ -62,7 +74,7 @@ export function useWorkspaceDoc() {
     setTemplateError(null);
     try {
       const text = await solverClient.template();
-      if (onlyWhenEmpty && docRef.current !== null) return;
+      if (onlyWhenEmpty && hasWorkspaceContent(docRef.current, yamlTextRef.current)) return;
       writeYaml(text);
     } catch (problem) {
       const detail = problem instanceof Error ? problem.message : String(problem);

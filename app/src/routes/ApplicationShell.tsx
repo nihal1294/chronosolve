@@ -109,10 +109,15 @@ export function ApplicationShell() {
   // hints - lands on populated screens. bootedRef keeps this single-shot under
   // StrictMode's double-invoke.
   const bootedRef = useRef(false);
+  // Holds the in-flight first-run template load so the tour can await it - on a
+  // cold packaged launch it may still be reaching the sidecar. It resolves on
+  // success OR failure, so awaiting it never blocks the tour forever.
+  const bootTemplateRef = useRef<Promise<void> | undefined>(undefined);
+  const [tourPending, setTourPending] = useState(false);
   useEffect(() => {
     if (bootedRef.current) return;
     bootedRef.current = true;
-    if (showWelcome && ws.doc === null) void ws.loadTemplateIfEmpty();
+    if (showWelcome && ws.doc === null) bootTemplateRef.current = ws.loadTemplateIfEmpty();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -207,7 +212,12 @@ export function ApplicationShell() {
       {showWelcome && (
         <WelcomeCard
           isDark={isDark}
-          onTakeTour={() => {
+          pending={tourPending}
+          onTakeTour={async () => {
+            // Wait for the first-run example to finish loading (or fail) so the
+            // tour never walks onto empty "No problem loaded" screens.
+            setTourPending(true);
+            await bootTemplateRef.current;
             dismissWelcome();
             startTour();
           }}
