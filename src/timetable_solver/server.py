@@ -26,7 +26,7 @@ from timetable_solver.scoring.quality import QualityReport
 from timetable_solver.validation.validator import Severity
 
 # release-please keeps this in sync with the app version on each release.
-VERSION = "0.2.0"  # x-release-please-version
+VERSION = "0.3.0"  # x-release-please-version
 
 app = FastAPI(title="ChronoSolve Solver", version=VERSION)
 # Origins: vite dev (localhost:1420), packaged Tauri webviews - macOS/Linux use
