@@ -50,7 +50,9 @@ export function HelpHintsLayer() {
   const vp = { width: window.innerWidth, height: window.innerHeight };
 
   return (
-    <div className="fixed inset-0 z-[90] pointer-events-none">
+    // Purely visual help layer over already-accessible controls: hidden from
+    // assistive tech so the hover-only tooltips aren't announced as stray text.
+    <div className="fixed inset-0 z-[90] pointer-events-none" aria-hidden="true">
       {hints.map((hint) => {
         const tip = tooltipPosition(hint.rect, hint.side, vp);
         return (

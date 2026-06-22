@@ -51,7 +51,6 @@ export function WindowChrome({
     <>
       <div
         className={`h-10 shrink-0 w-full relative z-50 flex items-center justify-between gap-4 px-4 border-b select-none ${bar}`}
-        data-tour="window-chrome"
       >
         <div className="w-1/4" />
         <div className="flex-1 flex justify-center">

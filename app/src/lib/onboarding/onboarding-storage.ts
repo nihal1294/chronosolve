@@ -42,18 +42,21 @@ export function saveOnboarding(store: StoreLike, state: OnboardingState): StoreL
   return store;
 }
 
-/** Show the first-run welcome card only to a genuinely new user - one with no
- *  stored onboarding record at all. Anyone already welcomed, or who completed or
- *  skipped the tour (including users from before the welcome card existed), is
- *  past onboarding and must not be greeted again. */
+/** Show the first-run welcome card when there is no stored record at all, OR
+ *  when the stored tour is older than the current version (a TOUR_VERSION bump
+ *  re-greets everyone once after a material change). Otherwise a user already
+ *  welcomed, or who completed or skipped the tour (including users from before
+ *  the welcome card existed), is past onboarding and must not be greeted again. */
 export function shouldShowWelcome(state: OnboardingState | null): boolean {
   if (!state) return true;
+  if (state.version < TOUR_VERSION) return true;
   return !(state.welcomed || state.completed || state.skipped);
 }
 
 /** Record that the welcome card has been shown, preserving any existing tour
- *  outcome so a later decision still sees a completed/skipped run. */
+ *  outcome. The version is stamped to the current TOUR_VERSION so a post-bump
+ *  re-greet resolves after one dismissal instead of recurring every launch. */
 export function markWelcomed(store: StoreLike): void {
-  const prior = loadOnboarding(store) ?? { version: TOUR_VERSION };
-  saveOnboarding(store, { ...prior, welcomed: true });
+  const prior = loadOnboarding(store) ?? {};
+  saveOnboarding(store, { ...prior, welcomed: true, version: TOUR_VERSION });
 }

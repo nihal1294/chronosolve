@@ -112,7 +112,7 @@ export function ApplicationShell() {
   useEffect(() => {
     if (bootedRef.current) return;
     bootedRef.current = true;
-    if (showWelcome && ws.doc === null) void ws.loadTemplate();
+    if (showWelcome && ws.doc === null) void ws.loadTemplateIfEmpty();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

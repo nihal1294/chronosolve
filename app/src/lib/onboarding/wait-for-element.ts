@@ -12,18 +12,21 @@ export function waitForElement(selector: string, timeoutMs = 2000): Promise<Elem
       return;
     }
 
+    // One settle path for both outcomes (target appeared / timed out): tear down
+    // the observer AND the timer, so the loser of the race can't leak. Hoisted so
+    // the observer and timeout callbacks below can both call it.
+    function finish(result: Element | null) {
+      observer.disconnect();
+      clearTimeout(timer);
+      resolve(result);
+    }
+
     const observer = new MutationObserver(() => {
       const found = document.querySelector(selector);
-      if (found) {
-        observer.disconnect();
-        resolve(found);
-      }
+      if (found) finish(found);
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    setTimeout(() => {
-      observer.disconnect();
-      resolve(document.querySelector(selector));
-    }, timeoutMs);
+    const timer = setTimeout(() => finish(document.querySelector(selector)), timeoutMs);
   });
 }

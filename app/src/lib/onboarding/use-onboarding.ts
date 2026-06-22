@@ -84,6 +84,9 @@ export function createEngine(deps: TourDeps): TourEngine {
     navigating = true;
     try {
       await navigateToStep(navigate, (d.getActiveIndex() ?? 0) + 1);
+      // The tour may have ended (ESC / X / overlay) during the navigation wait;
+      // a stale continuation must not advance a run the user already closed.
+      if (endedRef.current || driverRef.current !== d) return;
       d.moveNext();
     } finally {
       navigating = false;
@@ -97,6 +100,7 @@ export function createEngine(deps: TourDeps): TourEngine {
     navigating = true;
     try {
       await navigateToStep(navigate, prev);
+      if (endedRef.current || driverRef.current !== d) return;
       d.movePrevious();
     } finally {
       navigating = false;

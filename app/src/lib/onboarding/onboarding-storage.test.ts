@@ -41,6 +41,17 @@ describe("onboarding-storage", () => {
     expect(shouldShowWelcome(loadOnboarding(store))).toBe(false);
   });
 
+  test("a newer TOUR_VERSION re-greets a user who finished an older tour", () => {
+    const store = saveOnboarding(makeStore(), { completed: true, version: TOUR_VERSION - 1 });
+    expect(shouldShowWelcome(loadOnboarding(store))).toBe(true);
+  });
+
+  test("dismissing the re-greet stamps the current version so it does not recur", () => {
+    const store = saveOnboarding(makeStore(), { completed: true, version: TOUR_VERSION - 1 });
+    markWelcomed(store);
+    expect(shouldShowWelcome(loadOnboarding(store))).toBe(false);
+  });
+
   test("corrupt stored JSON loads as null and the welcome shows", () => {
     const store = makeStore();
     store.setItem("chronosolve.onboarding", "{not valid json");

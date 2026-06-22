@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { parseEntities } from "./entities";
 import { countScheduled } from "./grid";
@@ -19,6 +19,12 @@ import { useTimelineLocks } from "./use-timeline-locks";
     side effects live in the shell. */
 export function useWorkspaceDoc() {
   const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
+  // Live handle on the current doc so an async guard (loadTemplate) can re-check
+  // it at write time rather than trusting the stale value its closure captured.
+  const docRef = useRef(doc);
+  useEffect(() => {
+    docRef.current = doc;
+  }, [doc]);
   // Notify on solve completion when the user enabled it (Toaster lives in the shell).
   const notifyOnSolved = (solved: SolveResult) => {
     if (!loadPreferences().notifyOnComplete) return;
@@ -48,15 +54,26 @@ export function useWorkspaceDoc() {
   const editing = useEntityEditing(doc, editProblem, applyDocEdit);
   const file = useProblemFile(yamlText, writeYaml);
 
-  const loadTemplate = async () => {
+  // Shared template fetch. onlyWhenEmpty guards the first-run background load so
+  // a slow sidecar response can't clobber a problem the user started (or
+  // opened/imported) after dismissing the welcome card; the docRef re-check runs
+  // at write time, not against the stale value the closure captured.
+  const writeTemplate = async (onlyWhenEmpty: boolean) => {
     setTemplateError(null);
     try {
-      writeYaml(await solverClient.template());
+      const text = await solverClient.template();
+      if (onlyWhenEmpty && docRef.current !== null) return;
+      writeYaml(text);
     } catch (problem) {
       const detail = problem instanceof Error ? problem.message : String(problem);
       setTemplateError(`Template load failed: ${detail}`);
     }
   };
+  // Explicit "Load Template" callers always overwrite (stay handler-safe: no
+  // args, so React event handlers can pass them directly). The first-run
+  // background load uses the guarded variant.
+  const loadTemplate = () => writeTemplate(false);
+  const loadTemplateIfEmpty = () => writeTemplate(true);
 
   // Clear everything back to the blank get-started state (doc -> null), so a
   // user can start a fresh run with different inputs. writeYaml("") also
@@ -92,6 +109,7 @@ export function useWorkspaceDoc() {
     writeYaml,
     applyDocEdit,
     loadTemplate,
+    loadTemplateIfEmpty,
     newProblem,
     requestNewProblem,
     cancelNewProblem,
