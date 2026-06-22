@@ -114,7 +114,7 @@ export function DashboardRoute() {
       : outcome === "pending"
         ? "Ready to run"
         : outcome === "solved"
-          ? `Quality ${m.qualityScore ?? "—"} / 100`
+          ? `Quality ${m.qualityScore ?? "-"} / 100`
           : outcome === "timeout"
             ? "Timed out - rerun or raise the time limit"
             : "No feasible solution";
