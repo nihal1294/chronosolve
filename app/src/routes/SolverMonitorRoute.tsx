@@ -66,13 +66,14 @@ export function SolverMonitorRoute() {
         {ws.busy ? (
           <button
             onClick={ws.cancel}
+            data-tour="solver-run"
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             <Square size={16} />
             Halt
           </button>
         ) : (
-          <button onClick={ws.solve} className={primary}>
+          <button onClick={ws.solve} data-tour="solver-run" className={primary}>
             {result ? <RotateCcw size={16} /> : <Play size={16} />}
             {result ? "Run again" : "Run scheduler"}
           </button>
@@ -80,12 +81,14 @@ export function SolverMonitorRoute() {
       </div>
 
       <div className="mx-auto max-w-2xl space-y-6">
-        <SolverStateCard
-          phase={phase}
-          elapsed={elapsed}
-          summary={summary}
-          unresolved={result?.unresolved ?? []}
-        />
+        <div data-tour="solver-state">
+          <SolverStateCard
+            phase={phase}
+            elapsed={elapsed}
+            summary={summary}
+            unresolved={result?.unresolved ?? []}
+          />
+        </div>
 
         {ws.busy && (
           <div className={`grid grid-cols-2 gap-4 p-5 ${card}`}>

@@ -10,6 +10,12 @@
 
 <p align="center">A generalized university course timetable scheduling solver powered by constraint optimization.</p>
 
+<p align="center">
+  <img src="assets/screenshots/timetable.png" alt="ChronoSolve - a solved, conflict-free weekly timetable in the desktop app" width="820" />
+</p>
+
+<p align="center"><em>A solved timetable in the desktop app. See the <a href="docs/usage.md">visual walkthrough</a> for every screen.</em></p>
+
 ## What It Does
 
 ChronoSolve generates conflict-free timetables for educational institutions. Unlike rigid, institution-specific tools, it treats every scheduling detail; days, time slots, rooms, teacher preferences, etc; as configurable input rather than hardcoded assumptions.
@@ -37,7 +43,7 @@ The one case it does not model is fully individualized per-student timetables, w
 ## Tech Stack
 
 | Component | Technology |
-| --------------- | -------------------------------------------------------- |
+| --------- | ---------- |
 | Solver | Python 3.14+ · Google OR-Tools CP-SAT |
 | Data models | Pydantic v2 |
 | Input format | YAML / JSON |
@@ -91,23 +97,14 @@ just dev     # full desktop app (Tauri)
 
 ### Download & install (macOS)
 
-Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Apple
-Silicon / `aarch64` for now). Releases are **automated**: merges to `main` accumulate
-into a "Release" pull request that, when merged, bumps the version, updates the
-changelog, and drafts a GitHub release with a freshly built `.dmg` attached - a
-maintainer just publishes the draft (no manual tagging). To install:
+Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Apple Silicon / `aarch64` for now). Releases are **automated**: merges to `main` accumulate into a "Release" pull request that, when merged, bumps the version, updates the changelog, and drafts a GitHub release with a freshly built `.dmg` attached - a maintainer just publishes the draft (no manual tagging). To install:
 
-1. Download `ChronoSolve_<version>_aarch64.dmg`, open it, and drag **ChronoSolve**
-   into your Applications folder.
-2. The build is **not signed or notarized yet**, so macOS Gatekeeper blocks the
-   first launch. Clear it once, either way:
-   - Control-click (right-click) ChronoSolve in Applications, choose **Open**,
-     then **Open** again in the dialog. macOS remembers the choice.
-   - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/ChronoSolve.app`
+1. Download `ChronoSolve_<version>_aarch64.dmg`, open it, and drag **ChronoSolve** into your Applications folder.
+2. The build is **not signed or notarized yet**, so macOS Gatekeeper blocks the first launch. Clear it once, either way:
+    - Control-click (right-click) ChronoSolve in Applications, choose **Open**, then **Open** again in the dialog. macOS remembers the choice.
+    - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/ChronoSolve.app`
 
-The first launch can take up to a minute while macOS validates the unsigned
-libraries bundled with the solver; later launches start in a few seconds. The app
-runs entirely on your machine - the solver is bundled in, nothing is uploaded.
+The first launch can take up to a minute while macOS validates the unsigned libraries bundled with the solver; later launches start in a few seconds. The app runs entirely on your machine - the solver is bundled in, nothing is uploaded.
 
 ### Desktop app (development)
 
@@ -122,6 +119,8 @@ npm run test        # frontend unit tests (Vitest)
 
 ### Using the desktop app
 
+Prefer pictures? The **[visual walkthrough](docs/usage.md)** has a screenshot of every screen.
+
 The left sidebar follows the workflow top to bottom:
 
 1. **Dashboard** - your home base. Load the worked example, open a YAML/JSON file, or import CSV to get started. Shows live entity counts and a Data -> Constraints -> Schedule progress pipeline.
@@ -130,15 +129,21 @@ The left sidebar follows the workflow top to bottom:
 4. **Scheduler** - run the solver and watch it converge live (best result and solutions-found stream in); cancel any time.
 5. **Timetable** - view the generated schedule by class, teacher, or room (or a master overview), filter by type/department/semester, and pin sessions you want to keep.
 
-A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes.
+A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes. New here? On first launch a welcome card offers a quick guided tour or a self-guided look around, and you can reopen either later from the **Help** menu - replay the tour, or press ⌘/ to toggle ambient hints that label whatever is on screen.
 
 ## Status
 
 **Solver (complete):** CP-SAT core with hard constraints plus 10 weighted soft constraints, room assignment, lab blocks, and pre-assignments; an independent quality scorer and statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
 
-**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles plus soft preferences weighted by importance), a live Scheduler monitor (SSE progress, cancellable) with post-solve analytics and export, a filterable Timetable view with pin/unpin, and a Settings screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
+**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles plus soft preferences weighted by importance), a live Scheduler monitor (SSE progress, cancellable) with post-solve analytics and export, a filterable Timetable view with pin/unpin, and a Settings screen, plus built-in onboarding - a first-run welcome card, a replayable guided tour, and toggleable ambient hints that explain each screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
 
 **Next:** code signing + notarization (to drop the Gatekeeper warning), Windows and Linux builds, and PDF / calendar (ICS) export.
+
+## Background
+
+ChronoSolve grew out of [an earlier final-year engineering project](https://github.com/nihal1294/timetable) I built with my team. That version produced working timetables, but under a deadline we never got to properly tackle the hard part: timetabling is an NP-hard constraint problem, and our solution fit our own college's case rather than the general one.
+
+ChronoSolve is the rethink. Rather than hardcoding one institution's rules, it treats every detail - days, slots, rooms, student groups, and the constraints themselves - as configuration, and hands the optimization to a proven CP-SAT solver instead of a hand-rolled heuristic. The aim is a single tool that adapts to the widest range of schools, colleges, and universities, instead of being rebuilt for each new timetable.
 
 ## License
 

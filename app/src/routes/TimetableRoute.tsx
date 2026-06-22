@@ -219,23 +219,27 @@ export function TimetableRoute() {
           </p>
         </div>
         {options && (
-          <TimetableToolbar
-            perspective={perspective}
-            onPerspective={setPerspective}
-            filters={filters}
-            onFilters={setFilters}
-            options={options}
-            query={query}
-            onQuery={setQuery}
-            visibleCount={filtered.length}
-            totalCount={ws.schedule.length}
-            onReset={() => {
-              setFilters(EMPTY_FILTERS);
-              setQuery("");
-            }}
-          />
+          <div data-tour="timetable-toolbar">
+            <TimetableToolbar
+              perspective={perspective}
+              onPerspective={setPerspective}
+              filters={filters}
+              onFilters={setFilters}
+              options={options}
+              query={query}
+              onQuery={setQuery}
+              visibleCount={filtered.length}
+              totalCount={ws.schedule.length}
+              onReset={() => {
+                setFilters(EMPTY_FILTERS);
+                setQuery("");
+              }}
+            />
+          </div>
         )}
-        <div className="flex-1 space-y-10 overflow-auto p-8">{grids}</div>
+        <div className="flex-1 space-y-10 overflow-auto p-8" data-tour="timetable-grid">
+          {grids}
+        </div>
       </div>
 
       {selected && (

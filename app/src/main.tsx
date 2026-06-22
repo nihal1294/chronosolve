@@ -6,6 +6,8 @@ import { ProblemDocProvider } from "./providers/problem-doc-provider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { router } from "./routes";
 import "./styles/index.css";
+import "driver.js/dist/driver.css";
+import "./styles/onboarding.css";
 
 // ProblemDocProvider sits OUTSIDE the router so the document + solve state
 // survive route changes instead of being scoped to one window component.

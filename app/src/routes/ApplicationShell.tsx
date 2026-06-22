@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { useTheme } from "next-themes";
 import { Toaster } from "sonner";
@@ -13,13 +14,16 @@ import {
 import { BrandLogo } from "../components/BrandLogo";
 import { CommandPalette } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { HelpSpotlight } from "../components/HelpSpotlight";
-import { HowToUse } from "../components/HowToUse";
+import { HelpHintsLayer } from "../components/HelpHintsLayer";
 import { ShortcutSheet } from "../components/ShortcutSheet";
 import { WindowChrome } from "../components/WindowChrome";
+import { WelcomeCard } from "../components/WelcomeCard";
 import { useAppCommands } from "../lib/use-app-commands";
 import { useMenuEvents } from "../lib/use-menu-events";
 import { useEngineStatus, type EngineStatus } from "../lib/use-engine-status";
+import { useOnboarding } from "../lib/onboarding/use-onboarding";
+import { setHelpMode, toggleHelpMode } from "../lib/onboarding/help-mode";
+import { loadOnboarding, markWelcomed, shouldShowWelcome } from "../lib/onboarding/onboarding-storage";
 import { useWorkspace } from "../providers/problem-doc-provider";
 
 // Journey order (Dashboard -> get data in -> set rules -> solve -> see output),
@@ -66,6 +70,13 @@ export function ApplicationShell() {
   const canSolve = ws.doc !== null && engineStatus === "ready";
   const canSave = ws.yamlText.trim().length > 0;
 
+  const { startTour } = useOnboarding();
+  // Decide first-run during render (pure localStorage read) rather than via a
+  // setState-in-effect, so the welcome card is correct on the first paint.
+  const [showWelcome, setShowWelcome] = useState(() =>
+    shouldShowWelcome(loadOnboarding(window.localStorage)),
+  );
+
   const palette = useAppCommands({
     canSolve,
     busy: ws.busy,
@@ -79,6 +90,8 @@ export function ApplicationShell() {
     // commands are no longer Tauri-gated.
     fileActions: { onOpen: ws.openFile, onSave: ws.saveFile },
     navigate,
+    startTour,
+    toggleHints: toggleHelpMode,
   });
 
   // Native menu-bar items dispatch through the same command registry as the
@@ -90,6 +103,30 @@ export function ApplicationShell() {
     canSave,
   });
 
+  // First run shows the welcome card (the tour is no longer auto-started - the
+  // card offers it as a choice). Load the bundled template into an empty
+  // workspace first so whichever path the user picks - tour or self-guided
+  // hints - lands on populated screens. bootedRef keeps this single-shot under
+  // StrictMode's double-invoke.
+  const bootedRef = useRef(false);
+  // Holds the in-flight first-run template load so the tour can await it - on a
+  // cold packaged launch it may still be reaching the sidecar. It resolves on
+  // success OR failure, so awaiting it never blocks the tour forever.
+  const bootTemplateRef = useRef<Promise<void> | undefined>(undefined);
+  const [tourPending, setTourPending] = useState(false);
+  useEffect(() => {
+    if (bootedRef.current) return;
+    bootedRef.current = true;
+    if (showWelcome && ws.doc === null) bootTemplateRef.current = ws.loadTemplateIfEmpty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Every welcome path persists "welcomed" so the card shows exactly once.
+  const dismissWelcome = () => {
+    markWelcomed(window.localStorage);
+    setShowWelcome(false);
+  };
+
   const border = isDark ? "border-neutral-800" : "border-neutral-200";
 
   return (
@@ -100,6 +137,8 @@ export function ApplicationShell() {
         onOpenPalette={palette.openPalette}
         isDark={isDark}
         onToggleTheme={() => setTheme(isDark ? "light" : "dark")}
+        onStartTour={startTour}
+        onOpenShortcuts={palette.openShortcuts}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -141,16 +180,10 @@ export function ApplicationShell() {
               </NavLink>
             </div>
             <div className="p-4 text-xs flex items-center text-neutral-600 dark:text-neutral-400">
-              <HelpSpotlight
-                title="Scheduler"
-                content="Live status of the local scheduling service this app runs on."
-                position="top"
-              >
-                <div className="flex items-center gap-2" data-tour="engine-status">
-                  <div className={`w-2 h-2 rounded-full ${engine.dot}`} />
-                  <span className="hidden lg:inline">{engine.label}</span>
-                </div>
-              </HelpSpotlight>
+              <div className="flex items-center gap-2" data-tour="engine-status">
+                <div className={`w-2 h-2 rounded-full ${engine.dot}`} />
+                <span className="hidden lg:inline">{engine.label}</span>
+              </div>
             </div>
           </div>
         </aside>
@@ -163,7 +196,6 @@ export function ApplicationShell() {
 
       {palette.paletteOpen && <CommandPalette commands={palette.commands} onClose={palette.closePalette} />}
       {palette.shortcutsOpen && <ShortcutSheet onClose={palette.closeShortcuts} />}
-      {palette.guideOpen && <HowToUse onClose={palette.closeGuide} />}
       {ws.pendingNewProblem && (
         <ConfirmDialog
           title="Start a new problem?"
@@ -177,6 +209,26 @@ export function ApplicationShell() {
           onClose={ws.cancelNewProblem}
         />
       )}
+      {showWelcome && (
+        <WelcomeCard
+          isDark={isDark}
+          pending={tourPending}
+          onTakeTour={async () => {
+            // Wait for the first-run example to finish loading (or fail) so the
+            // tour never walks onto empty "No problem loaded" screens.
+            setTourPending(true);
+            await bootTemplateRef.current;
+            dismissWelcome();
+            startTour();
+          }}
+          onLookAround={() => {
+            dismissWelcome();
+            setHelpMode(true);
+          }}
+          onClose={dismissWelcome}
+        />
+      )}
+      <HelpHintsLayer />
       <Toaster theme={isDark ? "dark" : "light"} position="bottom-right" />
     </div>
   );

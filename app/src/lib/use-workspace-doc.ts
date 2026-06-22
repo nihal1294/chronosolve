@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { parseEntities } from "./entities";
 import { countScheduled } from "./grid";
@@ -12,6 +12,14 @@ import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
 import { useTimelineLocks } from "./use-timeline-locks";
 
+/** Is there user work the first-run template bootstrap must not clobber? A parsed
+ *  doc OR a non-empty (possibly malformed) yamlText draft both count - the latter
+ *  is doc === null yet savable, so checking doc alone would let the background
+ *  load overwrite a draft the user opened or typed. Mirrors the canSave signal. */
+export function hasWorkspaceContent(doc: ProblemDoc | null, yamlText: string): boolean {
+  return doc !== null || yamlText.trim().length > 0;
+}
+
 /** The whole keep-the-model layer the pre-router shell used to assemble, lifted into one
     hook so every route reads the same document, solve state, and derived
     facts through a context instead of prop-drilling from a single window.
@@ -19,6 +27,16 @@ import { useTimelineLocks } from "./use-timeline-locks";
     side effects live in the shell. */
 export function useWorkspaceDoc() {
   const { yamlText, doc, parseError, regenerated, editYaml, applyDocEdit } = useProblemDoc();
+  // Live handles on the current doc AND raw text so an async guard (the first-run
+  // template load) re-checks them at write time rather than trusting the stale
+  // values its closure captured. Both matter: a malformed-YAML draft keeps
+  // doc === null while yamlText stays non-empty (see hasWorkspaceContent).
+  const docRef = useRef(doc);
+  const yamlTextRef = useRef(yamlText);
+  useEffect(() => {
+    docRef.current = doc;
+    yamlTextRef.current = yamlText;
+  }, [doc, yamlText]);
   // Notify on solve completion when the user enabled it (Toaster lives in the shell).
   const notifyOnSolved = (solved: SolveResult) => {
     if (!loadPreferences().notifyOnComplete) return;
@@ -48,15 +66,26 @@ export function useWorkspaceDoc() {
   const editing = useEntityEditing(doc, editProblem, applyDocEdit);
   const file = useProblemFile(yamlText, writeYaml);
 
-  const loadTemplate = async () => {
+  // Shared template fetch. onlyWhenEmpty guards the first-run background load so
+  // a slow sidecar response can't clobber a problem the user started (or
+  // opened/imported) after dismissing the welcome card; the docRef re-check runs
+  // at write time, not against the stale value the closure captured.
+  const writeTemplate = async (onlyWhenEmpty: boolean) => {
     setTemplateError(null);
     try {
-      writeYaml(await solverClient.template());
+      const text = await solverClient.template();
+      if (onlyWhenEmpty && hasWorkspaceContent(docRef.current, yamlTextRef.current)) return;
+      writeYaml(text);
     } catch (problem) {
       const detail = problem instanceof Error ? problem.message : String(problem);
       setTemplateError(`Template load failed: ${detail}`);
     }
   };
+  // Explicit "Load Template" callers always overwrite (stay handler-safe: no
+  // args, so React event handlers can pass them directly). The first-run
+  // background load uses the guarded variant.
+  const loadTemplate = () => writeTemplate(false);
+  const loadTemplateIfEmpty = () => writeTemplate(true);
 
   // Clear everything back to the blank get-started state (doc -> null), so a
   // user can start a fresh run with different inputs. writeYaml("") also
@@ -92,6 +121,7 @@ export function useWorkspaceDoc() {
     writeYaml,
     applyDocEdit,
     loadTemplate,
+    loadTemplateIfEmpty,
     newProblem,
     requestNewProblem,
     cancelNewProblem,
