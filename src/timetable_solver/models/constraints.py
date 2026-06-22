@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, Field
 
+from timetable_solver.models.rules import AdvancedConstraints
+
 
 class HardConstraints(BaseModel):
     """Hard constraints that must be satisfied for a valid schedule.
@@ -12,6 +14,8 @@ class HardConstraints(BaseModel):
         room_no_clash: No room double-booked (only if rooms provided).
         respect_availability: Honor teacher/group unavailable slots.
         required_hours: Each subject gets its exact hours_per_week.
+        room_capacity: Exclude rooms too small for a subject's groups (rule 25);
+            opt-in (default False) so existing problems are unaffected.
     """
 
     teacher_no_clash: bool = True
@@ -19,6 +23,7 @@ class HardConstraints(BaseModel):
     room_no_clash: bool = True
     respect_availability: bool = True
     required_hours: bool = True
+    room_capacity: bool = False
 
 
 class SoftConstraints(BaseModel):
@@ -37,10 +42,15 @@ class SoftConstraints(BaseModel):
     max_hours_per_day: int = Field(default=0, ge=0, le=100)
     free_days: int = Field(default=0, ge=0, le=100)
     workload_balance: int = Field(default=0, ge=0, le=100)
+    group_workload_balance: int = Field(default=0, ge=0, le=100)
+    avoid_consecutive_labs: int = Field(default=0, ge=0, le=100)
+    same_room: int = Field(default=0, ge=0, le=100)
+    group_free_halfday: int = Field(default=0, ge=0, le=100)
 
 
 class ConstraintsConfig(BaseModel):
-    """Top-level constraints configuration combining hard and soft."""
+    """Top-level constraints configuration combining hard, soft, and advanced rules."""
 
     hard: HardConstraints = Field(default_factory=HardConstraints)
     soft: SoftConstraints = Field(default_factory=SoftConstraints)
+    advanced: AdvancedConstraints = Field(default_factory=AdvancedConstraints)

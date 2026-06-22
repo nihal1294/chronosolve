@@ -38,11 +38,15 @@ def validate_problem(problem: TimetableProblem) -> list[ValidationIssue]:
     Returns:
         List of issues found (empty means all clear).
     """
+    # Imported lazily: advanced_checks imports Severity/ValidationIssue from this
+    # module, so a top-level import here would be circular.
+    from timetable_solver.validation.advanced_checks import check_advanced_rules
+
     issues: list[ValidationIssue] = []
     _check_group_hours_feasibility(problem, issues)
     _check_teacher_availability_feasibility(problem, issues)
     _check_pre_assignment_clashes(problem, issues)
-    _check_room_capacity_warnings(problem, issues)
+    check_advanced_rules(problem, issues)
     return issues
 
 
@@ -162,38 +166,6 @@ def _report_duplicates(
                     )
                 )
             seen.add(entity_id)
-
-
-def _check_room_capacity_warnings(
-    problem: TimetableProblem,
-    issues: list[ValidationIssue],
-) -> None:
-    """Warn when a subject's group size exceeds all rooms of its required type."""
-    if not problem.rooms:
-        return
-
-    group_sizes = {g.id: g.size for g in problem.student_groups}
-    rooms_by_type: dict[str, int] = {}
-    for room in problem.rooms:
-        key = room.type
-        rooms_by_type[key] = max(rooms_by_type.get(key, 0), room.capacity)
-    # "any" type can use any room
-    max_any_capacity = max(r.capacity for r in problem.rooms)
-
-    for subj in problem.subjects:
-        total_students = sum(group_sizes.get(gid, 0) for gid in subj.group_ids)
-        room_type = subj.preferred_room_type or "any"
-        max_cap = rooms_by_type.get(room_type, max_any_capacity)
-        if total_students > max_cap:
-            issues.append(
-                ValidationIssue(
-                    severity=Severity.WARNING,
-                    message=(
-                        f"Subject {subj.id!r} has {total_students} students "
-                        f"but largest {room_type!r} room holds {max_cap}"
-                    ),
-                )
-            )
 
 
 def _available_slots_for_entity(

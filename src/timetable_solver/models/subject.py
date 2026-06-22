@@ -23,6 +23,10 @@ class Subject(BaseModel):
         max_per_day: Maximum occurrences on any single day (default 1).
         consecutive_hours: If set, must be scheduled in a contiguous block of this size.
         preferred_room_type: Optional room type requirement.
+        required_tags: Room capability labels this subject needs (e.g. {"gpu"});
+            only rooms whose tags cover these are eligible (rule 19).
+        allowed_slots: Whitelist of slot numbers this subject may occupy on any
+            day; None means all slots are allowed (rule 3).
     """
 
     id: str = Field(min_length=1)
@@ -35,6 +39,8 @@ class Subject(BaseModel):
     max_per_day: int = Field(default=1, gt=0)
     consecutive_hours: int | None = Field(default=None, gt=0)
     preferred_room_type: RoomType | None = None
+    required_tags: set[str] = Field(default_factory=set)
+    allowed_slots: list[int] | None = None
 
     @model_validator(mode="after")
     def _validate_consecutive_divides_hours(self) -> "Subject":
@@ -45,4 +51,10 @@ class Subject(BaseModel):
                     f"by consecutive_hours ({self.consecutive_hours})"
                 )
                 raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def _validate_allowed_slots(self) -> "Subject":
+        if self.allowed_slots is not None and any(s < 1 for s in self.allowed_slots):
+            raise ValueError("allowed_slots values must be >= 1 (slots are 1-indexed)")
         return self

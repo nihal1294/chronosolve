@@ -3,6 +3,12 @@
 from ortools.sat.python import cp_model
 
 from timetable_solver.models.problem import TimetableProblem
+from timetable_solver.solver.rules_soft import (
+    add_back_to_back_lab_penalty,
+    add_group_balance_penalty,
+    add_group_free_halfday_penalty,
+    add_same_room_penalty,
+)
 from timetable_solver.solver.soft_helpers import (
     TeacherBusyCache,
     hole_vars,
@@ -27,6 +33,10 @@ def add_soft_objectives(
     terms += add_time_preference_penalty(model, variables, problem)
     terms += add_workload_balance_penalty(model, variables, problem)
     terms += add_teacher_preference_penalties(model, variables, problem, busy_cache)
+    terms += add_group_balance_penalty(model, variables, problem)
+    terms += add_back_to_back_lab_penalty(model, variables, problem)
+    terms += add_group_free_halfday_penalty(model, variables, problem)
+    terms += add_same_room_penalty(model, variables, problem)
     if terms:
         model.minimize(sum(terms))
 

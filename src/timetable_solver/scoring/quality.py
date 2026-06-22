@@ -8,7 +8,14 @@ from timetable_solver.models.schedule import ScheduleEntry
 from timetable_solver.scoring import metrics
 from timetable_solver.scoring.violations import find_hard_violations
 
-# metric name -> (SoftConstraints weight attribute, metric function)
+# metric name -> (SoftConstraints weight attribute, metric function).
+# Known gap (tracked): the M7 advanced rules are enforced/optimized by the CP-SAT
+# solver but not yet reflected here - find_hard_violations skips the advanced hard
+# rules (breaks, allowed_slots, teacher caps, same-day exclusions, orderings) and
+# this map omits the advanced soft weights (group_workload_balance,
+# avoid_consecutive_labs, group_free_halfday, same_room). Harmless in this
+# backend-only milestone (the UI cannot configure them and /solve never refines);
+# extend both when the desktop UI wires these constraints so /score stays honest.
 _METRICS: dict[str, tuple[str, Callable[..., metrics.MetricResult]]] = {
     "student_gaps": ("minimize_student_gaps", metrics.student_gaps),
     "teacher_gaps": ("minimize_teacher_gaps", metrics.teacher_gaps),
