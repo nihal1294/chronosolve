@@ -8,11 +8,15 @@ name: release
 #     ! or BREAKING CHANGE -> major. build(deps)/chore/docs/ci -> no version change.
 #   - Merging the Release PR bumps app/package.json + app/src-tauri/tauri.conf.json
 #     and updates CHANGELOG.md (release-please commits these via its own PR), then
-#     tags vX.Y.Z and creates the GitHub release.
-#   - The release is a DRAFT (the .dmg is unsigned / not notarized yet) for a
-#     maintainer to review and publish. The default GITHUB_TOKEN is enough:
-#     release-please opens a PR, it never pushes to protected main directly, so no
-#     PAT is required.
+#     tags vX.Y.Z and PUBLISHES the GitHub release immediately.
+#   - Publishing on merge (draft: false) creates the vX.Y.Z tag at that instant.
+#     This is deliberate: a draft release has no git tag until published, and
+#     release-please keys "what's shipped" off tags - so a draft would make it
+#     re-propose the just-merged version as a phantom Release PR. Publishing up
+#     front closes that window. The .dmg is unsigned/not notarized; the build job
+#     below attaches it to the published release a few minutes later. The default
+#     GITHUB_TOKEN is enough: release-please opens a PR, it never pushes to
+#     protected main directly, so no PAT is required.
 #   - workflow_dispatch builds the .dmg as an artifact WITHOUT cutting a release.
 
 on:
@@ -56,7 +60,7 @@ jobs:
     runs-on: macos-14 # Apple Silicon -> aarch64 .dmg
     timeout-minutes: 45
     permissions:
-      contents: write # upload the .dmg asset to the draft release
+      contents: write # upload the .dmg asset to the published release
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -99,7 +103,7 @@ jobs:
 
       # The version in tauri.conf.json/package.json was already bumped by the merged
       # Release PR, so the built .dmg carries the right version - no stamping needed.
-      - name: Attach .dmg to draft release
+      - name: Attach .dmg to the published release
         if: ${{ needs.release-please.outputs.release_created == 'true' }}
         env:
           # Surfaced through env (not inline ${{ }}) so the value is never re-parsed
