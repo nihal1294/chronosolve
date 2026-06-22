@@ -15,12 +15,15 @@ class Room(BaseModel):
         name: Human-readable name.
         capacity: Maximum student count.
         type: Room classification for matching with subject requirements.
+        tags: Free-form capability labels (e.g. "gpu", "projector"); a subject
+            with required_tags may only use rooms whose tags cover them.
     """
 
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     capacity: int = Field(gt=0)
     type: RoomType = "any"
+    tags: set[str] = Field(default_factory=set)
 
 
 def room_type_matches(room_type: RoomType, preference: RoomType | None) -> bool:

@@ -27,7 +27,7 @@ def _channel_rooms_to_assignments(
 ) -> None:
     """Every scheduled hour uses exactly one compatible room; unscheduled hours none."""
     for subject in problem.subjects:
-        rooms = compatible_rooms(subject, problem.rooms)
+        rooms = compatible_rooms(subject, problem)
         for day_idx, day in enumerate(problem.time_structure.days):
             for slot in range(1, problem.time_structure.get_slots_for_day(day) + 1):
                 choices = [
@@ -56,7 +56,7 @@ def _add_block_room_continuity(
     for subject in problem.subjects:
         if block_size(subject) <= 1:
             continue
-        rooms = compatible_rooms(subject, problem.rooms)
+        rooms = compatible_rooms(subject, problem)
         for day_idx, day in enumerate(problem.time_structure.days):
             slots = problem.time_structure.get_slots_for_day(day)
             for slot in range(1, slots):

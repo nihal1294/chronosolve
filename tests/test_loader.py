@@ -53,7 +53,9 @@ class TestLoadJson:
         problem = load_yaml(fixtures_dir / "minimal.yaml")
         json_path = fixtures_dir.parent / "tmp_test.json"
         try:
-            json_path.write_text(json.dumps(problem.model_dump(), indent=2))
+            # mode="json" coerces set fields (e.g. Subject.required_tags) to
+            # lists so json.dumps can serialize them; Python-mode dump keeps sets.
+            json_path.write_text(json.dumps(problem.model_dump(mode="json"), indent=2))
             reloaded = load_json(json_path)
             assert reloaded.subjects[0].id == problem.subjects[0].id
             assert reloaded.time_structure.days == problem.time_structure.days

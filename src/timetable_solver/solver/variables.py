@@ -35,13 +35,40 @@ def block_size(subject: Subject) -> int:
     return subject.consecutive_hours or 1
 
 
-def compatible_rooms(subject: Subject, rooms: list[Room]) -> list[Room]:
-    """Rooms a subject may use: type must match its preference ("any" matches all).
+def _subject_seat_demand(problem: TimetableProblem, subject: Subject) -> int:
+    """Total seats a subject needs = sum of its groups' sizes (rule 25)."""
+    sizes = {g.id: g.size for g in problem.student_groups}
+    return sum(sizes.get(gid, 0) for gid in subject.group_ids)
 
-    Capacity is deliberately not filtered here - it is a soft concern
-    (validator warning), matching the validation contract.
+
+def compatible_rooms(subject: Subject, problem: TimetableProblem) -> list[Room]:
+    """Rooms a subject may use, the single chokepoint for room rules.
+
+    Filters by, in order: room type (rule, "any" matches all), required_tags
+    (rule 19 - the room's tags must cover the subject's), reservations (rule 24 -
+    a reserved room is excluded for subjects not on its allow-list), and opt-in
+    capacity (rule 25 - only when constraints.hard.room_capacity is on).
     """
-    return [r for r in rooms if room_type_matches(r.type, subject.preferred_room_type)]
+    reserved_elsewhere = {
+        res.room_id
+        for res in problem.constraints.advanced.room_reservations
+        if subject.id not in res.subject_ids
+    }
+    need_seats = (
+        _subject_seat_demand(problem, subject) if problem.constraints.hard.room_capacity else 0
+    )
+    out: list[Room] = []
+    for r in problem.rooms:
+        if not room_type_matches(r.type, subject.preferred_room_type):
+            continue
+        if not subject.required_tags <= r.tags:
+            continue
+        if r.id in reserved_elsewhere:
+            continue
+        if need_seats and r.capacity < need_seats:
+            continue
+        out.append(r)
+    return out
 
 
 def create_variables(model: cp_model.CpModel, problem: TimetableProblem) -> SolverVariables:
@@ -98,7 +125,7 @@ def _create_room_choices(
     if not problem.rooms:
         return
     for subject in problem.subjects:
-        rooms = compatible_rooms(subject, problem.rooms)
+        rooms = compatible_rooms(subject, problem)
         for day_index, day in enumerate(problem.time_structure.days):
             for slot in range(1, problem.time_structure.get_slots_for_day(day) + 1):
                 for room in rooms:

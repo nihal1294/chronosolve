@@ -4,6 +4,10 @@ from pathlib import Path
 
 from timetable_solver.io.loader import load_yaml
 from timetable_solver.models import (
+    AdvancedConstraints,
+    ConstraintsConfig,
+    GlobalBreak,
+    HardConstraints,
     PreAssignment,
     Room,
     StudentGroup,
@@ -192,3 +196,95 @@ class TestRoomCapacityWarnings:
         warnings = [i for i in issues if i.severity == Severity.WARNING]
         assert len(warnings) >= 1
         assert "100 students" in warnings[0].message
+
+
+class TestAdvancedRuleChecks:
+    def _base(self, *, subjects, rooms=None, hard=None, advanced=None, slots=4):
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Mon", "Tue", "Wed"], slots_per_day=slots),
+            teachers=[Teacher(id="t1", name="T1")],
+            student_groups=[StudentGroup(id="g1", name="G1", size=20)],
+            subjects=subjects,
+            rooms=rooms or [],
+            constraints=ConstraintsConfig(
+                hard=HardConstraints(**(hard or {})),
+                advanced=AdvancedConstraints(**(advanced or {})),
+            ),
+        )
+
+    def test_required_tags_with_no_matching_room_errors(self) -> None:
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="ml",
+                    name="ML",
+                    hours_per_week=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    required_tags={"gpu"},
+                )
+            ],
+            rooms=[Room(id="r1", name="R1", capacity=40)],  # no gpu tag
+        )
+        issues = validate_problem(problem)
+        assert any(i.severity == Severity.ERROR and "gpu" in i.message for i in issues)
+
+    def test_required_tags_satisfied_is_clean(self) -> None:
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="ml",
+                    name="ML",
+                    hours_per_week=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    required_tags={"gpu"},
+                )
+            ],
+            rooms=[Room(id="r1", name="R1", capacity=40, tags={"gpu"})],
+        )
+        errors = [i for i in validate_problem(problem) if i.severity == Severity.ERROR]
+        assert errors == []
+
+    def test_capacity_flag_with_no_room_large_enough_errors(self) -> None:
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="big", name="Big", hours_per_week=2, teacher_ids=["t1"], group_ids=["g1"]
+                )
+            ],
+            rooms=[Room(id="r1", name="R1", capacity=10)],  # group is 20
+            hard={"room_capacity": True},
+        )
+        assert any(i.severity == Severity.ERROR for i in validate_problem(problem))
+
+    def test_capacity_flag_off_does_not_error_on_small_room(self) -> None:
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="big", name="Big", hours_per_week=2, teacher_ids=["t1"], group_ids=["g1"]
+                )
+            ],
+            rooms=[Room(id="r1", name="R1", capacity=10)],
+        )
+        errors = [i for i in validate_problem(problem) if i.severity == Severity.ERROR]
+        assert errors == []
+
+    def test_global_breaks_leaving_too_few_slots_errors(self) -> None:
+        # 3 days x 2 slots = 6 total; the subject needs 6 hours; a break removes 1 -> 5 < 6.
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="s",
+                    name="S",
+                    hours_per_week=6,
+                    max_per_day=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                )
+            ],
+            slots=2,
+            advanced={"global_breaks": [GlobalBreak(day="Mon", slots=[1])]},
+        )
+        issues = validate_problem(problem)
+        assert any(i.severity == Severity.ERROR and "break" in i.message.lower() for i in issues)

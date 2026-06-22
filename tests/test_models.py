@@ -120,6 +120,21 @@ class TestSubject:
                 consecutive_hours=2,
             )
 
+    def test_allowed_slots_default_none(self) -> None:
+        s = Subject(id="s1", name="S", hours_per_week=2, teacher_ids=["t"], group_ids=["g"])
+        assert s.allowed_slots is None
+
+    def test_allowed_slots_explicit(self) -> None:
+        s = Subject(
+            id="s1",
+            name="S",
+            hours_per_week=2,
+            teacher_ids=["t"],
+            group_ids=["g"],
+            allowed_slots=[1, 2, 3],
+        )
+        assert s.allowed_slots == [1, 2, 3]
+
     def test_empty_teacher_ids_rejected(self) -> None:
         with pytest.raises(ValidationError):
             Subject(
@@ -129,6 +144,27 @@ class TestSubject:
                 teacher_ids=[],
                 group_ids=["g1"],
             )
+
+
+def test_room_and_subject_carry_tags() -> None:
+    r = Room(id="r1", name="Lab A", capacity=30, type="lab", tags={"gpu", "projector"})
+    s = Subject(
+        id="ml",
+        name="ML",
+        hours_per_week=2,
+        teacher_ids=["t"],
+        group_ids=["g"],
+        required_tags={"gpu"},
+    )
+    assert "gpu" in r.tags
+    assert s.required_tags == {"gpu"}
+
+
+def test_room_and_subject_tags_default_empty() -> None:
+    r = Room(id="r1", name="Room 101", capacity=50)
+    s = Subject(id="s1", name="S", hours_per_week=2, teacher_ids=["t"], group_ids=["g"])
+    assert r.tags == set()
+    assert s.required_tags == set()
 
 
 class TestPreAssignment:
@@ -152,6 +188,20 @@ class TestConstraints:
             SoftConstraints(minimize_student_gaps=101)
         with pytest.raises(ValidationError):
             SoftConstraints(minimize_student_gaps=-1)
+
+    def test_advanced_defaults_empty(self) -> None:
+        cfg = ConstraintsConfig()
+        assert cfg.advanced.global_breaks == []
+        assert cfg.advanced.hard_teacher_daily_caps == {}
+        assert cfg.advanced.same_day_exclusions == []
+        assert cfg.hard.room_capacity is False
+
+    def test_new_soft_weights_default_zero(self) -> None:
+        soft = SoftConstraints()
+        assert soft.group_workload_balance == 0
+        assert soft.avoid_consecutive_labs == 0
+        assert soft.same_room == 0
+        assert soft.group_free_halfday == 0
 
 
 class TestScheduleModels:
