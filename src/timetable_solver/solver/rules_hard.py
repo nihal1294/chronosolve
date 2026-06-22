@@ -13,6 +13,7 @@ from ortools.sat.python import cp_model
 
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.solver.assumptions import AssumptionRegistry
+from timetable_solver.solver.rule_helpers import first_index, present_on_day
 from timetable_solver.solver.variables import SolverVariables
 
 RuleHardBuilder = Callable[
@@ -77,6 +78,8 @@ def add_hard_teacher_caps(
         lit = registry.gate(f"teacher {teacher_id} max {cap}h/day")
         for day_idx, day in enumerate(problem.time_structure.days):
             slots = problem.time_structure.get_slots_for_day(day)
+            # Direct indexing is safe: _create_assignments populates every
+            # (subject, day, slot) within the day's slot count, the same bound used here.
             day_vars = [
                 variables.assignments[(sid, day_idx, slot)]
                 for sid in subject_ids
@@ -84,25 +87,6 @@ def add_hard_teacher_caps(
             ]
             if len(day_vars) > cap:
                 model.add(sum(day_vars) <= cap).only_enforce_if(lit)
-
-
-def _present_on_day(
-    model: cp_model.CpModel,
-    variables: SolverVariables,
-    subject_id: str,
-    day_idx: int,
-) -> cp_model.IntVar | None:
-    """A boolean that is true iff the subject occupies any slot on the day (an OR)."""
-    day_vars = [
-        var
-        for (sid, d, _), var in variables.assignments.items()
-        if sid == subject_id and d == day_idx
-    ]
-    if not day_vars:
-        return None
-    present = model.new_bool_var(f"present_{subject_id}_{day_idx}")
-    model.add_max_equality(present, day_vars)
-    return present
 
 
 def add_same_day_exclusions(
@@ -115,39 +99,23 @@ def add_same_day_exclusions(
     pairs = problem.constraints.advanced.same_day_exclusions
     if not pairs:
         return
+    # Cache presence vars so a subject appearing in several pairs reuses one
+    # present_{subject}_{day} boolean instead of creating a duplicate per pair.
+    cache: dict[tuple[str, int], cp_model.IntVar | None] = {}
+
+    def present(sid: str, day_idx: int) -> cp_model.IntVar | None:
+        if (sid, day_idx) not in cache:
+            cache[(sid, day_idx)] = present_on_day(model, variables, sid, day_idx)
+        return cache[(sid, day_idx)]
+
     for pair in pairs:
         lit = registry.gate(f"{pair.first} and {pair.second} not on the same day")
         for day_idx in range(len(problem.time_structure.days)):
-            a = _present_on_day(model, variables, pair.first, day_idx)
-            b = _present_on_day(model, variables, pair.second, day_idx)
+            a = present(pair.first, day_idx)
+            b = present(pair.second, day_idx)
             if a is None or b is None:
                 continue
             model.add(a + b <= 1).only_enforce_if(lit)
-
-
-def _first_index(
-    model: cp_model.CpModel,
-    variables: SolverVariables,
-    subject_id: str,
-    max_slots: int,
-    big: int,
-) -> cp_model.IntVar | None:
-    """An int var = earliest global (day*max_slots + slot) the subject occupies, else big.
-
-    Each candidate slot contributes `big - (big - g) * occ`, which is its global
-    index g when occupied and the sentinel `big` when not; the min over those is
-    the subject's first occupied position (big if it is never scheduled).
-    """
-    terms = [
-        big - (big - (day_idx * max_slots + slot)) * var
-        for (sid, day_idx, slot), var in variables.assignments.items()
-        if sid == subject_id
-    ]
-    if not terms:
-        return None
-    idx = model.new_int_var(0, big, f"first_{subject_id}")
-    model.add_min_equality(idx, terms)
-    return idx
 
 
 def add_orderings(
@@ -164,8 +132,8 @@ def add_orderings(
     max_slots = max(problem.time_structure.get_slots_for_day(d) for d in days)
     big = len(days) * max_slots + 1
     for pair in pairs:
-        first = _first_index(model, variables, pair.first, max_slots, big)
-        second = _first_index(model, variables, pair.second, max_slots, big)
+        first = first_index(model, variables, pair.first, max_slots, big)
+        second = first_index(model, variables, pair.second, max_slots, big)
         if first is None or second is None:
             continue
         lit = registry.gate(f"{pair.first} must run before {pair.second}")
@@ -179,3 +147,19 @@ RULE_HARD_BUILDERS: tuple[RuleHardBuilder, ...] = (
     add_same_day_exclusions,
     add_orderings,
 )
+
+
+def advanced_hard_rules_active(problem: TimetableProblem) -> bool:
+    """True if a day/slot-based advanced hard rule is active (breaks, allowed_slots,
+    teacher caps, same-day exclusions, orderings) - the rules annealing's violation
+    checker cannot see, so refinement is skipped when any is present. Room rules are
+    safe because annealing never reassigns rooms.
+    """
+    advanced = problem.constraints.advanced
+    return bool(
+        advanced.global_breaks
+        or advanced.hard_teacher_daily_caps
+        or advanced.same_day_exclusions
+        or advanced.orderings
+        or any(s.allowed_slots is not None for s in problem.subjects)
+    )

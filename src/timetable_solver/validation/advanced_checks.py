@@ -18,33 +18,85 @@ if TYPE_CHECKING:
 
 
 def check_advanced_rules(problem: TimetableProblem, issues: list[ValidationIssue]) -> None:
-    """Run the room and advanced-rule pre-checks (capacity warning, tags, breaks)."""
+    """Run the room and advanced-rule pre-checks (capacity warning, tags, breaks, refs)."""
     if problem.rooms:
         _check_room_capacity_warnings(problem, issues)
         _check_required_tags(problem, issues)
         if problem.constraints.hard.room_capacity:
             _check_capacity_feasibility(problem, issues)
     _check_global_break_capacity(problem, issues)
+    _check_advanced_references(problem, issues)
+
+
+def _check_advanced_references(problem: TimetableProblem, issues: list[ValidationIssue]) -> None:
+    """Error on advanced-rule references to entities that do not exist (typos).
+
+    Without this, a misspelled day/room/subject/teacher/group silently no-ops the
+    rule (the generator finds no matching variables), yielding a schedule that
+    ignores the user's intent instead of rejecting the bad input.
+    """
+    adv = problem.constraints.advanced
+    days = set(problem.time_structure.days)
+    subjects = {s.id for s in problem.subjects}
+    teachers = {t.id for t in problem.teachers}
+    groups = {g.id for g in problem.student_groups}
+    rooms = {r.id for r in problem.rooms}
+
+    def err(kind: str, value: str) -> None:
+        issues.append(
+            ValidationIssue(
+                severity=Severity.ERROR,
+                message=f"Advanced rule references unknown {kind} {value!r}",
+            )
+        )
+
+    for brk in adv.global_breaks:
+        if brk.day not in days:
+            err("day", brk.day)
+    for res in adv.room_reservations:
+        if res.room_id not in rooms:
+            err("room", res.room_id)
+        for sid in res.subject_ids:
+            if sid not in subjects:
+                err("subject", sid)
+    for tid in adv.hard_teacher_daily_caps:
+        if tid not in teachers:
+            err("teacher", tid)
+    for pair in [*adv.same_day_exclusions, *adv.orderings]:
+        for sid in (pair.first, pair.second):
+            if sid not in subjects:
+                err("subject", sid)
+    for sid in adv.same_room_subjects:
+        if sid not in subjects:
+            err("subject", sid)
+    for halfday in adv.group_free_halfdays:
+        if halfday.group_id not in groups:
+            err("group", halfday.group_id)
+        if halfday.day not in days:
+            err("day", halfday.day)
 
 
 def _check_room_capacity_warnings(problem: TimetableProblem, issues: list[ValidationIssue]) -> None:
-    """Warn when a subject's group size exceeds all rooms of its required type."""
+    """Warn when a subject's group size exceeds every room it may actually use.
+
+    Uses _eligible_rooms (type + required_tags) so the baseline matches the error
+    checks; subjects with no eligible room at all are skipped here because
+    _check_required_tags already emits an ERROR for them.
+    """
     group_sizes = {g.id: g.size for g in problem.student_groups}
-    rooms_by_type: dict[str, int] = {}
-    for room in problem.rooms:
-        rooms_by_type[room.type] = max(rooms_by_type.get(room.type, 0), room.capacity)
-    max_any_capacity = max(r.capacity for r in problem.rooms)  # "any" type uses any room
     for subj in problem.subjects:
+        eligible = _eligible_rooms(problem, subj)
+        if not eligible:
+            continue
         total_students = sum(group_sizes.get(gid, 0) for gid in subj.group_ids)
-        room_type = subj.preferred_room_type or "any"
-        max_cap = rooms_by_type.get(room_type, max_any_capacity)
+        max_cap = max(r.capacity for r in eligible)
         if total_students > max_cap:
             issues.append(
                 ValidationIssue(
                     severity=Severity.WARNING,
                     message=(
                         f"Subject {subj.id!r} has {total_students} students "
-                        f"but largest {room_type!r} room holds {max_cap}"
+                        f"but largest eligible room holds {max_cap}"
                     ),
                 )
             )

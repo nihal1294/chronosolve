@@ -52,3 +52,9 @@ class Subject(BaseModel):
                 )
                 raise ValueError(msg)
         return self
+
+    @model_validator(mode="after")
+    def _validate_allowed_slots(self) -> "Subject":
+        if self.allowed_slots is not None and any(s < 1 for s in self.allowed_slots):
+            raise ValueError("allowed_slots values must be >= 1 (slots are 1-indexed)")
+        return self

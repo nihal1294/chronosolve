@@ -76,7 +76,11 @@ def add_back_to_back_lab_penalty(
 
 
 def _halfday_slots(slots: int, half: str) -> range:
-    """Slot numbers in a day's morning or afternoon (morning is the lower half)."""
+    """Slot numbers in a day's morning or afternoon (morning is the lower half).
+
+    For an odd slot count the morning takes the extra slot (5 slots -> morning
+    [1,2,3], afternoon [4,5]).
+    """
     mid = (slots + 1) // 2
     if half == "morning":
         return range(1, mid + 1)

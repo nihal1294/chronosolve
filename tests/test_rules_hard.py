@@ -201,6 +201,7 @@ class TestAllowedSlots:
         )
         result = solve(problem, time_limit=10)
         assert result.status == "infeasible"
+        assert any("lab" in r for r in result.unresolved)
 
 
 class TestHardTeacherCaps:
@@ -243,6 +244,31 @@ class TestSameDayExclusion:
         days_b = {e.day for e in result.schedule if e.subject_id == "b"}
         assert days_a and days_b
         assert not (days_a & days_b)
+
+    def test_subject_in_two_pairs_excluded_from_both(self) -> None:
+        # 'a' shares the presence var across both pairs; it must avoid b's and c's days.
+        problem = _advanced_problem(
+            subjects=[
+                _subject("a", hours=1),
+                _subject("b", hours=1),
+                _subject("c", hours=1),
+            ],
+            days=["Monday", "Tuesday", "Wednesday"],
+            slots=4,
+            advanced={
+                "same_day_exclusions": [
+                    SubjectPair(first="a", second="b"),
+                    SubjectPair(first="a", second="c"),
+                ]
+            },
+        )
+        result = solve(problem, time_limit=10)
+        assert result.status in ("optimal", "feasible")
+        days_a = {e.day for e in result.schedule if e.subject_id == "a"}
+        days_b = {e.day for e in result.schedule if e.subject_id == "b"}
+        days_c = {e.day for e in result.schedule if e.subject_id == "c"}
+        assert not (days_a & days_b)
+        assert not (days_a & days_c)
 
     def test_exclusion_on_only_day_is_infeasible(self) -> None:
         # Both subjects must run on the single day, but cannot share it -> infeasible.
@@ -289,3 +315,30 @@ class TestOrdering:
         )
         result = solve(problem, time_limit=10)
         assert result.status == "infeasible"
+        assert any("before" in r for r in result.unresolved)
+
+
+class TestRefinementGuard:
+    def test_predicate_detects_advanced_hard_rules(self) -> None:
+        from timetable_solver.solver.rules_hard import advanced_hard_rules_active
+
+        plain = _advanced_problem(subjects=[_subject("s", hours=2)])
+        assert advanced_hard_rules_active(plain) is False
+        with_break = _advanced_problem(
+            subjects=[_subject("s", hours=2)],
+            advanced={"global_breaks": [GlobalBreak(day="Monday", slots=[1])]},
+        )
+        assert advanced_hard_rules_active(with_break) is True
+        with_slots = _advanced_problem(subjects=[_subject("s", hours=2, allowed_slots=[1, 2])])
+        assert advanced_hard_rules_active(with_slots) is True
+
+    def test_refine_does_not_violate_a_global_break(self) -> None:
+        # refine=True must not let annealing relocate a class into the break slot;
+        # find_hard_violations cannot see advanced rules, so refinement is skipped.
+        problem = _advanced_problem(
+            subjects=[_subject("math", hours=3)],
+            advanced={"global_breaks": [GlobalBreak(day="Monday", slots=[1])]},
+        )
+        result = solve(problem, time_limit=10, refine=True)
+        assert result.status in ("optimal", "feasible")
+        assert not any(e.day == "Monday" and e.slot == 1 for e in result.schedule)

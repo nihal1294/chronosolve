@@ -23,7 +23,7 @@ from timetable_solver.solver.hard import (
     add_teacher_no_clash,
 )
 from timetable_solver.solver.rooms import add_room_constraints
-from timetable_solver.solver.rules_hard import RULE_HARD_BUILDERS
+from timetable_solver.solver.rules_hard import RULE_HARD_BUILDERS, advanced_hard_rules_active
 from timetable_solver.solver.soft import add_soft_objectives
 from timetable_solver.solver.variables import create_variables
 
@@ -84,7 +84,10 @@ def solve(
     _name_infeasible_rules(result, solver, registry)
     if result.schedule:
         result.quality_score = score_schedule(problem, result.schedule).overall_score
-        if refine:
+        # Annealing validates moves with find_hard_violations, which cannot see the
+        # advanced day/slot hard rules - refining under them could relocate a class
+        # into a break or outside its allowed slots, so skip it when any is active.
+        if refine and not advanced_hard_rules_active(problem):
             result = anneal(problem, result)
     return result
 

@@ -135,6 +135,17 @@ class TestSubject:
         )
         assert s.allowed_slots == [1, 2, 3]
 
+    def test_allowed_slots_below_one_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="allowed_slots"):
+            Subject(
+                id="s1",
+                name="S",
+                hours_per_week=2,
+                teacher_ids=["t"],
+                group_ids=["g"],
+                allowed_slots=[0, 1],
+            )
+
     def test_empty_teacher_ids_rejected(self) -> None:
         with pytest.raises(ValidationError):
             Subject(
