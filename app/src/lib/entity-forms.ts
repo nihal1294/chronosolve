@@ -12,7 +12,7 @@ export type EntityKind = keyof typeof KIND_TO_SECTION;
 
 export const sectionForKind = (kind: EntityKind): EntitySection => KIND_TO_SECTION[kind];
 
-export type FieldKind = "text" | "int" | "select" | "idList" | "unavailable";
+export type FieldKind = "text" | "int" | "select" | "idList" | "unavailable" | "tags";
 
 export interface EntityField {
   /** Doc key (snake_case, mirrors the Pydantic model) and FormValues key. */
@@ -71,6 +71,7 @@ export const ENTITY_FIELDS: Record<EntitySection, readonly EntityField[]> = {
     { key: "capacity", label: "Capacity", kind: "int", required: true },
     // "any" first: selects seed from options[0], which must match the model default
     { key: "type", label: "Type", kind: "select", options: ["any", "lecture", "lab"] },
+    { key: "tags", label: "Tags", kind: "tags", help: "Room features, comma-separated, e.g. projector, gpu" },
   ],
 };
 
@@ -90,6 +91,8 @@ export function entityToForm(fields: readonly EntityField[], entity: Entity | nu
           map[day] = Array.isArray(slots) ? slots.join(", ") : String(slots);
       }
       values[field.key] = map;
+    } else if (field.kind === "tags") {
+      values[field.key] = Array.isArray(raw) ? raw.filter(isString).join(", ") : "";
     } else if (raw === undefined || raw === null) {
       // Selects seed with their first option so the rendered choice and the
       // saved value can never disagree (options[0] mirrors the model default).
@@ -125,6 +128,13 @@ function readUnavailable(inputs: Record<string, string>): FieldUpdate {
 }
 
 function readField(field: EntityField, value: FormValues[string]): FieldUpdate {
+  if (field.kind === "tags") {
+    const tags = (isString(value) ? value : "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
+    return tags.length === 0 ? { clear: true } : { set: tags };
+  }
   if (field.kind === "idList") {
     const ids = Array.isArray(value) ? value : [];
     if (field.required && ids.length === 0) return { error: "Select at least one" };

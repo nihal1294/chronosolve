@@ -81,6 +81,68 @@ export function getSoftWeight(doc: ProblemDoc, name: string): number {
   return typeof value === "number" ? value : 0;
 }
 
+/* --- M7.1 advanced constraints (constraints.advanced + per-entity fields) --- */
+
+function getAdvanced(doc: ProblemDoc): Record<string, unknown> {
+  const constraints = (doc.constraints ?? {}) as Record<string, unknown>;
+  return (constraints.advanced ?? {}) as Record<string, unknown>;
+}
+
+function withAdvanced(doc: ProblemDoc, key: string, value: unknown): ProblemDoc {
+  const constraints = (doc.constraints ?? {}) as Record<string, unknown>;
+  const advanced = (constraints.advanced ?? {}) as Record<string, unknown>;
+  return { ...doc, constraints: { ...constraints, advanced: { ...advanced, [key]: value } } };
+}
+
+/** Read an advanced-constraint list ([] when missing or malformed). */
+export function getAdvancedList(doc: ProblemDoc, key: string): unknown[] {
+  const value = getAdvanced(doc)[key];
+  return Array.isArray(value) ? value : [];
+}
+
+/** Append one item to an advanced-constraint list (e.g. a SubjectPair or break). */
+export function appendAdvancedItem(doc: ProblemDoc, key: string, item: unknown): ProblemDoc {
+  return withAdvanced(doc, key, [...getAdvancedList(doc, key), item]);
+}
+
+/** Remove the advanced-list item at index; an out-of-range index is a no-op. */
+export function removeAdvancedItem(doc: ProblemDoc, key: string, index: number): ProblemDoc {
+  const list = getAdvancedList(doc, key);
+  if (index < 0 || index >= list.length) return { ...doc };
+  return withAdvanced(doc, key, [...list.slice(0, index), ...list.slice(index + 1)]);
+}
+
+/** Read the hard teacher daily-cap map ({} when unset). */
+export function getTeacherCaps(doc: ProblemDoc): Record<string, number> {
+  const value = getAdvanced(doc).hard_teacher_daily_caps;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, number>;
+}
+
+/** Set a teacher's hard daily cap; cap=null removes the entry. */
+export function setTeacherCap(doc: ProblemDoc, teacherId: string, cap: number | null): ProblemDoc {
+  const caps = { ...getTeacherCaps(doc) };
+  if (cap === null) delete caps[teacherId];
+  else caps[teacherId] = cap;
+  return withAdvanced(doc, "hard_teacher_daily_caps", caps);
+}
+
+/** Set (value) or clear (undefined) a field on one entity; an unknown id is a no-op. */
+export function setEntityField(
+  doc: ProblemDoc,
+  section: EntitySection,
+  id: string,
+  field: string,
+  value: unknown,
+): ProblemDoc {
+  const entity = sectionList(doc, section).find((item) => item?.id === id);
+  if (!entity) return { ...doc };
+  const next: Entity = { ...entity };
+  if (value === undefined) delete next[field];
+  else next[field] = value;
+  return upsertEntity(doc, section, next);
+}
+
 /** One fixed placement: a subject pinned to a (day, slot). */
 export interface PinSlot {
   subjectId: string;

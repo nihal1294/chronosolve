@@ -1,15 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  appendAdvancedItem,
+  getAdvancedList,
   getHardFlag,
   getSoftWeight,
+  getTeacherCaps,
+  listEntities,
   parseDoc,
   pinAssignment,
+  removeAdvancedItem,
   removeEntity,
   serializeDoc,
+  setEntityField,
   setHardFlag,
   setSoftWeight,
+  setTeacherCap,
   unpinAssignment,
   upsertEntity,
+  type ProblemDoc,
 } from "./problem-doc";
 
 const YAML = `
@@ -131,5 +139,92 @@ describe("constraint readers", () => {
     expect(getSoftWeight({}, "workload_balance")).toBe(0);
     const doc = setSoftWeight({}, "workload_balance", 75);
     expect(getSoftWeight(doc, "workload_balance")).toBe(75);
+  });
+});
+
+describe("advanced-constraint accessors", () => {
+  it("appends to and reads an advanced list", () => {
+    const doc = appendAdvancedItem({}, "same_day_exclusions", { first: "a", second: "b" });
+    expect(getAdvancedList(doc, "same_day_exclusions")).toEqual([{ first: "a", second: "b" }]);
+  });
+
+  it("appends preserve earlier items and sibling advanced keys", () => {
+    let doc = appendAdvancedItem({}, "orderings", { first: "x", second: "y" });
+    doc = appendAdvancedItem(doc, "orderings", { first: "p", second: "q" });
+    doc = appendAdvancedItem(doc, "global_breaks", { day: "Monday", slots: [1] });
+    expect(getAdvancedList(doc, "orderings")).toHaveLength(2);
+    expect(getAdvancedList(doc, "global_breaks")).toEqual([{ day: "Monday", slots: [1] }]);
+  });
+
+  it("removes an advanced item by index, leaving the rest", () => {
+    let doc = appendAdvancedItem({}, "same_room_subjects", "math");
+    doc = appendAdvancedItem(doc, "same_room_subjects", "physics");
+    expect(getAdvancedList(removeAdvancedItem(doc, "same_room_subjects", 0), "same_room_subjects")).toEqual([
+      "physics",
+    ]);
+  });
+
+  it("removeAdvancedItem out of range is a no-op", () => {
+    const doc = appendAdvancedItem({}, "orderings", { first: "a", second: "b" });
+    expect(getAdvancedList(removeAdvancedItem(doc, "orderings", 5), "orderings")).toHaveLength(1);
+  });
+
+  it("getAdvancedList is [] for a missing or malformed key", () => {
+    expect(getAdvancedList({}, "global_breaks")).toEqual([]);
+    const bad = { constraints: { advanced: { global_breaks: "nope" } } };
+    expect(getAdvancedList(bad, "global_breaks")).toEqual([]);
+  });
+
+  it("sets and clears a hard teacher daily cap", () => {
+    let doc = setTeacherCap({}, "t1", 4);
+    expect(getTeacherCaps(doc)).toEqual({ t1: 4 });
+    doc = setTeacherCap(doc, "t2", 3);
+    expect(getTeacherCaps(doc)).toEqual({ t1: 4, t2: 3 });
+    doc = setTeacherCap(doc, "t1", null);
+    expect(getTeacherCaps(doc)).toEqual({ t2: 3 });
+  });
+
+  it("editing caps preserves sibling advanced lists", () => {
+    let doc = appendAdvancedItem({}, "orderings", { first: "a", second: "b" });
+    doc = setTeacherCap(doc, "t1", 4);
+    expect(getAdvancedList(doc, "orderings")).toHaveLength(1);
+    expect(getTeacherCaps(doc)).toEqual({ t1: 4 });
+  });
+
+  it("sets a field on one entity, leaving siblings untouched", () => {
+    const base = {
+      subjects: [
+        { id: "math", hours_per_week: 3 },
+        { id: "art", hours_per_week: 2 },
+      ],
+    };
+    const doc = setEntityField(base, "subjects", "math", "allowed_slots", [1, 2, 3]);
+    expect(listEntities(doc, "subjects")[0]).toEqual({
+      id: "math",
+      hours_per_week: 3,
+      allowed_slots: [1, 2, 3],
+    });
+    expect(listEntities(doc, "subjects")[1]).toEqual({ id: "art", hours_per_week: 2 });
+  });
+
+  it("clears an entity field when the value is undefined", () => {
+    const base = { subjects: [{ id: "math", required_tags: ["gpu"] }] };
+    const doc = setEntityField(base, "subjects", "math", "required_tags", undefined);
+    expect(listEntities(doc, "subjects")[0]).toEqual({ id: "math" });
+  });
+
+  it("setEntityField is a no-op for an unknown entity", () => {
+    const base = { subjects: [{ id: "math" }] };
+    expect(setEntityField(base, "subjects", "ghost", "allowed_slots", [1])).toEqual(base);
+  });
+
+  it("advanced fields survive a YAML round-trip", () => {
+    let doc: ProblemDoc = appendAdvancedItem({}, "same_day_exclusions", { first: "a", second: "b" });
+    doc = setTeacherCap(doc, "t1", 4);
+    doc = setEntityField({ ...doc, subjects: [{ id: "math" }] }, "subjects", "math", "allowed_slots", [1, 2]);
+    const reparsed = parseDoc(serializeDoc(doc));
+    expect(getAdvancedList(reparsed, "same_day_exclusions")).toEqual([{ first: "a", second: "b" }]);
+    expect(getTeacherCaps(reparsed)).toEqual({ t1: 4 });
+    expect(listEntities(reparsed, "subjects")[0]).toEqual({ id: "math", allowed_slots: [1, 2] });
   });
 });
