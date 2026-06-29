@@ -38,6 +38,9 @@ const teacherDailyCap: RuleTemplate = {
       params: { teacher, cap },
     })),
   remove: (doc, index) => {
+    // derive() and remove() iterate the SAME caps object (entries vs keys) and
+    // js-yaml preserves insertion order, so the card's index maps back to the
+    // intended teacher key.
     const teacher = Object.keys(getTeacherCaps(doc))[index];
     return teacher ? setTeacherCap(doc, teacher, null) : doc;
   },
@@ -139,6 +142,9 @@ export const RULE_TEMPLATES: RuleTemplate[] = [
     params: [SUBJECT("subject", "Subject")],
     listKey: "same_room_subjects",
     weightKey: "same_room",
+    // same_room_subjects is a list[str] in the backend (models/rules.py:81), so
+    // unlike the other list rules the entry is a bare subject-id string, not an
+    // object. Keep it that way - it stays CLI-solvable; index-based removal works.
     toEntry: (p) => p.subject,
     fromEntry: (e) => ({ subject: e }),
   }),

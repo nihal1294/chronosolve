@@ -150,6 +150,11 @@ interface ToggleSpec {
 
 /** A global on/off rule (one config flag or soft weight), no per-instance params. */
 export function globalToggleTemplate(spec: ToggleSpec): RuleTemplate {
+  // Fail at definition time rather than silently reading/writing key "" - one of
+  // the two levers must be set for isOn/turnOn/turnOff to target a real field.
+  if (spec.hardFlag === undefined && spec.weightKey === undefined) {
+    throw new Error(`globalToggleTemplate ${spec.id}: needs a hardFlag or a weightKey`);
+  }
   const isOn = (doc: ProblemDoc) =>
     spec.hardFlag !== undefined
       ? getHardFlag(doc, spec.hardFlag, false)

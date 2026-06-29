@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { parseEntities } from "../lib/entities";
 import { buildNameMaps } from "../lib/rule-format";
@@ -27,8 +27,8 @@ export function AdvancedRulesSection({
   doc: ProblemDoc;
   onEdit: (next: ProblemDoc) => void;
 }) {
-  const entities = parseEntities(doc);
-  const names = buildNameMaps(entities);
+  const entities = useMemo(() => parseEntities(doc), [doc]);
+  const names = useMemo(() => buildNameMaps(entities), [entities]);
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const cards = RULE_TEMPLATES.flatMap((template) =>

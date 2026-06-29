@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { RULE_TEMPLATES, type RuleCategory, type RuleTemplate } from "../lib/rule-templates";
 
@@ -8,8 +8,28 @@ const CATEGORIES: RuleCategory[] = ["Time", "Teacher", "Group", "Subject", "Room
     Selecting one hands the template to the route, which opens its param form. */
 export function AddRuleMenu({ onPick }: { onPick: (template: RuleTemplate) => void }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Dismiss on an outside press or Escape (mirrors HelpMenu), so the dropdown
+  // isn't left hanging open when the user clicks elsewhere.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
