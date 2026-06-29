@@ -113,3 +113,37 @@ describe("entityToForm", () => {
     expect(entityToForm(SUBJECT_FIELDS, null).preferred_room_type).toBe("");
   });
 });
+
+describe("room tags field (rule 19 supply side)", () => {
+  const ROOM_FIELDS = ENTITY_FIELDS.rooms;
+
+  it("seeds the tags input from a string[] as a comma-separated string", () => {
+    const form = entityToForm(ROOM_FIELDS, {
+      id: "r1",
+      name: "Lab",
+      capacity: 40,
+      tags: ["gpu", "projector"],
+    });
+    expect(form.tags).toBe("gpu, projector");
+  });
+
+  it("parses the comma-separated input back to a trimmed string[]", () => {
+    const form = entityToForm(ROOM_FIELDS, { id: "r1", name: "Lab", capacity: 40 });
+    const { entity } = formToEntity(
+      ROOM_FIELDS,
+      { ...form, tags: " gpu , projector ,, " },
+      { base: { id: "r1" }, existingIds: [] },
+    );
+    expect(entity?.tags).toEqual(["gpu", "projector"]);
+  });
+
+  it("drops the tags key entirely when the input is blank", () => {
+    const form = entityToForm(ROOM_FIELDS, { id: "r1", name: "Lab", capacity: 40, tags: ["x"] });
+    const { entity } = formToEntity(
+      ROOM_FIELDS,
+      { ...form, tags: "  " },
+      { base: { id: "r1", tags: ["x"] }, existingIds: [] },
+    );
+    expect(entity && "tags" in entity).toBe(false);
+  });
+});

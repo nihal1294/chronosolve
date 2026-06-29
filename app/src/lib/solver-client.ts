@@ -52,6 +52,20 @@ async function errorDetail(response: Response): Promise<string> {
   }
 }
 
+/** A non-2xx response, carrying the status + server detail so callers can branch
+ *  on it. /validate maps a schema/load failure to 422 (server.py _parse_problem),
+ *  which the validation banner surfaces as a real error rather than an outage. */
+export class SolverHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly detail: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SolverHttpError";
+  }
+}
+
 async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
   const response = await fetch(`${await baseUrl()}${path}`, {
     method: "POST",
@@ -60,7 +74,8 @@ async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok) {
-    throw new Error(`${path} failed (${response.status}): ${await errorDetail(response)}`);
+    const detail = await errorDetail(response);
+    throw new SolverHttpError(response.status, detail, `${path} failed (${response.status}): ${detail}`);
   }
   return response.json() as Promise<T>;
 }

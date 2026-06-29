@@ -9,6 +9,8 @@ import { impactShares } from "../lib/analytics";
 import { solverClient, type QualityReport, type SolveResult } from "../lib/solver-client";
 import { HardConstraintRow } from "../components/HardConstraintRow";
 import { SoftConstraintCard, type ConstraintImpact } from "../components/SoftConstraintCard";
+import { AdvancedRulesSection } from "../components/AdvancedRulesSection";
+import { ValidationBanner } from "../components/ValidationBanner";
 
 const card =
   "rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm";
@@ -101,6 +103,8 @@ export function ConstraintEngineRoute() {
       </div>
 
       <div className="mx-auto max-w-3xl space-y-8">
+        <ValidationBanner doc={doc} />
+
         <section className={`${card} p-6`} data-tour="constraints-hard">
           <div className="mb-2 flex items-center gap-2">
             <ShieldAlert size={16} className="text-red-500" />
@@ -166,6 +170,8 @@ export function ConstraintEngineRoute() {
             ))}
           </div>
         </section>
+
+        <AdvancedRulesSection doc={doc} onEdit={ws.editProblem} />
       </div>
     </div>
   );
