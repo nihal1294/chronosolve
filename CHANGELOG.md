@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/nihal1294/chronosolve/compare/v0.3.0...v0.4.0) (2026-06-29)
+
+
+### Features
+
+* **app:** M7.2 advanced rule-authoring UI ([#25](https://github.com/nihal1294/chronosolve/issues/25)) ([d245a74](https://github.com/nihal1294/chronosolve/commit/d245a74ac35270a2c20ab95797b8251a7a6fdc86))
+
 ## [0.3.0](https://github.com/nihal1294/chronosolve/compare/v0.2.0...v0.3.0) (2026-06-22)
 
 
