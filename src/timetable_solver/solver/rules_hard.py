@@ -187,6 +187,11 @@ def advanced_hard_rules_active(problem: TimetableProblem) -> bool:
     teacher caps, same-day exclusions, orderings) - the rules annealing's violation
     checker cannot see, so refinement is skipped when any is present. Room rules are
     safe because annealing never reassigns rooms.
+
+    Softened instances (M7.3) still count as active on purpose: their soft penalty
+    is equally invisible to annealing's checker and scorer, so refinement could
+    silently trade away the preference the user just paid a weight for. Revisit
+    when the scorer learns advanced rules.
     """
     advanced = problem.constraints.advanced
     return bool(

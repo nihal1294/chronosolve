@@ -82,6 +82,8 @@ def add_soft_teacher_cap_penalty(
                 for sid in subject_ids
                 for slot in range(1, slots + 1)
             ]
+            if len(day_vars) <= cap:
+                continue
             over = positive_part(
                 model, sum(day_vars) - cap, len(day_vars), f"softcap_{teacher_id}_{day_idx}"
             )

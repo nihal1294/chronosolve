@@ -76,8 +76,13 @@ def _same_day(*, softened: bool, weight: int):
 
 
 def _ordering(*, softened: bool, weight: int):
+    # a is pinned to slot 2 and b to slot 1 (hard allowed_slots stay enforced),
+    # so the ordering "a before b" is satisfiable only once softened.
     problem = _advanced_problem(
-        subjects=[_subject("a", hours=1), _subject("b", hours=1)],
+        subjects=[
+            _subject("a", hours=1, allowed_slots=[2]),
+            _subject("b", hours=1, allowed_slots=[1]),
+        ],
         days=["Monday"],
         slots=2,
         advanced={
@@ -131,6 +136,20 @@ def test_softened_cap_is_feasible_when_weighted() -> None:
 
 def test_softened_same_day_is_feasible_when_weighted() -> None:
     assert solve(_same_day(softened=True, weight=50), time_limit=10).status in (
+        "optimal",
+        "feasible",
+    )
+
+
+def test_softened_allowed_slots_is_feasible_when_weighted() -> None:
+    assert solve(_allowed(softened=True, weight=50), time_limit=10).status in (
+        "optimal",
+        "feasible",
+    )
+
+
+def test_softened_ordering_is_feasible_when_weighted() -> None:
+    assert solve(_ordering(softened=True, weight=50), time_limit=10).status in (
         "optimal",
         "feasible",
     )

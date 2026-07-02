@@ -9,9 +9,11 @@ from timetable_solver.models.rules import (
     GlobalBreak,
     GroupFreeHalfDay,
     RoomReservation,
+    RuleRef,
     SubjectPair,
+    is_softened,
 )
-from timetable_solver.models.schedule import ScheduleEntry, SolveResult, SolverStatus
+from timetable_solver.models.schedule import RuleConflict, ScheduleEntry, SolveResult, SolverStatus
 from timetable_solver.models.student_group import StudentGroup
 from timetable_solver.models.subject import Subject, SubjectType
 from timetable_solver.models.teacher import Teacher, TeacherPreferences
@@ -27,6 +29,8 @@ __all__ = [
     "Room",
     "RoomReservation",
     "RoomType",
+    "RuleConflict",
+    "RuleRef",
     "SubjectPair",
     "ScheduleEntry",
     "SoftConstraints",
@@ -39,4 +43,5 @@ __all__ = [
     "TeacherPreferences",
     "TimeStructure",
     "TimetableProblem",
+    "is_softened",
 ]

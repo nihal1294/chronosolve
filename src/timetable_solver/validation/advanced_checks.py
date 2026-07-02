@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from timetable_solver.models.room import room_type_matches
+from timetable_solver.models.rules import is_softened
 from timetable_solver.validation.validator import Severity, ValidationIssue
 
 if TYPE_CHECKING:
@@ -146,17 +147,21 @@ def _check_capacity_feasibility(problem: TimetableProblem, issues: list[Validati
 
 
 def _check_global_break_capacity(problem: TimetableProblem, issues: list[ValidationIssue]) -> None:
-    """Error when global breaks leave a group fewer slots than its required hours (rule 2)."""
-    breaks = problem.constraints.advanced.global_breaks
-    if not breaks:
+    """Error when global breaks leave a group fewer slots than its required hours (rule 2).
+
+    Softened entries (M7.3) are skipped: the solver no longer blocks their slots,
+    so counting them would keep rejecting the very problem softening just unblocked.
+    """
+    advanced = problem.constraints.advanced
+    if not advanced.global_breaks:
         return
     days = set(problem.time_structure.days)
     # Track (day, slot) pairs across every break entry: the solver blocks each
     # pair once, so a slot repeated in two break objects must not be subtracted
     # twice (that would falsely reject a feasible problem).
     blocked_pairs: set[tuple[str, int]] = set()
-    for brk in breaks:
-        if brk.day not in days:
+    for i, brk in enumerate(advanced.global_breaks):
+        if is_softened(advanced, "break", str(i)) or brk.day not in days:
             continue
         max_slot = problem.time_structure.get_slots_for_day(brk.day)
         blocked_pairs.update((brk.day, s) for s in brk.slots if 1 <= s <= max_slot)
