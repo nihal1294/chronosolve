@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/nihal1294/chronosolve/compare/v0.4.0...v0.5.0) (2026-07-02)
+
+
+### Features
+
+* **app:** M7.3b infeasibility panel + one-click soften ([#29](https://github.com/nihal1294/chronosolve/issues/29)) ([8ad7112](https://github.com/nihal1294/chronosolve/commit/8ad7112e13382787d618ff625d20ba2e160ad654))
+* **solver:** M7.3a soften-to-preference backend ([#27](https://github.com/nihal1294/chronosolve/issues/27)) ([89775e6](https://github.com/nihal1294/chronosolve/commit/89775e62c36abf31e193ba5c455ed7b7e1ded332))
+
 ## [0.4.0](https://github.com/nihal1294/chronosolve/compare/v0.3.0...v0.4.0) (2026-06-29)
 
 
