@@ -112,6 +112,11 @@ export function removeAdvancedItem(doc: ProblemDoc, key: string, index: number):
   return withAdvanced(doc, key, [...list.slice(0, index), ...list.slice(index + 1)]);
 }
 
+/** Replace an advanced-constraint list wholesale (soften.ts re-keying). */
+export function setAdvancedList(doc: ProblemDoc, key: string, list: unknown[]): ProblemDoc {
+  return withAdvanced(doc, key, list);
+}
+
 /** Read the hard teacher daily-cap map ({} when unset). */
 export function getTeacherCaps(doc: ProblemDoc): Record<string, number> {
   const value = getAdvanced(doc).hard_teacher_daily_caps;

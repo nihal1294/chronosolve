@@ -20,13 +20,13 @@ Edit courses, instructors, student groups, and rooms as structured tables, or sw
 
 ## 3. Constraints
 
-Toggle the **hard rules** every timetable must satisfy (no double-booking, honor unavailable times, schedule every required hour), then set how much each **soft preference** matters. Quick presets - Balanced, Student-first, Teacher-first, Tight schedule - get you close in one click, and Advanced weights expose the exact numbers.
+Toggle the **hard rules** every timetable must satisfy (no double-booking, honor unavailable times, schedule every required hour), then set how much each **soft preference** matters. Quick presets - Balanced, Student-first, Teacher-first, Tight schedule - get you close in one click, and Advanced weights expose the exact numbers. Below the presets, **Advanced rules** authors institution-specific policies from plain-language templates: global breaks, allowed slots, daily teaching caps, subject sequencing, and room reservations.
 
 ![ChronoSolve Constraints - hard rule toggles and weighted soft preferences](../assets/screenshots/constraints.png)
 
 ## 4. Scheduler
 
-Run the solver and watch it converge live; cancel anytime. When it finishes you get a quality score, the solve status and time, room utilization, and a soft constraint penalty breakdown - plus one-click export to CSV, a printable PDF report, or per-teacher/group calendar (ICS) files.
+Run the solver and watch it converge live; cancel anytime. When it finishes you get a quality score, the solve status and time, room utilization, and a soft constraint penalty breakdown - plus one-click CSV export (PDF and calendar/ICS exports are on the roadmap). If no valid timetable exists, the Scheduler names the exact rules that clash and offers a one-click **Soften to preference**: the rule becomes a weighted preference the next run honors as far as possible instead of a hard barrier.
 
 ![ChronoSolve Scheduler - optimal result with quality score and analytics](../assets/screenshots/scheduler.png)
 

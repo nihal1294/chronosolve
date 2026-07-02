@@ -4,6 +4,7 @@
     re-populates the rule cards on file load. Factories live in rule-template-kit. */
 
 import { getTeacherCaps, setTeacherCap } from "./problem-doc";
+import { isSoftened } from "./soften";
 import {
   entityFieldTemplate,
   globalToggleTemplate,
@@ -33,15 +34,16 @@ const teacherDailyCap: RuleTemplate = {
   serialize: (instance, doc) =>
     setTeacherCap(doc, instance.params.teacher as string, instance.params.cap as number),
   derive: (doc) =>
-    Object.entries(getTeacherCaps(doc)).map(([teacher, cap]) => ({
-      templateId: "teacher_daily_cap",
-      params: { teacher, cap },
-    })),
+    Object.entries(getTeacherCaps(doc))
+      .filter(([teacher]) => !isSoftened(doc, "teacher_cap", teacher))
+      .map(([teacher, cap]) => ({ templateId: "teacher_daily_cap", params: { teacher, cap } })),
   remove: (doc, index) => {
-    // derive() and remove() iterate the SAME caps object (entries vs keys) and
-    // js-yaml preserves insertion order, so the card's index maps back to the
-    // intended teacher key.
-    const teacher = Object.keys(getTeacherCaps(doc))[index];
+    // derive() and remove() iterate the SAME filtered caps object (entries vs
+    // keys) and js-yaml preserves insertion order, so the card's index maps
+    // back to the intended teacher key.
+    const teacher = Object.keys(getTeacherCaps(doc)).filter((tid) => !isSoftened(doc, "teacher_cap", tid))[
+      index
+    ];
     return teacher ? setTeacherCap(doc, teacher, null) : doc;
   },
 };
@@ -57,6 +59,7 @@ export const RULE_TEMPLATES: RuleTemplate[] = [
       { key: "slots", label: "Slots", kind: "slots" },
     ],
     listKey: "global_breaks",
+    softKind: "break",
     toEntry: (p) => ({ day: p.day, slots: p.slots }),
     fromEntry: (e) => ({ day: e.day, slots: e.slots }),
   }),
@@ -66,6 +69,7 @@ export const RULE_TEMPLATES: RuleTemplate[] = [
     label: "A subject may only run at given slots",
     section: "subjects",
     field: "allowed_slots",
+    softKind: "allowed_slots",
     idParam: SUBJECT("subject", "Subject"),
     valueParam: { key: "slots", label: "Allowed slots", kind: "slots" },
   }),
@@ -101,6 +105,7 @@ export const RULE_TEMPLATES: RuleTemplate[] = [
     mode: "hard",
     params: [SUBJECT("a", "First subject"), SUBJECT("b", "Second subject")],
     listKey: "same_day_exclusions",
+    softKind: "same_day",
     toEntry: (p) => ({ first: p.a, second: p.b }),
     fromEntry: (e) => ({ a: e.first, b: e.second }),
   }),
@@ -111,6 +116,7 @@ export const RULE_TEMPLATES: RuleTemplate[] = [
     mode: "hard",
     params: [SUBJECT("a", "Earlier subject"), SUBJECT("b", "Later subject")],
     listKey: "orderings",
+    softKind: "ordering",
     toEntry: (p) => ({ first: p.a, second: p.b }),
     fromEntry: (e) => ({ a: e.first, b: e.second }),
   }),

@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router";
 import { CalendarDays, Database, Play, RotateCcw, Square } from "lucide-react";
 import { useWorkspace } from "../providers/problem-doc-provider";
+import { addSoftened } from "../lib/soften";
+import { InfeasibilityPanel } from "../components/InfeasibilityPanel";
 import { SolverStateCard, type SolverPhase } from "../components/SolverStateCard";
 import { SolveAnalytics } from "../components/SolveAnalytics";
 import { ExportCard } from "../components/ExportCard";
@@ -46,10 +48,17 @@ export function SolverMonitorRoute() {
     );
   }
 
+  // Narrowed const (the early return above guarantees a doc): closures like the
+  // panel's onSoften don't retain property narrowing on ws.doc.
+  const doc = ws.doc;
   const phase: SolverPhase = ws.solveError ? "error" : ws.busy ? "solving" : result ? result.status : "idle";
   const elapsed = ws.progress?.elapsed ?? result?.solve_time_seconds ?? 0;
   const feasible = result !== null && (result.status === "optimal" || result.status === "feasible");
   const summary = phase === "error" ? (ws.solveError ?? SUMMARY.error) : SUMMARY[phase];
+  // Panel replaces the state card's flat rule list whenever the solver named
+  // the clash; softening keeps the result (applyDocEdit) so the panel survives.
+  const conflicts = phase === "infeasible" && result ? result.conflicts : [];
+  const showConflicts = conflicts.length > 0;
 
   return (
     <div className="relative z-10 h-full overflow-y-auto p-8 md:p-10" data-tour="solver">
@@ -86,9 +95,19 @@ export function SolverMonitorRoute() {
             phase={phase}
             elapsed={elapsed}
             summary={summary}
-            unresolved={result?.unresolved ?? []}
+            unresolved={showConflicts ? [] : (result?.unresolved ?? [])}
           />
         </div>
+
+        {showConflicts && (
+          <InfeasibilityPanel
+            doc={doc}
+            conflicts={conflicts}
+            busy={ws.busy}
+            onSoften={(ref) => ws.applyDocEdit(addSoftened(doc, ref))}
+            onRun={ws.solve}
+          />
+        )}
 
         {ws.busy && (
           <div className={`grid grid-cols-2 gap-4 p-5 ${card}`}>
