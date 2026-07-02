@@ -15,7 +15,7 @@ const CARD =
   "rounded-2xl border border-red-100 bg-red-50 shadow-sm dark:border-red-900/50 dark:bg-red-950/20";
 const SOFTEN_BUTTON =
   "inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 " +
-  "text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 " +
+  "text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-40 " +
   "dark:border-red-900/50 dark:bg-neutral-900 dark:text-red-300 dark:hover:bg-red-950/40";
 const RUN_BUTTON =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold " +
@@ -71,7 +71,12 @@ export function InfeasibilityPanel({
                   Now a preference
                 </span>
               ) : (
-                <button type="button" onClick={() => onSoften(conflict.ref)} className={SOFTEN_BUTTON}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onSoften(conflict.ref)}
+                  className={SOFTEN_BUTTON}
+                >
                   <Wand2 size={14} />
                   Soften to preference
                 </button>
