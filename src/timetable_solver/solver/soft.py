@@ -9,6 +9,13 @@ from timetable_solver.solver.rules_soft import (
     add_group_free_halfday_penalty,
     add_same_room_penalty,
 )
+from timetable_solver.solver.rules_soft_advanced import (
+    add_soft_allowed_slots_penalty,
+    add_soft_break_penalty,
+    add_soft_ordering_penalty,
+    add_soft_same_day_penalty,
+    add_soft_teacher_cap_penalty,
+)
 from timetable_solver.solver.soft_helpers import (
     TeacherBusyCache,
     hole_vars,
@@ -37,6 +44,12 @@ def add_soft_objectives(
     terms += add_back_to_back_lab_penalty(model, variables, problem)
     terms += add_group_free_halfday_penalty(model, variables, problem)
     terms += add_same_room_penalty(model, variables, problem)
+    # M7.3 - soft counterparts of softened advanced hard rules
+    terms += add_soft_break_penalty(model, variables, problem)
+    terms += add_soft_allowed_slots_penalty(model, variables, problem)
+    terms += add_soft_teacher_cap_penalty(model, variables, problem)
+    terms += add_soft_same_day_penalty(model, variables, problem)
+    terms += add_soft_ordering_penalty(model, variables, problem)
     if terms:
         model.minimize(sum(terms))
 

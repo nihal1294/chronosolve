@@ -95,13 +95,15 @@ def solve(
 def _name_infeasible_rules(
     result: SolveResult, solver: cp_model.CpSolver, registry: AssumptionRegistry
 ) -> None:
-    """Replace generic unresolved subjects with the hard user-rules that clash.
+    """Name the hard user-rules that clash - structured in result.conflicts and
+    readable in result.unresolved.
 
     Only when the solve is infeasible AND assumption literals pinpoint a cause;
     structural infeasibility (no user rule to blame) keeps the subject-id list.
     """
     if result.status != "infeasible" or not registry.has_assumptions:
         return
-    named = registry.describe(solver.sufficient_assumptions_for_infeasibility())
-    if named:
-        result.unresolved = named
+    conflicts = registry.describe(solver.sufficient_assumptions_for_infeasibility())
+    if conflicts:
+        result.conflicts = conflicts
+        result.unresolved = [c.description for c in conflicts]

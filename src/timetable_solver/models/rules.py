@@ -64,6 +64,18 @@ class GroupFreeHalfDay(BaseModel):
     half: Literal["morning", "afternoon"]
 
 
+class RuleRef(BaseModel):
+    """A machine-addressable reference to one softenable hard-rule instance (M7.3).
+
+    kind is one of the 5 gated rule kinds; key is that kind's natural address -
+    the list index (as str) for global_break/same_day/ordering, the subject id for
+    allowed_slots, the teacher id for teacher_cap.
+    """
+
+    kind: str = Field(min_length=1)
+    key: str
+
+
 class AdvancedConstraints(BaseModel):
     """User-authored parameterized rules with no natural per-entity home.
 
@@ -80,3 +92,10 @@ class AdvancedConstraints(BaseModel):
     orderings: list[SubjectPair] = Field(default_factory=list)
     same_room_subjects: list[str] = Field(default_factory=list)
     group_free_halfdays: list[GroupFreeHalfDay] = Field(default_factory=list)
+    # M7.3: instances demoted from hard to a weighted preference (see soft_* weights).
+    softened: list[RuleRef] = Field(default_factory=list)
+
+
+def is_softened(advanced: AdvancedConstraints, kind: str, key: str) -> bool:
+    """True when the (kind, key) rule instance has been demoted to a preference."""
+    return RuleRef(kind=kind, key=key) in advanced.softened
