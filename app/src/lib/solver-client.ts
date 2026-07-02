@@ -2,6 +2,7 @@
 // Types mirror the Pydantic models in src/timetable_solver/models/schedule.py.
 
 import { invoke } from "@tauri-apps/api/core";
+import type { RuleConflict } from "./soften";
 import { createSseParser } from "./sse-stream";
 
 export interface ScheduleEntry {
@@ -19,6 +20,8 @@ export interface SolveResult {
   quality_score: number | null;
   solve_time_seconds: number;
   unresolved: string[];
+  /** Clashing softenable hard rules named on an infeasible solve (M7.3). */
+  conflicts: RuleConflict[];
 }
 
 // 120 x 500ms = 60s. A packaged app's FIRST launch can take ~30-50s while macOS

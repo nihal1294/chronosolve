@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RULE_TEMPLATES, getTemplate, type RuleInstance, type RuleTemplate } from "./rule-templates";
 import { parseDoc, serializeDoc, upsertEntity, type EntitySection, type ProblemDoc } from "./problem-doc";
+import { isSoftened } from "./soften";
 
 /** A doc seeded with the entities a rule references (the real precondition for
     authoring it), so per-entity serialize - a no-op on unknown ids - applies. */
@@ -80,4 +81,58 @@ describe("rule-templates registry", () => {
       expect(template.derive(template.remove(doc, 0))).toEqual([]);
     });
   }
+});
+
+describe("soften-aware hard templates (M7.3)", () => {
+  const breaks = [
+    { day: "Mon", slots: [1] },
+    { day: "Tue", slots: [2] },
+    { day: "Wed", slots: [3] },
+  ];
+  const doc: ProblemDoc = {
+    subjects: [
+      { id: "math", name: "Math", allowed_slots: [1] },
+      { id: "art", name: "Art", allowed_slots: [2] },
+    ],
+    constraints: {
+      advanced: {
+        global_breaks: breaks,
+        hard_teacher_daily_caps: { t1: 3, t2: 4 },
+        softened: [
+          { kind: "break", key: "1" },
+          { kind: "allowed_slots", key: "math" },
+          { kind: "teacher_cap", key: "t1" },
+        ],
+      },
+    },
+  };
+
+  it("hard derive excludes softened instances", () => {
+    expect(getTemplate("no_classes_break")!.derive(doc)).toEqual([
+      { templateId: "no_classes_break", params: { day: "Mon", slots: [1] } },
+      { templateId: "no_classes_break", params: { day: "Wed", slots: [3] } },
+    ]);
+    expect(getTemplate("subject_allowed_slots")!.derive(doc)).toEqual([
+      { templateId: "subject_allowed_slots", params: { subject: "art", slots: [2] } },
+    ]);
+    expect(getTemplate("teacher_daily_cap")!.derive(doc)).toEqual([
+      { templateId: "teacher_daily_cap", params: { teacher: "t2", cap: 4 } },
+    ]);
+  });
+
+  it("hard remove maps the card index past softened entries", () => {
+    // Card 1 is Wed (index 2 in the list) because Tue (index 1) is softened.
+    const next = getTemplate("no_classes_break")!.remove(doc, 1);
+    const remaining = (next.constraints as { advanced: { global_breaks: unknown[] } }).advanced.global_breaks;
+    expect(remaining).toEqual([breaks[0], breaks[1]]);
+    // The softened ref that pointed at Tue (index 1) still points at Tue.
+    expect(isSoftened(next, "break", "1")).toBe(true);
+  });
+
+  it("hard remove of an id-keyed rule targets the visible entity", () => {
+    const next = getTemplate("subject_allowed_slots")!.remove(doc, 0); // art, not math
+    const subjects = next.subjects as { id: string; allowed_slots?: number[] }[];
+    expect(subjects.find((s) => s.id === "art")?.allowed_slots).toBeUndefined();
+    expect(subjects.find((s) => s.id === "math")?.allowed_slots).toEqual([1]);
+  });
 });

@@ -17,47 +17,18 @@ import {
   type ProblemDoc,
 } from "./problem-doc";
 
-export type ParamKind =
-  | "subject"
-  | "teacher"
-  | "group"
-  | "room"
-  | "subjects"
-  | "slots"
-  | "tags"
-  | "day"
-  | "half"
-  | "number";
+import { DEFAULT_SOFT_WEIGHT, isSoftened, removeIndexKeyedRule, unsoftenedIndex } from "./soften";
+import type { ParamDef, RuleCategory, RuleMode, RuleTemplate } from "./rule-template-types";
 
-export interface ParamDef {
-  key: string;
-  label: string;
-  kind: ParamKind;
-}
+export type {
+  ParamDef,
+  ParamKind,
+  RuleCategory,
+  RuleInstance,
+  RuleMode,
+  RuleTemplate,
+} from "./rule-template-types";
 
-export type RuleCategory = "Time" | "Teacher" | "Group" | "Subject" | "Room" | "Fairness";
-export type RuleMode = "hard" | "soft";
-
-export interface RuleInstance {
-  templateId: string;
-  params: Record<string, unknown>;
-}
-
-export interface RuleTemplate {
-  id: string;
-  category: RuleCategory;
-  label: string;
-  mode: RuleMode;
-  params: ParamDef[];
-  /** Global soft-weight lever (the importance control); set only for soft rules. */
-  weightKey?: string;
-  serialize: (instance: RuleInstance, doc: ProblemDoc) => ProblemDoc;
-  derive: (doc: ProblemDoc) => RuleInstance[];
-  /** Remove the index-th derived instance of this template from the doc. */
-  remove: (doc: ProblemDoc, index: number) => ProblemDoc;
-}
-
-export const DEFAULT_SOFT_WEIGHT = 50;
 type Params = Record<string, unknown>;
 
 export const SUBJECT = (key: string, label: string): ParamDef => ({ key, label, kind: "subject" });
@@ -70,6 +41,9 @@ interface ListSpec {
   params: ParamDef[];
   listKey: string;
   weightKey?: string;
+  /** Set on softenable kinds (M7.3): derive skips softened instances; removal
+      re-maps the card index and keeps softened refs re-keyed (soften.ts). */
+  softKind?: string;
   toEntry: (params: Params) => unknown;
   fromEntry: (entry: Params) => Params;
 }
@@ -90,11 +64,16 @@ export function listTemplate(spec: ListSpec): RuleTemplate {
         : next;
     },
     derive: (doc) =>
-      getAdvancedList(doc, spec.listKey).map((entry) => ({
-        templateId: spec.id,
-        params: spec.fromEntry(entry as Params),
-      })),
-    remove: (doc, index) => removeAdvancedItem(doc, spec.listKey, index),
+      getAdvancedList(doc, spec.listKey).flatMap((entry, i) =>
+        spec.softKind !== undefined && isSoftened(doc, spec.softKind, String(i))
+          ? []
+          : [{ templateId: spec.id, params: spec.fromEntry(entry as Params) }],
+      ),
+    remove: (doc, index) => {
+      if (spec.softKind === undefined) return removeAdvancedItem(doc, spec.listKey, index);
+      const original = unsoftenedIndex(doc, spec.listKey, spec.softKind, index);
+      return original === -1 ? doc : removeIndexKeyedRule(doc, spec.listKey, spec.softKind, original);
+    },
   };
 }
 
@@ -106,11 +85,18 @@ interface EntityFieldSpec {
   field: string;
   idParam: ParamDef;
   valueParam: ParamDef;
+  /** Set on softenable kinds (M7.3); keys are entity ids, so no re-keying. */
+  softKind?: string;
 }
 
 /** A hard rule backed by a per-entity field (allowed_slots, required_tags...). */
 export function entityFieldTemplate(spec: EntityFieldSpec): RuleTemplate {
   const present = (v: unknown) => v !== undefined && v !== null && (!Array.isArray(v) || v.length > 0);
+  // derive and remove index the SAME filtered list, keeping card order stable.
+  const visible = (doc: ProblemDoc) =>
+    listEntities(doc, spec.section)
+      .filter((e) => present(e[spec.field]))
+      .filter((e) => spec.softKind === undefined || !isSoftened(doc, spec.softKind, e.id));
   return {
     id: spec.id,
     category: spec.category,
@@ -126,14 +112,12 @@ export function entityFieldTemplate(spec: EntityFieldSpec): RuleTemplate {
         instance.params[spec.valueParam.key],
       ),
     derive: (doc) =>
-      listEntities(doc, spec.section)
-        .filter((e) => present(e[spec.field]))
-        .map((e) => ({
-          templateId: spec.id,
-          params: { [spec.idParam.key]: e.id, [spec.valueParam.key]: e[spec.field] },
-        })),
+      visible(doc).map((e) => ({
+        templateId: spec.id,
+        params: { [spec.idParam.key]: e.id, [spec.valueParam.key]: e[spec.field] },
+      })),
     remove: (doc, index) => {
-      const target = listEntities(doc, spec.section).filter((e) => present(e[spec.field]))[index];
+      const target = visible(doc)[index];
       return target ? setEntityField(doc, spec.section, target.id, spec.field, undefined) : doc;
     },
   };

@@ -45,6 +45,7 @@ const result = (status: SolveResult["status"], quality: number | null): SolveRes
   quality_score: quality,
   solve_time_seconds: 1.2,
   unresolved: [],
+  conflicts: [],
 });
 
 describe("dashboardMetrics", () => {

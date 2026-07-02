@@ -4,6 +4,7 @@ import { parseEntities } from "../lib/entities";
 import { buildNameMaps } from "../lib/rule-format";
 import { getSoftWeight, setSoftWeight, type ProblemDoc } from "../lib/problem-doc";
 import { RULE_TEMPLATES, type RuleTemplate } from "../lib/rule-templates";
+import { SOFTENED_TEMPLATES } from "../lib/rule-templates-soft";
 import { AddRuleMenu } from "./AddRuleMenu";
 import { AdvancedRuleCard } from "./AdvancedRuleCard";
 import { RuleParamForm } from "./RuleParamForm";
@@ -31,7 +32,9 @@ export function AdvancedRulesSection({
   const names = useMemo(() => buildNameMaps(entities), [entities]);
   const [draft, setDraft] = useState<Draft | null>(null);
 
-  const cards = RULE_TEMPLATES.flatMap((template) =>
+  // Softened companions render alongside the authored rules; AddRuleMenu still
+  // authors from RULE_TEMPLATES only, so they cannot be created by hand.
+  const cards = [...RULE_TEMPLATES, ...SOFTENED_TEMPLATES].flatMap((template) =>
     template.derive(doc).map((instance, index) => ({ template, instance, index })),
   );
 
