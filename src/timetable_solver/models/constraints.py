@@ -46,6 +46,12 @@ class SoftConstraints(BaseModel):
     avoid_consecutive_labs: int = Field(default=0, ge=0, le=100)
     same_room: int = Field(default=0, ge=0, le=100)
     group_free_halfday: int = Field(default=0, ge=0, le=100)
+    # M7.3 - soft counterparts of the 5 gated hard rules (set by the soften action)
+    soft_break: int = Field(default=0, ge=0, le=100)
+    soft_allowed_slots: int = Field(default=0, ge=0, le=100)
+    soft_teacher_cap: int = Field(default=0, ge=0, le=100)
+    soft_same_day: int = Field(default=0, ge=0, le=100)
+    soft_ordering: int = Field(default=0, ge=0, le=100)
 
 
 class ConstraintsConfig(BaseModel):

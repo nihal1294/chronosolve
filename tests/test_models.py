@@ -15,6 +15,8 @@ from timetable_solver.models import (
     TeacherPreferences,
     TimeStructure,
 )
+from timetable_solver.models.rules import AdvancedConstraints, RuleRef, is_softened
+from timetable_solver.models.schedule import RuleConflict
 
 
 class TestTimeStructure:
@@ -231,3 +233,42 @@ class TestScheduleModels:
         assert result.schedule == []
         assert result.quality_score is None
         assert result.solve_time_seconds == 0.0
+
+
+def test_is_softened_matches_kind_and_key() -> None:
+    adv = AdvancedConstraints(softened=[RuleRef(kind="ordering", key="1")])
+    assert is_softened(adv, "ordering", "1") is True
+    assert is_softened(adv, "ordering", "0") is False
+    assert is_softened(adv, "same_day", "1") is False
+
+
+def test_softened_defaults_empty() -> None:
+    assert AdvancedConstraints().softened == []
+
+
+def test_solveresult_conflicts_default_and_roundtrip() -> None:
+    assert SolveResult(status="optimal").conflicts == []
+    r = SolveResult(
+        status="infeasible",
+        conflicts=[
+            RuleConflict(
+                ref=RuleRef(kind="break", key="0"),
+                description="no classes on Mon at slots [3]",
+            )
+        ],
+    )
+    assert r.conflicts[0].ref.kind == "break"
+    assert r.conflicts[0].description.startswith("no classes")
+
+
+def test_soft_advanced_weights_default_zero_and_bounded() -> None:
+    s = SoftConstraints()
+    assert (
+        s.soft_break,
+        s.soft_allowed_slots,
+        s.soft_teacher_cap,
+        s.soft_same_day,
+        s.soft_ordering,
+    ) == (0, 0, 0, 0, 0)
+    with pytest.raises(ValidationError):
+        SoftConstraints(soft_break=101)

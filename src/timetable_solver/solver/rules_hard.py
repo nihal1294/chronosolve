@@ -12,6 +12,7 @@ from collections.abc import Callable
 from ortools.sat.python import cp_model
 
 from timetable_solver.models.problem import TimetableProblem
+from timetable_solver.models.rules import RuleRef, is_softened
 from timetable_solver.solver.assumptions import AssumptionRegistry
 from timetable_solver.solver.rule_helpers import first_index, present_on_day
 from timetable_solver.solver.variables import SolverVariables
@@ -28,16 +29,24 @@ def add_global_breaks(
     registry: AssumptionRegistry,
 ) -> None:
     """Rule 2: no subject may occupy a slot inside a declared global break."""
-    breaks = problem.constraints.advanced.global_breaks
+    advanced = problem.constraints.advanced
+    breaks = advanced.global_breaks
     if not breaks:
         return
     day_index = {day: i for i, day in enumerate(problem.time_structure.days)}
-    for brk in breaks:
+    for i, brk in enumerate(breaks):
+        if is_softened(advanced, "break", str(i)):
+            continue
         day_idx = day_index.get(brk.day)
         if day_idx is None:
             continue
+        # One literal per break entry (not per slot) so a conflict names the whole
+        # break and softening it demotes the entry, not a single slot.
+        lit = registry.gate(
+            RuleRef(kind="break", key=str(i)),
+            f"no classes on {brk.day} at slots {sorted(brk.slots)}",
+        )
         for slot in brk.slots:
-            lit = registry.gate(f"break on {brk.day} slot {slot}")
             for subject in problem.subjects:
                 var = variables.assignments.get((subject.id, day_idx, slot))
                 if var is not None:
@@ -51,11 +60,17 @@ def add_allowed_slots(
     registry: AssumptionRegistry,
 ) -> None:
     """Rule 3: a subject with allowed_slots may only occupy those slot numbers."""
+    advanced = problem.constraints.advanced
     for subject in problem.subjects:
         if subject.allowed_slots is None:
             continue
+        if is_softened(advanced, "allowed_slots", subject.id):
+            continue
         allowed = set(subject.allowed_slots)
-        lit = registry.gate(f"{subject.id} limited to slots {sorted(allowed)}")
+        lit = registry.gate(
+            RuleRef(kind="allowed_slots", key=subject.id),
+            f"{subject.id} limited to slots {sorted(allowed)}",
+        )
         for (sid, _day_idx, slot), var in variables.assignments.items():
             if sid == subject.id and slot not in allowed:
                 model.add(var == 0).only_enforce_if(lit)
@@ -68,14 +83,20 @@ def add_hard_teacher_caps(
     registry: AssumptionRegistry,
 ) -> None:
     """Rule 5-H: cap a teacher's total hours on any single day (hard form)."""
-    caps = problem.constraints.advanced.hard_teacher_daily_caps
+    advanced = problem.constraints.advanced
+    caps = advanced.hard_teacher_daily_caps
     if not caps:
         return
     for teacher_id, cap in caps.items():
+        if is_softened(advanced, "teacher_cap", teacher_id):
+            continue
         subject_ids = [s.id for s in problem.subjects if teacher_id in s.teacher_ids]
         if not subject_ids:
             continue
-        lit = registry.gate(f"teacher {teacher_id} max {cap}h/day")
+        lit = registry.gate(
+            RuleRef(kind="teacher_cap", key=teacher_id),
+            f"teacher {teacher_id} max {cap}h/day",
+        )
         for day_idx, day in enumerate(problem.time_structure.days):
             slots = problem.time_structure.get_slots_for_day(day)
             # Direct indexing is safe: _create_assignments populates every
@@ -96,7 +117,8 @@ def add_same_day_exclusions(
     registry: AssumptionRegistry,
 ) -> None:
     """Rule 22: a pair of subjects may not both appear on the same day."""
-    pairs = problem.constraints.advanced.same_day_exclusions
+    advanced = problem.constraints.advanced
+    pairs = advanced.same_day_exclusions
     if not pairs:
         return
     # Cache presence vars so a subject appearing in several pairs reuses one
@@ -108,8 +130,13 @@ def add_same_day_exclusions(
             cache[(sid, day_idx)] = present_on_day(model, variables, sid, day_idx)
         return cache[(sid, day_idx)]
 
-    for pair in pairs:
-        lit = registry.gate(f"{pair.first} and {pair.second} not on the same day")
+    for i, pair in enumerate(pairs):
+        if is_softened(advanced, "same_day", str(i)):
+            continue
+        lit = registry.gate(
+            RuleRef(kind="same_day", key=str(i)),
+            f"{pair.first} and {pair.second} not on the same day",
+        )
         for day_idx in range(len(problem.time_structure.days)):
             a = present(pair.first, day_idx)
             b = present(pair.second, day_idx)
@@ -125,18 +152,24 @@ def add_orderings(
     registry: AssumptionRegistry,
 ) -> None:
     """Rule 23: subject `first` must start before subject `second` each week."""
-    pairs = problem.constraints.advanced.orderings
+    advanced = problem.constraints.advanced
+    pairs = advanced.orderings
     if not pairs:
         return
     days = problem.time_structure.days
     max_slots = max(problem.time_structure.get_slots_for_day(d) for d in days)
     big = len(days) * max_slots + 1
-    for pair in pairs:
+    for i, pair in enumerate(pairs):
+        if is_softened(advanced, "ordering", str(i)):
+            continue
         first = first_index(model, variables, pair.first, max_slots, big)
         second = first_index(model, variables, pair.second, max_slots, big)
         if first is None or second is None:
             continue
-        lit = registry.gate(f"{pair.first} must run before {pair.second}")
+        lit = registry.gate(
+            RuleRef(kind="ordering", key=str(i)),
+            f"{pair.first} must run before {pair.second}",
+        )
         model.add(first < second).only_enforce_if(lit)
 
 
@@ -154,6 +187,11 @@ def advanced_hard_rules_active(problem: TimetableProblem) -> bool:
     teacher caps, same-day exclusions, orderings) - the rules annealing's violation
     checker cannot see, so refinement is skipped when any is present. Room rules are
     safe because annealing never reassigns rooms.
+
+    Softened instances (M7.3) still count as active on purpose: their soft penalty
+    is equally invisible to annealing's checker and scorer, so refinement could
+    silently trade away the preference the user just paid a weight for. Revisit
+    when the scorer learns advanced rules.
     """
     advanced = problem.constraints.advanced
     return bool(

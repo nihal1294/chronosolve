@@ -4,6 +4,7 @@ Guards that the new hard generators, soft penalties, and room filtering compose
 with the core hard constraints without conflict or regression.
 """
 
+from tests.test_rules_hard import _advanced_problem, _subject
 from tests.verify import assert_hard_constraints
 from timetable_solver import solve
 from timetable_solver.models import (
@@ -98,3 +99,27 @@ def test_many_rules_compose_and_are_respected() -> None:
     # Ordering: seminar's first session precedes lab's.
     days = problem.time_structure.days
     assert _earliest(result.schedule, "seminar", days) < _earliest(result.schedule, "lab", days)
+
+
+def test_conflict_ref_softened_makes_solve_feasible() -> None:
+    """The exact ref the solver returns, softened + weighted, unblocks the solve.
+
+    This is the produce/consume contract: describe() names the clashing rule and
+    the soft builder prices exactly that rule, keyed by the same RuleRef. The
+    weight name is uniformly soft_<kind>, so setattr(soft, f"soft_{ref.kind}")
+    reaches the right lever for any of the 5 kinds.
+    """
+    problem = _advanced_problem(
+        subjects=[_subject("math", hours=4, max_per_day=4)],
+        days=["Monday"],
+        slots=4,
+        advanced={"global_breaks": [GlobalBreak(day="Monday", slots=[1, 2])]},
+    )
+    result = solve(problem, time_limit=10)
+    assert result.status == "infeasible"
+    assert result.conflicts, "infeasible-with-gated-rule must name conflicts"
+
+    ref = result.conflicts[0].ref
+    problem.constraints.advanced.softened = [ref]
+    setattr(problem.constraints.soft, f"soft_{ref.kind}", 50)
+    assert solve(problem, time_limit=10).status in ("optimal", "feasible")

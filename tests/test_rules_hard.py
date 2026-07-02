@@ -22,6 +22,7 @@ from timetable_solver.models import (
     TimeStructure,
     TimetableProblem,
 )
+from timetable_solver.models.rules import RuleRef
 
 
 def _room(spec: dict) -> Room:
@@ -176,7 +177,23 @@ class TestGlobalBreaks:
         )
         result = solve(problem, time_limit=10)
         assert result.status == "infeasible"
-        assert any("break" in r.lower() for r in result.unresolved)
+        # The break entry (not a structural rule) is named as a softenable conflict.
+        assert [c.ref.kind for c in result.conflicts] == ["break"]
+        assert result.unresolved  # readable descriptions mirror result.conflicts
+
+    def test_softened_break_is_not_enforced_as_hard(self) -> None:
+        # Same over-constrained break, but softened: the hard clash is dropped so
+        # the solve is feasible (weight 0 -> no penalty yet; that arrives in T6).
+        problem = _advanced_problem(
+            subjects=[_subject("math", hours=4, max_per_day=4)],
+            days=["Monday"],
+            slots=4,
+            advanced={
+                "global_breaks": [GlobalBreak(day="Monday", slots=[1, 2])],
+                "softened": [RuleRef(kind="break", key="0")],
+            },
+        )
+        assert solve(problem, time_limit=10).status in ("optimal", "feasible")
 
 
 class TestAllowedSlots:

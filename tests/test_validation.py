@@ -12,6 +12,7 @@ from timetable_solver.models import (
     PreAssignment,
     Room,
     RoomReservation,
+    RuleRef,
     StudentGroup,
     Subject,
     SubjectPair,
@@ -335,6 +336,32 @@ class TestAdvancedRuleChecks:
                     GlobalBreak(day="Mon", slots=[1]),
                     GlobalBreak(day="Mon", slots=[1]),
                 ]
+            },
+        )
+        issues = validate_problem(problem)
+        assert not any(
+            i.severity == Severity.ERROR and "break" in i.message.lower() for i in issues
+        )
+
+    def test_softened_break_does_not_count_against_capacity(self) -> None:
+        # Same over-constrained break as the error test above, but softened
+        # (M7.3): the hard builder no longer blocks its slots, so validation
+        # must not subtract them - otherwise softening could never unblock a solve.
+        problem = self._base(
+            subjects=[
+                Subject(
+                    id="s",
+                    name="S",
+                    hours_per_week=6,
+                    max_per_day=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                )
+            ],
+            slots=2,
+            advanced={
+                "global_breaks": [GlobalBreak(day="Mon", slots=[1])],
+                "softened": [RuleRef(kind="break", key="0")],
             },
         )
         issues = validate_problem(problem)
