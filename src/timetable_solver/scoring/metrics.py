@@ -2,7 +2,12 @@
 
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.schedule import ScheduleEntry
-from timetable_solver.scoring.grid import entity_day_slots, gap_hours, total_hours
+from timetable_solver.scoring.grid import (
+    daily_balance_ratio,
+    entity_day_slots,
+    gap_hours,
+    total_hours,
+)
 
 MetricResult = tuple[float, list[str]]
 
@@ -95,19 +100,13 @@ def compactness(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> Met
 def workload_balance(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> MetricResult:
     """Evenly distributed daily hours per teacher score higher."""
     grid = entity_day_slots(schedule, "teacher_ids")
-    day_count = len(problem.time_structure.days)
     components: list[float] = []
     details: list[str] = []
     for teacher in problem.teachers:
         daily = {day: len(slots) for (tid, day), slots in grid.items() if tid == teacher.id}
-        week = sum(daily.values())
-        if week == 0 or day_count < 2:
+        ratio = daily_balance_ratio(daily, problem.time_structure.days)
+        if ratio is None:
             continue
-        deviation = sum(
-            abs(day_count * daily.get(day, 0) - week) for day in problem.time_structure.days
-        )
-        worst = 2 * (day_count - 1) * week
-        ratio = deviation / worst if worst else 0.0
         components.append(100.0 * (1 - ratio))
         if ratio > 0.5:
             details.append(f"Teacher {teacher.id!r}: uneven daily load {daily}")

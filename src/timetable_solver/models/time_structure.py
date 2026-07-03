@@ -37,3 +37,24 @@ class TimeStructure(BaseModel):
     def total_slots(self) -> int:
         """Return the total number of slots across all days."""
         return sum(self.get_slots_for_day(d) for d in self.days)
+
+
+def halfday_slots(slot_count: int, half: str) -> range:
+    """Slot numbers in a day's morning or afternoon (morning is the lower half).
+
+    For an odd slot count the morning takes the extra slot (5 slots -> morning
+    [1,2,3], afternoon [4,5]); a 1-slot day has an empty afternoon. Shared by
+    the solver's soft builders and the scorer so both agree on what "half-day"
+    means.
+
+    Args:
+        slot_count: Number of slots in the day.
+        half: "morning" or "afternoon".
+
+    Returns:
+        The 1-based slot numbers in that half (possibly empty).
+    """
+    mid = (slot_count + 1) // 2
+    if half == "morning":
+        return range(1, mid + 1)
+    return range(mid + 1, slot_count + 1)

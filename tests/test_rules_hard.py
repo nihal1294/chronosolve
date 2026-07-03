@@ -335,23 +335,11 @@ class TestOrdering:
         assert any("before" in r for r in result.unresolved)
 
 
-class TestRefinementGuard:
-    def test_predicate_detects_advanced_hard_rules(self) -> None:
-        from timetable_solver.solver.rules_hard import advanced_hard_rules_active
-
-        plain = _advanced_problem(subjects=[_subject("s", hours=2)])
-        assert advanced_hard_rules_active(plain) is False
-        with_break = _advanced_problem(
-            subjects=[_subject("s", hours=2)],
-            advanced={"global_breaks": [GlobalBreak(day="Monday", slots=[1])]},
-        )
-        assert advanced_hard_rules_active(with_break) is True
-        with_slots = _advanced_problem(subjects=[_subject("s", hours=2, allowed_slots=[1, 2])])
-        assert advanced_hard_rules_active(with_slots) is True
-
+class TestRefineWithAdvancedRules:
     def test_refine_does_not_violate_a_global_break(self) -> None:
-        # refine=True must not let annealing relocate a class into the break slot;
-        # find_hard_violations cannot see advanced rules, so refinement is skipped.
+        # Refinement RUNS under advanced rules since M7.4 (the old gate is gone):
+        # annealing must reject any move into the break because
+        # find_hard_violations now sees advanced rules.
         problem = _advanced_problem(
             subjects=[_subject("math", hours=3)],
             advanced={"global_breaks": [GlobalBreak(day="Monday", slots=[1])]},

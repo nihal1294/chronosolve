@@ -27,6 +27,9 @@ def _entry(subject: str, day: str, slot: int) -> ScheduleEntry:
 
 def _gap_problem(**model_overrides) -> TimetableProblem:
     """One teacher, one group, two 1-hour subjects, gaps heavily penalized."""
+    model_overrides.setdefault(
+        "constraints", ConstraintsConfig(soft=SoftConstraints(minimize_student_gaps=100))
+    )
     return TimetableProblem(
         time_structure=TimeStructure(days=["Monday"], slots_per_day=6),
         teachers=[Teacher(id="t1", name="T")],
@@ -35,7 +38,6 @@ def _gap_problem(**model_overrides) -> TimetableProblem:
             Subject(id="s1", name="S1", hours_per_week=1, teacher_ids=["t1"], group_ids=["g1"]),
             Subject(id="s2", name="S2", hours_per_week=1, teacher_ids=["t1"], group_ids=["g1"]),
         ],
-        constraints=ConstraintsConfig(soft=SoftConstraints(minimize_student_gaps=100)),
         **model_overrides,
     )
 
@@ -112,6 +114,29 @@ class TestAnneal:
         problem = _gap_problem()
         result = SolveResult(status="infeasible")
         assert anneal(problem, result, seed=1) is result
+
+    def test_moves_into_a_global_break_are_rejected(self) -> None:
+        # s1@1 and s2@3 leave a gap at slot 2, but slot 2 is a break: the only
+        # legal way to close the gap is around it (e.g. s1 -> 4). Guards the
+        # invariant that let M7.4 retire the refine gate - if the advanced
+        # checks fall out of find_hard_violations, annealing walks into the
+        # break and this fails.
+        problem = _gap_problem(
+            constraints=ConstraintsConfig(
+                soft=SoftConstraints(minimize_student_gaps=100),
+                advanced={"global_breaks": [{"day": "Monday", "slots": [2]}]},
+            )
+        )
+        start = SolveResult(
+            status="feasible",
+            schedule=[_entry("s1", "Monday", 1), _entry("s2", "Monday", 3)],
+        )
+        refined = anneal(problem, start, seed=13, max_iterations=4000)
+        assert not any(e.slot == 2 for e in refined.schedule)
+        assert score_schedule(problem, refined.schedule).overall_score >= (
+            score_schedule(problem, start.schedule).overall_score
+        )
+        assert_hard_constraints(problem, refined.schedule)
 
 
 class TestSolveWithRefine:

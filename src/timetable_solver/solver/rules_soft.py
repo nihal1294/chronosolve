@@ -8,6 +8,7 @@ positive penalties, consistent with the minimized objective.
 from ortools.sat.python import cp_model
 
 from timetable_solver.models.problem import TimetableProblem
+from timetable_solver.models.time_structure import halfday_slots
 from timetable_solver.solver.soft_helpers import occupancy_vars, positive_part
 from timetable_solver.solver.variables import SolverVariables
 
@@ -75,18 +76,6 @@ def add_back_to_back_lab_penalty(
     return terms
 
 
-def _halfday_slots(slots: int, half: str) -> range:
-    """Slot numbers in a day's morning or afternoon (morning is the lower half).
-
-    For an odd slot count the morning takes the extra slot (5 slots -> morning
-    [1,2,3], afternoon [4,5]).
-    """
-    mid = (slots + 1) // 2
-    if half == "morning":
-        return range(1, mid + 1)
-    return range(mid + 1, slots + 1)
-
-
 def add_group_free_halfday_penalty(
     model: cp_model.CpModel, variables: SolverVariables, problem: TimetableProblem
 ) -> Terms:
@@ -103,7 +92,7 @@ def add_group_free_halfday_penalty(
             continue
         subject_ids = [s.id for s in problem.subjects if req.group_id in s.group_ids]
         slots = problem.time_structure.get_slots_for_day(req.day)
-        for slot in _halfday_slots(slots, req.half):
+        for slot in halfday_slots(slots, req.half):
             for sid in subject_ids:
                 var = variables.assignments.get((sid, day_idx, slot))
                 if var is not None:

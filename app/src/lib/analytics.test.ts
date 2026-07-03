@@ -54,6 +54,24 @@ describe("humanizeMetric", () => {
   it("turns snake_case metric keys into title case labels", () => {
     expect(humanizeMetric("teacher_time_preferences")).toBe("Teacher Time Preferences");
   });
+
+  it("labels the M7.4 advanced metrics in the app's rule vocabulary", () => {
+    // Softened kinds reuse the InfeasibilityPanel names, not raw scorer keys.
+    expect(humanizeMetric("softened_breaks")).toBe("Scheduled break (preference)");
+    expect(humanizeMetric("softened_allowed_slots")).toBe("Allowed slots (preference)");
+    expect(humanizeMetric("softened_teacher_caps")).toBe("Daily teaching cap (preference)");
+    expect(humanizeMetric("softened_same_day")).toBe("Different days (preference)");
+    expect(humanizeMetric("softened_orderings")).toBe("Running order (preference)");
+    expect(humanizeMetric("group_balance")).toBe("Group workload balance");
+    expect(humanizeMetric("lab_adjacency")).toBe("Back-to-back labs");
+    expect(humanizeMetric("free_halfday")).toBe("Free half-days");
+    expect(humanizeMetric("room_stability")).toBe("Same room all week");
+  });
+
+  it("is used by penaltyShares for the new metric keys", () => {
+    const shares = penaltyShares(report({ softened_breaks: 50 }));
+    expect(shares).toEqual([{ label: "Scheduled break (preference)", share: 100 }]);
+  });
 });
 
 describe("impactShares", () => {
