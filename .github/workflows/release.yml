@@ -6,9 +6,12 @@ name: release
 #
 #   - Conventional commits decide the bump: feat -> minor, fix/perf -> patch,
 #     ! or BREAKING CHANGE -> major. build(deps)/chore/docs/ci -> no version change.
-#   - Merging the Release PR bumps app/package.json + app/src-tauri/tauri.conf.json
-#     and updates CHANGELOG.md (release-please commits these via its own PR), then
-#     tags vX.Y.Z and PUBLISHES the GitHub release immediately.
+#   - Merging the Release PR bumps every release-managed version surface (the
+#     extra-files in release-please-config.json: npm/Cargo/Python manifests AND
+#     their lockfiles, tauri.conf.json, UI + server version constants) and updates
+#     CHANGELOG.md (release-please commits these via its own PR), then tags vX.Y.Z
+#     and PUBLISHES the GitHub release immediately. tests/test_version_sync.py
+#     fails the Release PR loudly if any of those surfaces ever drifts.
 #   - Publishing on merge (draft: false) creates the vX.Y.Z tag at that instant.
 #     This is deliberate: a draft release has no git tag until published, and
 #     release-please keys "what's shipped" off tags - so a draft would make it
