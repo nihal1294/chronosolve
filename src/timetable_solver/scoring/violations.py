@@ -4,6 +4,7 @@ from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.room import room_type_matches
 from timetable_solver.models.schedule import ScheduleEntry
 from timetable_solver.scoring.grid import entity_day_slots
+from timetable_solver.scoring.violations_advanced import find_advanced_violations
 
 
 def find_hard_violations(problem: TimetableProblem, schedule: list[ScheduleEntry]) -> list[str]:
@@ -33,6 +34,7 @@ def find_hard_violations(problem: TimetableProblem, schedule: list[ScheduleEntry
     violations += _block_violations(problem, schedule)
     violations += _max_per_day_violations(problem, schedule)
     violations += _group_hours_violations(problem, schedule)
+    violations += find_advanced_violations(problem, schedule)
     return violations
 
 

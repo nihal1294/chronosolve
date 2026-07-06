@@ -17,6 +17,7 @@ from timetable_solver.models import (
 )
 from timetable_solver.models.rules import AdvancedConstraints, RuleRef, is_softened
 from timetable_solver.models.schedule import RuleConflict
+from timetable_solver.models.time_structure import halfday_slots
 
 
 class TestTimeStructure:
@@ -50,6 +51,17 @@ class TestTimeStructure:
     def test_zero_slots_rejected(self) -> None:
         with pytest.raises(ValidationError):
             TimeStructure(days=["Mon"], slots_per_day=0)
+
+    def test_halfday_slots_partitions_the_day(self) -> None:
+        # Contract shared by the solver's soft builders and the scorer: the
+        # morning takes the extra slot on odd counts.
+        assert list(halfday_slots(5, "morning")) == [1, 2, 3]
+        assert list(halfday_slots(5, "afternoon")) == [4, 5]
+        assert list(halfday_slots(6, "morning")) == [1, 2, 3]
+        assert list(halfday_slots(6, "afternoon")) == [4, 5, 6]
+        # A 1-slot day has no afternoon; callers must tolerate the empty window.
+        assert list(halfday_slots(1, "morning")) == [1]
+        assert list(halfday_slots(1, "afternoon")) == []
 
 
 class TestRoom:

@@ -40,8 +40,25 @@ export function penaltyShares(report: QualityReport): PenaltyShare[] {
     .map((item) => ({ label: humanizeMetric(item.name), share: Math.round((item.penalty / total) * 100) }));
 }
 
+/** M7.4 advanced-metric keys mapped to the app's rule vocabulary (softened
+    kinds reuse the InfeasibilityPanel names). Unknown keys fall back to the
+    generic humanizer below. */
+const METRIC_LABELS: Record<string, string> = {
+  group_balance: "Group workload balance",
+  lab_adjacency: "Back-to-back labs",
+  free_halfday: "Free half-days",
+  room_stability: "Same room all week",
+  softened_breaks: "Scheduled break (preference)",
+  softened_allowed_slots: "Allowed slots (preference)",
+  softened_teacher_caps: "Daily teaching cap (preference)",
+  softened_same_day: "Different days (preference)",
+  softened_orderings: "Running order (preference)",
+};
+
 /** "minimize_student_gaps" -> "Minimize Student Gaps". */
 export function humanizeMetric(name: string): string {
+  const mapped = METRIC_LABELS[name];
+  if (mapped) return mapped;
   return name
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

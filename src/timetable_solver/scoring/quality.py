@@ -5,17 +5,15 @@ from dataclasses import dataclass, field
 
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.schedule import ScheduleEntry
-from timetable_solver.scoring import metrics
+from timetable_solver.scoring import metrics, metrics_advanced, metrics_softened
 from timetable_solver.scoring.violations import find_hard_violations
 
 # metric name -> (SoftConstraints weight attribute, metric function).
-# Known gap (tracked): the M7 advanced rules are enforced/optimized by the CP-SAT
-# solver but not yet reflected here - find_hard_violations skips the advanced hard
-# rules (breaks, allowed_slots, teacher caps, same-day exclusions, orderings) and
-# this map omits the advanced soft weights (group_workload_balance,
-# avoid_consecutive_labs, group_free_halfday, same_room). Harmless in this
-# backend-only milestone (the UI cannot configure them and /solve never refines);
-# extend both when the desktop UI wires these constraints so /score stays honest.
+# Advanced hard rules are covered by find_hard_violations (via
+# violations_advanced); the M7.1 advanced soft rules and the M7.3 softened
+# counterparts are priced below, so /score mirrors everything the CP-SAT
+# objective optimizes. Every new weight defaults to 0, keeping scores for
+# problems without advanced rules unchanged.
 _METRICS: dict[str, tuple[str, Callable[..., metrics.MetricResult]]] = {
     "student_gaps": ("minimize_student_gaps", metrics.student_gaps),
     "teacher_gaps": ("minimize_teacher_gaps", metrics.teacher_gaps),
@@ -23,6 +21,15 @@ _METRICS: dict[str, tuple[str, Callable[..., metrics.MetricResult]]] = {
     "teacher_preferences": ("teacher_time_preferences", metrics.teacher_preferences),
     "compactness": ("compact_schedules", metrics.compactness),
     "workload_balance": ("workload_balance", metrics.workload_balance),
+    "group_balance": ("group_workload_balance", metrics_advanced.group_balance),
+    "lab_adjacency": ("avoid_consecutive_labs", metrics_advanced.lab_adjacency),
+    "free_halfday": ("group_free_halfday", metrics_advanced.free_halfday),
+    "room_stability": ("same_room", metrics_advanced.room_stability),
+    "softened_breaks": ("soft_break", metrics_softened.softened_breaks),
+    "softened_allowed_slots": ("soft_allowed_slots", metrics_softened.softened_allowed_slots),
+    "softened_teacher_caps": ("soft_teacher_cap", metrics_softened.softened_teacher_caps),
+    "softened_same_day": ("soft_same_day", metrics_softened.softened_same_day),
+    "softened_orderings": ("soft_ordering", metrics_softened.softened_orderings),
 }
 
 

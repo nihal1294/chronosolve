@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   listEntities,
   pinAssignment,
-  removeEntity,
   unpinAssignment,
   upsertEntity,
   type Entity,
@@ -10,6 +9,7 @@ import {
   type PinSlot,
   type ProblemDoc,
 } from "./problem-doc";
+import { removeEntityAndRefs } from "./cascade-delete";
 import { sectionForKind, type EntityKind } from "./entity-forms";
 import type { ScheduleEntry } from "./solver-client";
 
@@ -53,7 +53,7 @@ export function useEntityEditing(
   };
 
   const remove = (kind: EntityKind, id: string) => {
-    if (doc) applyEdit(removeEntity(doc, sectionForKind(kind), id));
+    if (doc) applyEdit(removeEntityAndRefs(doc, sectionForKind(kind), id));
   };
 
   const pin = (entry: ScheduleEntry) => {
