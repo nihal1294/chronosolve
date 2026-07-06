@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/nihal1294/chronosolve/compare/v0.5.0...v0.6.0) (2026-07-06)
+
+
+### Features
+
+* **solver:** M7.4 scorer advanced-rule awareness ([#30](https://github.com/nihal1294/chronosolve/issues/30)) ([fff3287](https://github.com/nihal1294/chronosolve/commit/fff3287e8ea7524b27d08a86f82b836566b33ac9))
+
 ## [0.5.0](https://github.com/nihal1294/chronosolve/compare/v0.4.0...v0.5.0) (2026-07-02)
 
 
