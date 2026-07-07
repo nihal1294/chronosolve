@@ -68,7 +68,14 @@ def consecutive_hours(problem: TimetableProblem, schedule: list[ScheduleEntry]) 
         cap = prefs.max_consecutive
         excess = sum(_window_excess(slots, cap) for slots in busy.values()) if cap else 0
         best = sum(_best_pairs(len(slots), cap) for slots in busy.values())
-        score = 100.0 if best <= 0 else 100.0 * min(max((pairs - excess) / best, 0.0), 1.0)
+        # Each over-cap window forfeits its pair credit AND costs one more,
+        # mirroring _run_cap_terms' double-weight pricing: a run of cap+1 can
+        # never score as well as splitting at the cap.
+        net = pairs - 2 * excess
+        if best <= 0:
+            score = 100.0 if excess == 0 else 0.0
+        else:
+            score = 100.0 * min(max(net / best, 0.0), 1.0)
         components.append(score)
         if score < 100.0:
             issue = (

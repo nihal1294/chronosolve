@@ -4,7 +4,7 @@ import { useWorkspace } from "../providers/problem-doc-provider";
 import { addSoftened } from "../lib/soften";
 import { InfeasibilityPanel } from "../components/InfeasibilityPanel";
 import { SolverStateCard, type SolverPhase } from "../components/SolverStateCard";
-import { deriveSolverPhase } from "../lib/solver-phase";
+import { busyMetrics, deriveSolverPhase } from "../lib/solver-phase";
 import { SolveAnalytics } from "../components/SolveAnalytics";
 import { ExportCard } from "../components/ExportCard";
 
@@ -125,20 +125,12 @@ export function SolverMonitorRoute() {
 
         {ws.busy && (
           <div className={`grid grid-cols-2 gap-4 p-5 ${card}`}>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                Best objective
+            {busyMetrics(phase, ws.progress, ws.lastObjective).map(([label, value]) => (
+              <div key={label}>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</div>
+                <div className="mt-1 font-mono text-lg">{value}</div>
               </div>
-              <div className="mt-1 font-mono text-lg">
-                {(ws.progress?.objective ?? ws.lastObjective)?.toLocaleString() ?? "-"}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                Solutions found
-              </div>
-              <div className="mt-1 font-mono text-lg">{ws.progress?.solution_count ?? 0}</div>
-            </div>
+            ))}
           </div>
         )}
 

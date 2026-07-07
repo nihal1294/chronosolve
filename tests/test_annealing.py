@@ -12,6 +12,7 @@ from timetable_solver.models import (
     StudentGroup,
     Subject,
     Teacher,
+    TeacherPreferences,
     TimeStructure,
     TimetableProblem,
 )
@@ -144,6 +145,41 @@ class TestAnneal:
         problem = _gap_problem()
         result = SolveResult(status="infeasible")
         assert anneal(problem, result, seed=1) is result
+
+    def test_polish_repairs_an_over_cap_run(self) -> None:
+        # Under 1x run-cap pricing this start scored a perfect 100, so
+        # annealing kept the 3-in-a-row the teacher capped at 2 (PR #32).
+        problem = TimetableProblem(
+            time_structure=TimeStructure(days=["Monday"], slots_per_day=6),
+            teachers=[
+                Teacher(
+                    id="t1",
+                    name="T",
+                    preferences=TeacherPreferences(consecutive_hours="prefer", max_consecutive=2),
+                )
+            ],
+            student_groups=[StudentGroup(id="g1", name="G", size=20)],
+            subjects=[
+                Subject(
+                    id="s1",
+                    name="S1",
+                    hours_per_week=3,
+                    max_per_day=3,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                )
+            ],
+            constraints=ConstraintsConfig(soft=SoftConstraints(avoid_consecutive_hours=100)),
+        )
+        start = SolveResult(
+            status="feasible",
+            schedule=[_entry("s1", "Monday", slot) for slot in (1, 2, 3)],
+        )
+        refined = anneal(problem, start, seed=42)
+        busy = {e.slot for e in refined.schedule}
+        assert not any({s, s + 1, s + 2} <= busy for s in busy)
+        assert score_schedule(problem, refined.schedule).overall_score == 100.0
+        assert_hard_constraints(problem, refined.schedule)
 
     def test_moves_into_a_global_break_are_rejected(self) -> None:
         # s1@1 and s2@3 leave a gap at slot 2, but slot 2 is a break: the only

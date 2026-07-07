@@ -128,13 +128,45 @@ class TestConsecutivePrefer:
         assert consecutive_hours(problem, clustered)[0] == 100.0
         assert consecutive_hours(problem, spread)[0] == 0.0
 
-    def test_run_over_cap_halves_score(self) -> None:
+    def test_a_run_one_over_the_cap_scores_0(self) -> None:
+        # PR #32: cap+1 must not read as fully honored. Each over-cap window
+        # forfeits its pair credit AND costs one more (the 2x mirror of
+        # _run_cap_terms), so {1,2,3}: pairs=2 - 2*excess=1 -> 0 of best 1.
         problem = _problem(TeacherPreferences(consecutive_hours="prefer", max_consecutive=2))
-        # {1,2,3,4}: pairs=3, excess windows of 3 = 2, best = 4 - ceil(4/2) = 2 -> 50
+        schedule = [_entry("Mon", s) for s in (1, 2, 3)]
+        score, details = consecutive_hours(problem, schedule)
+        assert score == 0.0
+        assert any("exceed 2 consecutive" in d for d in details)
+
+    def test_deep_over_cap_runs_floor_at_0(self) -> None:
+        # {1,2,3,4}: pairs=3 - 2*excess=2 -> net -1, clamped to 0 of best 2.
+        problem = _problem(TeacherPreferences(consecutive_hours="prefer", max_consecutive=2))
         schedule = [_entry("Mon", s) for s in (1, 2, 3, 4)]
         score, details = consecutive_hours(problem, schedule)
-        assert score == 50.0
+        assert score == 0.0
         assert any("t1" in d for d in details)
+
+    def test_score_blends_over_cap_and_honored_days(self) -> None:
+        # Mon {1,2,3}: 2 pairs - 2*1 excess = 0; Tue {1,2}: 1 clean pair.
+        # net 1 of best 2 -> 50.
+        problem = _problem(TeacherPreferences(consecutive_hours="prefer", max_consecutive=2))
+        schedule = [
+            _entry("Mon", 1),
+            _entry("Mon", 2),
+            _entry("Mon", 3),
+            _entry("Tue", 1),
+            _entry("Tue", 2),
+        ]
+        score, _ = consecutive_hours(problem, schedule)
+        assert score == 50.0
+
+    def test_cap_of_one_with_adjacency_scores_0(self) -> None:
+        # cap=1 means no pair is ever creditable (best=0); adjacency is then a
+        # pure violation, not vacuous perfection.
+        problem = _problem(TeacherPreferences(consecutive_hours="prefer", max_consecutive=1))
+        score, details = consecutive_hours(problem, [_entry("Mon", 1), _entry("Mon", 2)])
+        assert score == 0.0
+        assert details
 
     def test_runs_packed_at_cap_score_100(self) -> None:
         problem = _problem(TeacherPreferences(consecutive_hours="prefer", max_consecutive=2))

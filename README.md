@@ -11,6 +11,14 @@
 <p align="center">A generalized university course timetable scheduling solver powered by constraint optimization.</p>
 
 <p align="center">
+  <a href="https://github.com/nihal1294/chronosolve/actions/workflows/ci.yml"><img src="https://github.com/nihal1294/chronosolve/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
+  <a href="https://github.com/nihal1294/chronosolve/actions/workflows/release.yml"><img src="https://github.com/nihal1294/chronosolve/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
+  <a href="https://github.com/nihal1294/chronosolve/releases/latest"><img src="https://img.shields.io/github/v/release/nihal1294/chronosolve?label=version" alt="Latest version" /></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fnihal1294%2Fchronosolve%2Fmain%2Fpyproject.toml" alt="Python version" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/nihal1294/chronosolve" alt="License" /></a>
+</p>
+
+<p align="center">
   <img src="assets/screenshots/timetable.png" alt="ChronoSolve - a solved, conflict-free weekly timetable in the desktop app" width="820" />
 </p>
 
