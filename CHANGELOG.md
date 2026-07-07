@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/nihal1294/chronosolve/compare/v0.6.0...v0.7.0) (2026-07-07)
+
+
+### Features
+
+* **solver+app:** M7.5 score base teacher preferences and expose polish end-to-end ([#32](https://github.com/nihal1294/chronosolve/issues/32)) ([675a760](https://github.com/nihal1294/chronosolve/commit/675a760c5e54028eff10efbd4e2d3da20e516abc))
+
 ## [0.6.0](https://github.com/nihal1294/chronosolve/compare/v0.5.0...v0.6.0) (2026-07-06)
 
 
