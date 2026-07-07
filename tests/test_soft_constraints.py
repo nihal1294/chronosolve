@@ -5,7 +5,7 @@ asserts the solve is proven optimal, then asserts the preferred property.
 At a proven optimum the property is guaranteed, so these are deterministic.
 """
 
-from timetable_solver import load_problem, solve
+from timetable_solver import load_problem, score_schedule, solve
 from timetable_solver.models import (
     ConstraintsConfig,
     SoftConstraints,
@@ -134,6 +134,28 @@ class TestConsecutivePreference:
         result = _optimal(problem)
         slots = sorted(e.slot for e in result.schedule)
         assert slots[1] == slots[0] + 1
+
+    def test_prefer_never_exceeds_the_cap_when_a_split_exists(self) -> None:
+        # A cap+1 run must be strictly worse than splitting at the cap (PR #32):
+        # priced at 1x the window penalty only cancelled the pair reward,
+        # leaving CP-SAT free to hand a "max 2 in a row" teacher 3 in a row.
+        teacher = Teacher(
+            id="t1",
+            name="T",
+            preferences=TeacherPreferences(consecutive_hours="prefer", max_consecutive=2),
+        )
+        problem = _problem(
+            teacher,
+            [_subject(hours=3, max_per_day=3)],
+            ["Monday"],
+            slots=6,
+            avoid_consecutive_hours=100,
+        )
+        result = _optimal(problem)
+        busy = {e.slot for e in result.schedule}
+        assert not any({s, s + 1, s + 2} <= busy for s in busy)
+        # Solver-scorer agreement: the optimum the solver chose prices at 100.
+        assert score_schedule(problem, result.schedule).metrics["consecutive_hours"] == 100.0
 
 
 class TestLeaveEarly:

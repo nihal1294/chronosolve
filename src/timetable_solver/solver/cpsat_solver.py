@@ -8,7 +8,7 @@ from ortools.sat.python import cp_model
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.schedule import SolveResult
 from timetable_solver.scoring.quality import score_schedule
-from timetable_solver.solver.annealing import anneal
+from timetable_solver.solver.annealing import RefineHooks, anneal
 from timetable_solver.solver.assumptions import AssumptionRegistry
 from timetable_solver.solver.callback import ProgressCallback, ProgressEvent
 from timetable_solver.solver.extractor import extract_solution
@@ -44,7 +44,7 @@ def solve(
     problem: TimetableProblem,
     time_limit: int = 60,
     on_progress: Callable[[ProgressEvent], None] | None = None,
-    refine: bool = False,
+    refine: bool | RefineHooks = False,
     cancel_check: Callable[[], bool] | None = None,
 ) -> SolveResult:
     """Solve a timetable problem using CP-SAT.
@@ -53,7 +53,8 @@ def solve(
         problem: Validated timetable problem.
         time_limit: Maximum solver wall time in seconds.
         on_progress: Optional callback invoked on each improved solution.
-        refine: Run simulated annealing on the CP-SAT solution afterwards.
+        refine: Run simulated annealing on the CP-SAT solution afterwards;
+            pass a RefineHooks to also stream polish progress / stop early.
         cancel_check: Optional predicate polled on each incumbent solution;
             when it returns True the search stops cooperatively (used by the
             streaming server to abort a solve once its client disconnects).
@@ -88,7 +89,8 @@ def solve(
         # score_schedule; both are advanced-rule aware (M7.4), so refinement is
         # safe under advanced rules and softened preferences alike.
         if refine:
-            result = anneal(problem, result)
+            hooks = refine if isinstance(refine, RefineHooks) else None
+            result = anneal(problem, result, hooks=hooks)
     return result
 
 

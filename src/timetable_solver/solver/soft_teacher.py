@@ -93,13 +93,15 @@ def _run_cap_terms(
     prefs: TeacherPreferences,
     weight: int,
 ) -> Terms:
-    """Penalize every window of max_consecutive+1 fully-busy slots."""
+    """Penalize every window of max_consecutive+1 fully-busy slots at double
+    weight: one unit cancels the window's pair reward, the second makes an
+    over-cap run strictly worse than splitting at the cap (PR #32)."""
     cap = prefs.max_consecutive or 0
     terms: Terms = []
     for start in range(len(occupied) - cap):
         window = occupied[start : start + cap + 1]
         excess = positive_part(model, sum(window) - cap, 1, f"run_{teacher_id}_{day_idx}_{start}")
-        terms.append(weight * excess)
+        terms.append(2 * weight * excess)
     return terms
 
 

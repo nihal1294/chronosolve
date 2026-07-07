@@ -96,17 +96,22 @@ export interface QualityReport {
   details: Record<string, string[]>;
 }
 
-/** One snapshot per improved CP-SAT solution (mirrors solver/callback.py). */
+/** One snapshot per improved CP-SAT solution (mirrors solver/callback.py);
+    polish (annealing) snapshots carry phase: "polishing" and an iteration. */
 export interface SolveProgress {
   objective: number;
-  elapsed: number;
-  solution_count: number;
+  elapsed?: number;
+  solution_count?: number;
+  phase?: "solving" | "polishing";
+  iteration?: number;
 }
 
 export interface SolveStreamOptions {
   onProgress?: (progress: SolveProgress) => void;
   /** Abort to cancel the solve (Cmd+. / palette Halt). */
   signal?: AbortSignal;
+  /** Polish the CP-SAT solution with simulated annealing before the result. */
+  refine?: boolean;
 }
 
 export const solverClient = {
@@ -145,7 +150,7 @@ export const solverClient = {
     const response = await fetch(`${await baseUrl()}/solve/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problem, time_limit: timeLimit }),
+      body: JSON.stringify({ problem, time_limit: timeLimit, refine: options.refine ?? false }),
       signal,
     });
     if (!response.ok || response.body === null) {

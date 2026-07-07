@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.schedule import ScheduleEntry
-from timetable_solver.scoring import metrics, metrics_advanced, metrics_softened
+from timetable_solver.scoring import metrics, metrics_advanced, metrics_softened, metrics_teacher
 from timetable_solver.scoring.violations import find_hard_violations
 
 # metric name -> (SoftConstraints weight attribute, metric function).
@@ -21,6 +21,10 @@ _METRICS: dict[str, tuple[str, Callable[..., metrics.MetricResult]]] = {
     "teacher_preferences": ("teacher_time_preferences", metrics.teacher_preferences),
     "compactness": ("compact_schedules", metrics.compactness),
     "workload_balance": ("workload_balance", metrics.workload_balance),
+    "consecutive_hours": ("avoid_consecutive_hours", metrics_teacher.consecutive_hours),
+    "leave_early": ("leave_early", metrics_teacher.leave_early),
+    "max_daily_hours": ("max_hours_per_day", metrics_teacher.max_daily_hours),
+    "free_days": ("free_days", metrics_teacher.free_days),
     "group_balance": ("group_workload_balance", metrics_advanced.group_balance),
     "lab_adjacency": ("avoid_consecutive_labs", metrics_advanced.lab_adjacency),
     "free_halfday": ("group_free_halfday", metrics_advanced.free_halfday),
