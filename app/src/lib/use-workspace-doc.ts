@@ -133,6 +133,8 @@ export function useWorkspaceDoc() {
     saveFile: file.saveFile,
     result: solveState.result,
     selected: solveState.selected,
+    polish: solveState.polish,
+    setPolish: solveState.setPolish,
     setSelected: solveState.setSelected,
     busy: solveState.busy,
     solveError: solveState.solveError,

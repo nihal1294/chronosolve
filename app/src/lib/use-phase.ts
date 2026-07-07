@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { SolveProgress, SolveResult } from "./solver-client";
 import type { ProblemEntities } from "./entities";
 import type { SolverPhase } from "../components/SolverStateCard";
+import { deriveSolverPhase } from "./solver-phase";
 
 interface PhaseInputs {
   busy: boolean;
@@ -20,12 +21,6 @@ interface PhaseState {
   unresolved: string[];
 }
 
-function derivePhase({ busy, solveError, result }: PhaseInputs): SolverPhase {
-  if (busy) return "solving";
-  if (solveError) return "error";
-  return result?.status ?? "idle";
-}
-
 function buildSummary(phase: SolverPhase, { solveError, result, entities }: PhaseInputs): string {
   const seconds = result ? `${result.solve_time_seconds.toFixed(2)}s` : "";
   switch (phase) {
@@ -36,6 +31,8 @@ function buildSummary(phase: SolverPhase, { solveError, result, entities }: Phas
         : "Load or paste a problem definition to begin.";
     case "solving":
       return "Searching for a conflict-free assignment across all hard constraints...";
+    case "polishing":
+      return "Refining the found timetable with small improvements before finishing...";
     case "optimal":
       return `All ${result?.schedule.length ?? 0} sessions scheduled with zero hard-constraint violations in ${seconds}.`;
     case "feasible":
@@ -67,7 +64,7 @@ export function usePhase(inputs: PhaseInputs): PhaseState {
     };
   }, [inputs.busy]);
 
-  const phase = derivePhase(inputs);
+  const phase = deriveSolverPhase(inputs.solveError, inputs.busy, inputs.progress, inputs.result);
   const { result, progress } = inputs;
   const succeeded = phase === "optimal" || phase === "feasible";
 
@@ -90,7 +87,13 @@ function buildMetrics(
   if (phase === "solving" && progress) {
     return [
       ["Best Objective", String(progress.objective)],
-      ["Solutions Found", String(progress.solution_count)],
+      ["Solutions Found", String(progress.solution_count ?? 0)],
+    ];
+  }
+  if (phase === "polishing" && progress) {
+    return [
+      ["Best Quality", String(progress.objective)],
+      ["Polish Iteration", String(progress.iteration ?? 0)],
     ];
   }
   if (succeeded && result) {

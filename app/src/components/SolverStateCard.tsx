@@ -1,6 +1,14 @@
 import { AlertTriangle, CheckCircle2, Clock, Cpu, Loader2, type LucideIcon } from "lucide-react";
 
-export type SolverPhase = "idle" | "solving" | "optimal" | "feasible" | "infeasible" | "timeout" | "error";
+export type SolverPhase =
+  | "idle"
+  | "solving"
+  | "polishing"
+  | "optimal"
+  | "feasible"
+  | "infeasible"
+  | "timeout"
+  | "error";
 
 interface SolverStateCardProps {
   phase: SolverPhase;
@@ -61,6 +69,14 @@ const STYLES: Record<SolverPhase, Style> = {
     icon: Loader2,
     heading: "Building Timetable...",
   },
+  polishing: {
+    card: NEUTRAL_CARD,
+    chip: "text-indigo-500",
+    title: "",
+    body: NEUTRAL_TEXT,
+    icon: Loader2,
+    heading: "Polishing Timetable...",
+  },
   optimal: { ...TEAL, icon: CheckCircle2, heading: "Optimal Timetable Found" },
   feasible: { ...TEAL, icon: CheckCircle2, heading: "Valid Timetable Found" },
   infeasible: { ...RED, icon: AlertTriangle, heading: "No Valid Timetable" },
@@ -72,10 +88,11 @@ const STYLES: Record<SolverPhase, Style> = {
 export function SolverStateCard({ phase, elapsed, summary, unresolved }: SolverStateCardProps) {
   const style = STYLES[phase];
   const Icon = style.icon;
+  const busy = phase === "solving" || phase === "polishing";
 
   return (
     <section className={`p-4 rounded-xl border shadow-sm space-y-3 relative overflow-hidden ${style.card}`}>
-      {phase === "solving" && (
+      {busy && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500/20">
           <div className="h-full w-2/3 bg-indigo-500 animate-pulse" />
         </div>
@@ -83,7 +100,7 @@ export function SolverStateCard({ phase, elapsed, summary, unresolved }: SolverS
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          {phase === "solving" ? (
+          {busy ? (
             <Icon size={18} className={`shrink-0 animate-spin ${style.chip}`} />
           ) : (
             <span className={`p-1.5 shrink-0 ${style.chip}`}>

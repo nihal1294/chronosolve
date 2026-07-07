@@ -9,6 +9,8 @@ always valid.
 
 import math
 import random
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from timetable_solver.models.problem import TimetableProblem
 from timetable_solver.models.schedule import ScheduleEntry, SolveResult
@@ -20,11 +22,29 @@ _COOLING_RATE = 0.97
 _STALL_LIMIT = 300
 
 
+@dataclass
+class RefineHooks:
+    """Optional annealing instrumentation; every default is a no-op.
+
+    Attributes:
+        on_progress: Called every `progress_every` iterations with
+            (iteration, best_score) - the /solve/stream polishing phase.
+        should_stop: Checked each iteration; True ends refinement early
+            (wired to client disconnect by the stream endpoint).
+        progress_every: Iterations between on_progress calls.
+    """
+
+    on_progress: Callable[[int, float], None] | None = None
+    should_stop: Callable[[], bool] | None = None
+    progress_every: int = 100
+
+
 def anneal(
     problem: TimetableProblem,
     result: SolveResult,
     max_iterations: int = 2000,
     seed: int | None = None,
+    hooks: RefineHooks | None = None,
 ) -> SolveResult:
     """Refine a feasible solve result with simulated annealing.
 
@@ -33,6 +53,7 @@ def anneal(
         result: A feasible/optimal solve result to refine.
         max_iterations: Iteration budget.
         seed: Random seed for reproducible refinement.
+        hooks: Optional progress/cancellation instrumentation.
 
     Returns:
         A SolveResult with the best schedule found (never worse than the input).
@@ -44,13 +65,20 @@ def anneal(
     if not movable:
         return result
 
+    hooks = hooks or RefineHooks()
     current = [entry.model_copy() for entry in result.schedule]
     current_score = score_schedule(problem, current).overall_score
     best, best_score = [e.model_copy() for e in current], current_score
     temperature = _INITIAL_TEMPERATURE
     stalled = 0
 
-    for _ in range(max_iterations):
+    for iteration in range(max_iterations):
+        if hooks.should_stop is not None and hooks.should_stop():
+            break
+        # Emit before the stall/perfect breaks so a refine run always shows at
+        # least one polishing event, even when there is nothing left to improve.
+        if hooks.on_progress is not None and iteration % hooks.progress_every == 0:
+            hooks.on_progress(iteration, best_score)
         if stalled >= _STALL_LIMIT or best_score >= 100.0:
             break
         candidate = _random_neighbor(problem, current, movable, rng)

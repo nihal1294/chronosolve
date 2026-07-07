@@ -18,6 +18,8 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
   const [solveError, setSolveError] = useState<string | null>(null);
   const [progress, setProgress] = useState<SolveProgress | null>(null);
   const [lastObjective, setLastObjective] = useState<number | null>(null);
+  // Session-scoped "polish result" preference (M7.5): not persisted to the doc.
+  const [polish, setPolish] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
   const completedObjectiveRef = useRef<number | null>(null);
 
@@ -38,8 +40,11 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
     try {
       const solved = await solverClient.solveStream(doc, timeLimit, {
         signal: controller.signal,
+        refine: polish,
         onProgress: (snapshot) => {
-          finalObjective = snapshot.objective;
+          // Polish snapshots report the 0-100 quality score, not the CP-SAT
+          // objective - keep the Analytics baseline on the solver's scale.
+          if (snapshot.phase !== "polishing") finalObjective = snapshot.objective;
           setProgress(snapshot);
         },
       });
@@ -68,6 +73,8 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
     solveError,
     progress,
     lastObjective,
+    polish,
+    setPolish,
     solve,
     cancel,
     invalidate,

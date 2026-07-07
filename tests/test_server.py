@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -45,6 +46,41 @@ class TestCors:
         assert "access-control-allow-origin" not in response.headers
 
 
+class TestSolveRefine:
+    """SolveRequest.refine must reach solve(); absent means off (M7.5)."""
+
+    def _spy_solve(self, monkeypatch: pytest.MonkeyPatch) -> dict:
+        from timetable_solver import server as server_module
+
+        captured: dict = {}
+        real_solve = server_module.solve
+
+        def spy(problem: Any, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return real_solve(problem, **kwargs)
+
+        monkeypatch.setattr(server_module, "solve", spy)
+        return captured
+
+    def test_refine_true_reaches_solver(
+        self, monkeypatch: pytest.MonkeyPatch, minimal_payload: dict
+    ) -> None:
+        captured = self._spy_solve(monkeypatch)
+        response = client.post(
+            "/solve", json={"problem": minimal_payload, "time_limit": 5, "refine": True}
+        )
+        assert response.status_code == 200
+        assert captured.get("refine") is True
+
+    def test_refine_defaults_to_false(
+        self, monkeypatch: pytest.MonkeyPatch, minimal_payload: dict
+    ) -> None:
+        captured = self._spy_solve(monkeypatch)
+        response = client.post("/solve", json={"problem": minimal_payload, "time_limit": 5})
+        assert response.status_code == 200
+        assert captured.get("refine") is False
+
+
 class TestValidate:
     def test_valid_problem_returns_no_errors(self, minimal_payload: dict) -> None:
         response = client.post("/validate", json={"problem": minimal_payload})
@@ -74,11 +110,10 @@ class TestSolve:
 
 
 class TestSolveStream:
-    def test_stream_ends_with_result_event(self, minimal_payload: dict) -> None:
+    @staticmethod
+    def _collect_events(payload: dict) -> list[tuple[str, dict]]:
         events: list[tuple[str, dict]] = []
-        with client.stream(
-            "POST", "/solve/stream", json={"problem": minimal_payload, "time_limit": 10}
-        ) as response:
+        with client.stream("POST", "/solve/stream", json=payload) as response:
             assert response.status_code == 200
             current_event = ""
             for line in response.iter_lines():
@@ -86,11 +121,25 @@ class TestSolveStream:
                     current_event = line.split(":", 1)[1].strip()
                 elif line.startswith("data:"):
                     events.append((current_event, json.loads(line.split(":", 1)[1])))
+        return events
+
+    def test_stream_ends_with_result_event(self, minimal_payload: dict) -> None:
+        events = self._collect_events({"problem": minimal_payload, "time_limit": 10})
         names = [name for name, _ in events]
         assert names[-1] == "result"
         result = events[-1][1]
         assert result["status"] == "optimal"
         assert len(result["schedule"]) == 3
+
+    def test_refine_streams_both_phases_then_result(self, minimal_payload: dict) -> None:
+        """M7.5: polish runs inside the same stream with a visible phase."""
+        events = self._collect_events(
+            {"problem": minimal_payload, "time_limit": 10, "refine": True}
+        )
+        phases = {data.get("phase") for name, data in events if name == "progress"}
+        assert "solving" in phases
+        assert "polishing" in phases
+        assert events[-1][0] == "result"
 
 
 class TestScore:

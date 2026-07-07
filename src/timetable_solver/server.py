@@ -23,6 +23,7 @@ from timetable_solver.io.loader import LoadError
 from timetable_solver.io.template import get_template
 from timetable_solver.models import ScheduleEntry, SolveResult, TimetableProblem
 from timetable_solver.scoring.quality import QualityReport
+from timetable_solver.solver.annealing import RefineHooks
 from timetable_solver.validation.validator import Severity
 
 # release-please keeps this in sync with the app version on each release.
@@ -42,6 +43,7 @@ app.add_middleware(
 class SolveRequest(BaseModel):
     problem: dict[str, Any]
     time_limit: int = 60
+    refine: bool = False  # polish the CP-SAT solution with simulated annealing
 
 
 class ScoreRequest(BaseModel):
@@ -68,7 +70,7 @@ def validate(request: SolveRequest) -> dict[str, list[str]]:
 def solve_endpoint(request: SolveRequest) -> SolveResult:
     # Sync endpoint: FastAPI runs it in a worker thread, keeping the loop free.
     problem = _parse_problem(request.problem)
-    return solve(problem, time_limit=request.time_limit)
+    return solve(problem, time_limit=request.time_limit, refine=request.refine)
 
 
 @app.post("/solve/stream")
@@ -88,6 +90,7 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
             {
                 "event": "progress",
                 "data": {
+                    "phase": "solving",
                     "objective": event.objective,
                     "elapsed": event.wall_time_seconds,
                     "solution_count": event.solution_count,
@@ -95,10 +98,31 @@ async def solve_stream(request: SolveRequest) -> EventSourceResponse:
             },
         )
 
+    def on_polish(iteration: int, best_score: float) -> None:
+        # Called from the annealing thread - same hop as on_progress.
+        loop.call_soon_threadsafe(
+            queue.put_nowait,
+            {
+                "event": "progress",
+                "data": {"phase": "polishing", "iteration": iteration, "objective": best_score},
+            },
+        )
+
+    refine: RefineHooks | bool = (
+        RefineHooks(on_progress=on_polish, should_stop=cancelled.is_set)
+        if request.refine
+        else False
+    )
+
     async def run_solver() -> None:
         try:
             result = await asyncio.to_thread(
-                solve, problem, request.time_limit, on_progress, cancel_check=cancelled.is_set
+                solve,
+                problem,
+                request.time_limit,
+                on_progress,
+                refine=refine,
+                cancel_check=cancelled.is_set,
             )
             await queue.put({"event": "result", "data": result.model_dump()})
         except Exception as exc:  # surface solver crashes to the client

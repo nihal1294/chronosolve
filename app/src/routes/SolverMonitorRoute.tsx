@@ -4,6 +4,7 @@ import { useWorkspace } from "../providers/problem-doc-provider";
 import { addSoftened } from "../lib/soften";
 import { InfeasibilityPanel } from "../components/InfeasibilityPanel";
 import { SolverStateCard, type SolverPhase } from "../components/SolverStateCard";
+import { deriveSolverPhase } from "../lib/solver-phase";
 import { SolveAnalytics } from "../components/SolveAnalytics";
 import { ExportCard } from "../components/ExportCard";
 
@@ -15,6 +16,7 @@ const primary =
 const SUMMARY: Record<SolverPhase, string> = {
   idle: "Run the scheduler to generate a conflict-free timetable.",
   solving: "Scheduling - the best timetable found so far improves as it runs.",
+  polishing: "Polishing - refining the timetable with small improvements before finishing.",
   optimal: "Optimal timetable found: no better arrangement exists for these constraints.",
   feasible: "Valid timetable found within the time limit.",
   infeasible: "No valid timetable. Relax a constraint or fix the data, then run again.",
@@ -51,7 +53,7 @@ export function SolverMonitorRoute() {
   // Narrowed const (the early return above guarantees a doc): closures like the
   // panel's onSoften don't retain property narrowing on ws.doc.
   const doc = ws.doc;
-  const phase: SolverPhase = ws.solveError ? "error" : ws.busy ? "solving" : result ? result.status : "idle";
+  const phase: SolverPhase = deriveSolverPhase(ws.solveError, ws.busy, ws.progress, result);
   const elapsed = ws.progress?.elapsed ?? result?.solve_time_seconds ?? 0;
   const feasible = result !== null && (result.status === "optimal" || result.status === "feasible");
   const summary = phase === "error" ? (ws.solveError ?? SUMMARY.error) : SUMMARY[phase];
@@ -72,21 +74,33 @@ export function SolverMonitorRoute() {
             view.
           </p>
         </div>
-        {ws.busy ? (
-          <button
-            onClick={ws.cancel}
-            data-tour="solver-run"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            <Square size={16} />
-            Halt
-          </button>
-        ) : (
-          <button onClick={ws.solve} data-tour="solver-run" className={primary}>
-            {result ? <RotateCcw size={16} /> : <Play size={16} />}
-            {result ? "Run again" : "Run scheduler"}
-          </button>
-        )}
+        <div className="flex flex-col items-start gap-2 md:items-end">
+          {ws.busy ? (
+            <button
+              onClick={ws.cancel}
+              data-tour="solver-run"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            >
+              <Square size={16} />
+              Halt
+            </button>
+          ) : (
+            <button onClick={ws.solve} data-tour="solver-run" className={primary}>
+              {result ? <RotateCcw size={16} /> : <Play size={16} />}
+              {result ? "Run again" : "Run scheduler"}
+            </button>
+          )}
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+            <input
+              type="checkbox"
+              checked={ws.polish}
+              onChange={(event) => ws.setPolish(event.target.checked)}
+              disabled={ws.busy}
+              className="h-3.5 w-3.5 accent-indigo-600"
+            />
+            Polish result (slower)
+          </label>
+        </div>
       </div>
 
       <div className="mx-auto max-w-2xl space-y-6">

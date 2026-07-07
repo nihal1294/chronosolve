@@ -17,6 +17,7 @@ from timetable_solver.models import (
 )
 from timetable_solver.models.schedule import SolveResult
 from timetable_solver.solver import anneal
+from timetable_solver.solver.annealing import RefineHooks
 
 
 def _entry(subject: str, day: str, slot: int) -> ScheduleEntry:
@@ -40,6 +41,35 @@ def _gap_problem(**model_overrides) -> TimetableProblem:
         ],
         **model_overrides,
     )
+
+
+class TestRefineHooks:
+    """M7.5: optional instrumentation for the /solve/stream polishing phase."""
+
+    @staticmethod
+    def _gappy_result() -> SolveResult:
+        return SolveResult(
+            status="feasible",
+            schedule=[_entry("s1", "Monday", 1), _entry("s2", "Monday", 6)],
+        )
+
+    def test_on_progress_fires_with_iteration_and_best_score(self) -> None:
+        problem = _gap_problem()
+        calls: list[tuple[int, float]] = []
+        hooks = RefineHooks(
+            on_progress=lambda i, score: calls.append((i, score)), progress_every=10
+        )
+        anneal(problem, self._gappy_result(), max_iterations=50, seed=42, hooks=hooks)
+        assert calls, "on_progress never fired"
+        iterations = [i for i, _ in calls]
+        assert iterations == sorted(iterations)
+        assert all(isinstance(score, float) for _, score in calls)
+
+    def test_should_stop_ends_refinement_with_input_schedule(self) -> None:
+        problem = _gap_problem()
+        gappy = self._gappy_result()
+        refined = anneal(problem, gappy, seed=42, hooks=RefineHooks(should_stop=lambda: True))
+        assert refined.schedule == gappy.schedule
 
 
 class TestAnneal:

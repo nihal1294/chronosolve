@@ -16,13 +16,17 @@ describe("constraint catalog", () => {
     expect(SOFT_CONSTRAINTS).toHaveLength(10);
   });
 
-  it("marks exactly the 6 soft constraints /score reports a metric for", () => {
+  it("marks every soft constraint as scored (M7.5 closed the base-weight gap)", () => {
     const scored = SOFT_CONSTRAINTS.filter((c) => c.scored)
       .map((c) => c.key)
       .sort();
     expect(scored).toEqual(
       [
+        "avoid_consecutive_hours",
         "compact_schedules",
+        "free_days",
+        "leave_early",
+        "max_hours_per_day",
         "minimize_student_gaps",
         "minimize_teacher_gaps",
         "spread_subjects",
@@ -46,10 +50,17 @@ describe("constraint catalog", () => {
       teacher_time_preferences: "teacher_preferences",
       compact_schedules: "compactness",
       workload_balance: "workload_balance",
+      avoid_consecutive_hours: "consecutive_hours",
+      leave_early: "leave_early",
+      max_hours_per_day: "max_daily_hours",
+      free_days: "free_days",
     });
   });
 
-  it("leaves unscored constraints without a metric key", () => {
-    SOFT_CONSTRAINTS.filter((c) => !c.scored).forEach((c) => expect(c.metricKey).toBeUndefined());
+  it("gives every soft constraint a metric key - no unscored entries remain", () => {
+    SOFT_CONSTRAINTS.forEach((c) => {
+      expect(c.scored, `${c.key} must be scored`).toBe(true);
+      expect(c.metricKey, `${c.key} must map to a metric`).toBeDefined();
+    });
   });
 });
