@@ -1,6 +1,6 @@
 [project]
 name = "timetable-solver"
-version = "0.6.0"  # x-release-please-version
+version = "0.7.0"  # x-release-please-version
 description = "Generalized university course timetable scheduling solver powered by Google OR-Tools CP-SAT."
 requires-python = ">=3.13"
 license = "Apache-2.0"
