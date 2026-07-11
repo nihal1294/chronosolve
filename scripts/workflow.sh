@@ -150,8 +150,11 @@ do_web() {
 
   (cd "$REPO_ROOT" && uv run python -m timetable_solver.server >"$log_file" 2>&1) &
   local sidecar_pid=$!
-  # shellcheck disable=SC2064  -- expand the pid now, not at exit time
-  trap "kill ${sidecar_pid} 2>/dev/null || true" EXIT INT TERM
+  # shellcheck disable=SC2064  -- expand the pid/path now, not at exit time.
+  # Also drop the VITE_SOLVER_URL override: the sidecar dies with this
+  # session, and a later `just dev` would otherwise health-check its dead
+  # port and show the solver as offline.
+  trap "kill ${sidecar_pid} 2>/dev/null || true; rm -f '${APP_DIR}/.env.development.local'" EXIT INT TERM
 
   local port=""
   for _ in $(seq 1 40); do
@@ -169,10 +172,30 @@ do_web() {
   (cd "$APP_DIR" && npm run dev)
 }
 
+# `just web` (or a manual browser-mode session) points the frontend at a
+# separately-run sidecar via app/.env.development.local. If that sidecar is
+# gone, `just dev` would load the override, health-check a dead URL, and show
+# the solver as offline even though Tauri spawned its own sidecar. Keep a
+# LIVE override (pointing the desktop app at a hand-run server is a real
+# debugging setup); drop a dead one.
+clear_stale_solver_override() {
+  local env_file="${APP_DIR}/.env.development.local"
+  [[ -f "$env_file" ]] || return 0
+  local url
+  url="$(sed -n 's/^VITE_SOLVER_URL=//p' "$env_file" | head -1)"
+  if [[ -n "$url" ]] && curl -sf -m 2 "${url}/health" >/dev/null 2>&1; then
+    step "Using solver override from app/.env.development.local (${url})"
+    return 0
+  fi
+  step "Removing stale solver override (${url:-no URL} is not responding)"
+  rm -f "$env_file"
+}
+
 do_dev() {
   ensure_command uv
   ensure_command npm
   ensure_command cargo
+  clear_stale_solver_override
   (cd "$APP_DIR" && npm run tauri dev)
 }
 
