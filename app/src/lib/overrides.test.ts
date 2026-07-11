@@ -53,10 +53,27 @@ describe("applyOverrides", () => {
     );
     expect(next).toEqual([entry("math", "Wed", 3)]);
   });
+
+  it("moves one occurrence out of a stack, leaving the other in place (PR #34 R2)", () => {
+    const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
+    const next = applyOverrides(schedule, [move("math", ["Mon", 1], ["Tue", 2])], NO_BLOCKS);
+    expect(next).toContainEqual(entry("math", "Tue", 2, "r1"));
+    expect(next).toContainEqual(entry("math", "Mon", 1, "r2"));
+    expect(next).toHaveLength(2);
+  });
+
+  it("keeps each moved block slot's own room (PR #34 R2)", () => {
+    const blocks = new Map([["lab", 2]]);
+    const schedule = [entry("lab", "Mon", 1, "r1"), entry("lab", "Mon", 2, "r2")];
+    const next = applyOverrides(schedule, [move("lab", ["Mon", 1], ["Wed", 3])], blocks);
+    expect(next).toContainEqual(entry("lab", "Wed", 3, "r1"));
+    expect(next).toContainEqual(entry("lab", "Wed", 4, "r2"));
+    expect(next).toHaveLength(2);
+  });
 });
 
 describe("overridesToPreAssignments", () => {
-  it("maps each moved subject to its final block-start pin, last write wins", () => {
+  it("replaces the pin when the same occurrence is re-moved (chained)", () => {
     const pins = overridesToPreAssignments([
       move("math", ["Mon", 1], ["Tue", 2]),
       move("lab", ["Mon", 3], ["Wed", 1]),
@@ -65,6 +82,17 @@ describe("overridesToPreAssignments", () => {
     expect(pins).toEqual([
       { subjectId: "lab", day: "Wed", slot: 1 },
       { subjectId: "math", day: "Fri", slot: 4 },
+    ]);
+  });
+
+  it("keeps a separate pin for each moved occurrence of one subject (PR #34 R2)", () => {
+    const pins = overridesToPreAssignments([
+      move("math", ["Mon", 1], ["Tue", 2]),
+      move("math", ["Wed", 3], ["Thu", 4]),
+    ]);
+    expect(pins).toEqual([
+      { subjectId: "math", day: "Thu", slot: 4 },
+      { subjectId: "math", day: "Tue", slot: 2 },
     ]);
   });
 });
