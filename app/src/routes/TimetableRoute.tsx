@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { CalendarDays, Database, Edit2, Lock, Play, Unlock } from "lucide-react";
 import { useWorkspace } from "../providers/problem-doc-provider";
 import { listEntities } from "../lib/problem-doc";
@@ -20,31 +22,9 @@ import { TimetableToolbar } from "../components/TimetableToolbar";
 import { SessionPanel } from "../components/SessionPanel";
 import { EntityFormDialog } from "../components/EntityFormDialog";
 import { ContextMenu, type MenuState } from "../components/ContextMenu";
-
-function CenteredState({
-  icon: Icon,
-  title,
-  body,
-  children,
-}: {
-  icon: typeof Database;
-  title: string;
-  body: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="relative z-10 flex h-full items-center justify-center p-8" data-tour="timetable">
-      <div className="max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500">
-          <Icon size={28} />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{title}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">{body}</p>
-        <div className="mt-6 flex justify-center">{children}</div>
-      </div>
-    </div>
-  );
-}
+import { CenteredState } from "../components/CenteredState";
+import { ConflictStrip } from "../components/ConflictStrip";
+import { sessionDragItem, type DragItem } from "../lib/drag-rules";
 
 export function TimetableRoute() {
   const ws = useWorkspace();
@@ -55,11 +35,12 @@ export function TimetableRoute() {
   const [menu, setMenu] = useState<MenuState | null>(null);
 
   const entities = ws.entities;
+  const manual = ws.manual;
   const lookups = useMemo(() => (entities ? buildLookups(entities) : null), [entities]);
   const options = useMemo(() => (entities ? deriveFilterOptions(entities) : null), [entities]);
   const filtered = useMemo(
-    () => (lookups ? applyFilters(ws.schedule, filters, lookups) : ws.schedule),
-    [ws.schedule, filters, lookups],
+    () => (lookups ? applyFilters(manual.displaySchedule, filters, lookups) : manual.displaySchedule),
+    [manual.displaySchedule, filters, lookups],
   );
 
   const name = (map: Map<string, string>, id: string) => map.get(id) ?? id;
@@ -108,8 +89,10 @@ export function TimetableRoute() {
   }
 
   const days =
-    entities && entities.days.length > 0 ? entities.days : [...new Set(ws.schedule.map((e) => e.day))];
-  const maxSlot = Math.max(entities?.slotsPerDay ?? 0, ...ws.schedule.map((e) => e.slot));
+    entities && entities.days.length > 0
+      ? entities.days
+      : [...new Set(manual.displaySchedule.map((e) => e.day))];
+  const maxSlot = Math.max(entities?.slotsPerDay ?? 0, ...manual.displaySchedule.map((e) => e.slot));
   const slots = Array.from({ length: maxSlot }, (_, index) => index + 1);
   const slotLabels = entities?.slotLabels ?? {};
   const lockedKeys = ws.locks.lockedKeys;
@@ -155,6 +138,10 @@ export function TimetableRoute() {
     slots,
     slotLabels,
     lockedKeys,
+    conflictKeys: manual.conflictKeys,
+    dragSpec: (entry: ScheduleEntry) =>
+      sessionDragItem(entry, lockedKeys, manual.displaySchedule, ws.blockSizes),
+    onMove: (item: DragItem, day: string, slot: number) => manual.moveSession(item.entry, { day, slot }),
     selected: ws.selected,
     secondary,
     onSelect: ws.setSelected,
@@ -237,9 +224,18 @@ export function TimetableRoute() {
             />
           </div>
         )}
-        <div className="flex-1 space-y-10 overflow-auto p-8" data-tour="timetable-grid">
-          {grids}
-        </div>
+        <ConflictStrip
+          moveCount={manual.overrides.length}
+          conflicts={manual.conflicts}
+          baseQuality={ws.result?.quality_score ?? null}
+          editedQuality={ws.editedQuality}
+          onReset={manual.resetEdits}
+        />
+        <DndProvider backend={HTML5Backend}>
+          <div className="flex-1 space-y-10 overflow-auto p-8" data-tour="timetable-grid">
+            {grids}
+          </div>
+        </DndProvider>
       </div>
 
       {selected && (

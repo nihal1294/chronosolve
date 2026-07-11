@@ -10,7 +10,9 @@ import { loadPreferences } from "./use-preferences";
 import { isTauri, useProblemFile } from "./use-problem-file";
 import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
-import { useTimelineLocks } from "./use-timeline-locks";
+import { subjectBlockSizes, useTimelineLocks } from "./use-timeline-locks";
+import { useManualEdits } from "./use-manual-edits";
+import { useEditedQuality } from "./use-edited-quality";
 
 /** Is there user work the first-run template bootstrap must not clobber? A parsed
  *  doc OR a non-empty (possibly malformed) yamlText draft both count - the latter
@@ -105,7 +107,13 @@ export function useWorkspaceDoc() {
     () => (solveState.result ? countScheduled(solveState.result.schedule) : null),
     [solveState.result],
   );
-  const locks = useTimelineLocks(entities, schedule, editing.pin, editing.unpin);
+  // Manual-edit layer (M8b): moves apply to the shown schedule instantly and
+  // reset with each new solve. Locks read the EDITED schedule, so pinning a
+  // moved session writes its new slot into the doc - the per-session persist.
+  const blockSizes = useMemo(() => subjectBlockSizes(entities), [entities]);
+  const manual = useManualEdits(doc, schedule, blockSizes);
+  const editedQuality = useEditedQuality(doc, manual.displaySchedule, manual.overrides.length > 0);
+  const locks = useTimelineLocks(entities, manual.displaySchedule, editing.pin, editing.unpin);
   const { subjectNames, roomNames } = useEntityNames(entities);
 
   // Each solve reads the latest saved time limit (Settings persists it).
@@ -149,6 +157,9 @@ export function useWorkspaceDoc() {
     roomNames,
     editing,
     locks,
+    blockSizes,
+    manual,
+    editedQuality,
   };
 }
 

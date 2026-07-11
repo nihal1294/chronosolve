@@ -1,24 +1,8 @@
+import { useDrop } from "react-dnd";
 import type { ScheduleEntry } from "../lib/solver-client";
 import { scheduleKey } from "../lib/grid";
-
-/* Block hues mirror the design system's Timeline spec: teal = standard
-   placement, indigo + lock = pre-assigned. */
-const HUE = {
-  teal: {
-    box: "bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20",
-    strip: "bg-teal-500",
-    code: "text-teal-700 dark:text-teal-400",
-    meta: "text-teal-600/80 dark:text-teal-500/80",
-    ring: "ring-2 ring-teal-500",
-  },
-  indigo: {
-    box: "bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20",
-    strip: "bg-indigo-500",
-    code: "text-indigo-700 dark:text-indigo-400",
-    meta: "text-indigo-600/80 dark:text-indigo-500/80",
-    ring: "ring-2 ring-indigo-500",
-  },
-};
+import { canDropSession, SESSION_DND_TYPE, type DragItem } from "../lib/drag-rules";
+import { SessionBlock } from "./SessionBlock";
 
 interface WeeklyGridProps {
   title: string;
@@ -29,39 +13,49 @@ interface WeeklyGridProps {
   slotLabels: Record<number, string>;
   /** "subject|day|slot" keys of pinned sessions. */
   lockedKeys: Set<string>;
+  /** "subject|day|slot" keys of entries the conflict checker flagged. */
+  conflictKeys: Set<string>;
   selected: ScheduleEntry | null;
   /** Second line on each block (room, groups, ...), chosen by the route. */
   secondary: (entry: ScheduleEntry) => string;
+  /** Block geometry for dragging `entry`, or null when it cannot move. */
+  dragSpec: (entry: ScheduleEntry) => DragItem | null;
+  onMove: (item: DragItem, day: string, slot: number) => void;
   onSelect: (entry: ScheduleEntry) => void;
   onContextMenu: (event: React.MouseEvent, entry: ScheduleEntry) => void;
 }
 
-function Block({
-  entry,
-  locked,
-  secondary,
-  selected,
-  onSelect,
-  onContextMenu,
+/** Drop target wrapping one (day, slot) cell. Legal hover targets highlight;
+    legality is geometric only (canDropSession) - conflicts never block. */
+function CellDrop({
+  day,
+  slot,
+  maxSlot,
+  onMove,
+  children,
 }: {
-  entry: ScheduleEntry;
-  locked: boolean;
-  secondary: string;
-  selected: boolean;
-  onSelect: (entry: ScheduleEntry) => void;
-  onContextMenu: (event: React.MouseEvent, entry: ScheduleEntry) => void;
+  day: string;
+  slot: number;
+  maxSlot: number;
+  onMove: (item: DragItem, day: string, slot: number) => void;
+  children: React.ReactNode;
 }) {
-  const hue = locked ? HUE.indigo : HUE.teal;
+  const [{ isOver, canDrop }, drop] = useDrop(
+    () => ({
+      accept: SESSION_DND_TYPE,
+      canDrop: (item: DragItem) => canDropSession(item, day, slot, maxSlot),
+      drop: (item: DragItem) => onMove(item, day, slot),
+      collect: (monitor) => ({ isOver: monitor.isOver(), canDrop: monitor.canDrop() }),
+    }),
+    [day, slot, maxSlot, onMove],
+  );
   return (
-    <button
-      onClick={() => onSelect(entry)}
-      onContextMenu={(event) => onContextMenu(event, entry)}
-      className={`relative w-full rounded-md border px-2 py-1 text-left transition-all ${hue.box} ${selected ? hue.ring : ""}`}
+    <div
+      ref={(node) => void drop(node)}
+      className={`rounded-md transition-colors ${isOver && canDrop ? "bg-indigo-500/10 ring-1 ring-indigo-400" : ""}`}
     >
-      <span className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-md ${hue.strip}`} />
-      <div className={`text-[10px] font-bold leading-tight ${hue.code}`}>{entry.subject_id}</div>
-      {secondary && <div className={`truncate text-[9px] leading-tight ${hue.meta}`}>{secondary}</div>}
-    </button>
+      {children}
+    </div>
   );
 }
 
@@ -75,11 +69,15 @@ export function WeeklyGrid({
   slots,
   slotLabels,
   lockedKeys,
+  conflictKeys,
   selected,
   secondary,
+  dragSpec,
+  onMove,
   onSelect,
   onContextMenu,
 }: WeeklyGridProps) {
+  const maxSlot = slots.length > 0 ? slots[slots.length - 1] : 0;
   const cell = new Map<string, ScheduleEntry[]>();
   for (const entry of sessions) {
     const key = `${entry.day}|${entry.slot}`;
@@ -118,23 +116,29 @@ export function WeeklyGrid({
                 const entries = cell.get(`${day}|${slot}`) ?? [];
                 return (
                   <td key={day} className="align-top">
-                    {entries.length === 0 ? (
-                      <div className="h-10 rounded-md border border-dashed border-neutral-200 dark:border-neutral-800" />
-                    ) : (
-                      <div className="flex min-h-10 flex-col gap-1">
-                        {entries.map((entry, index) => (
-                          <Block
-                            key={`${entry.subject_id}|${entry.room_id}|${index}`}
-                            entry={entry}
-                            locked={lockedKeys.has(scheduleKey(entry.subject_id, entry.day, entry.slot))}
-                            secondary={secondary(entry)}
-                            selected={selected === entry}
-                            onSelect={onSelect}
-                            onContextMenu={onContextMenu}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    <CellDrop day={day} slot={slot} maxSlot={maxSlot} onMove={onMove}>
+                      {entries.length === 0 ? (
+                        <div className="h-10 rounded-md border border-dashed border-neutral-200 dark:border-neutral-800" />
+                      ) : (
+                        <div className="flex min-h-10 flex-col gap-1">
+                          {entries.map((entry, index) => (
+                            <SessionBlock
+                              key={`${entry.subject_id}|${entry.room_id}|${index}`}
+                              entry={entry}
+                              locked={lockedKeys.has(scheduleKey(entry.subject_id, entry.day, entry.slot))}
+                              conflicted={conflictKeys.has(
+                                scheduleKey(entry.subject_id, entry.day, entry.slot),
+                              )}
+                              secondary={secondary(entry)}
+                              selected={selected === entry}
+                              dragItem={dragSpec(entry)}
+                              onSelect={onSelect}
+                              onContextMenu={onContextMenu}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </CellDrop>
                   </td>
                 );
               })}
