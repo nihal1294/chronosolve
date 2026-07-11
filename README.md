@@ -50,14 +50,14 @@ The one case it does not model is fully individualized per-student timetables, w
 
 ## Tech Stack
 
-| Component | Technology |
-| --------- | ---------- |
-| Solver | Python 3.14+ · Google OR-Tools CP-SAT |
-| Data models | Pydantic v2 |
-| Input format | YAML / JSON |
-| CLI | Typer |
-| Desktop app | Tauri v2 · React · TypeScript · Tailwind CSS |
-| Package manager | uv |
+| Component       | Technology                                   |
+| --------------- | -------------------------------------------- |
+| Solver          | Python 3.14+ · Google OR-Tools CP-SAT        |
+| Data models     | Pydantic v2                                  |
+| Input format    | YAML / JSON                                  |
+| CLI             | Typer                                        |
+| Desktop app     | Tauri v2 · React · TypeScript · Tailwind CSS |
+| Package manager | uv                                           |
 
 ## Quick Start
 
@@ -109,8 +109,8 @@ Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Ap
 
 1. Download `ChronoSolve_<version>_aarch64.dmg`, open it, and drag **ChronoSolve** into your Applications folder.
 2. The build is **not signed or notarized yet**, so macOS Gatekeeper blocks the first launch. Clear it once, either way:
-    - Control-click (right-click) ChronoSolve in Applications, choose **Open**, then **Open** again in the dialog. macOS remembers the choice.
-    - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/ChronoSolve.app`
+   - Control-click (right-click) ChronoSolve in Applications, choose **Open**, then **Open** again in the dialog. macOS remembers the choice.
+   - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/ChronoSolve.app`
 
 The first launch can take up to a minute while macOS validates the unsigned libraries bundled with the solver; later launches start in a few seconds. The app runs entirely on your machine - the solver is bundled in, nothing is uploaded.
 
@@ -143,9 +143,9 @@ A ⌘K command palette and keyboard shortcuts drive every action, and the whole 
 
 **Solver (complete):** CP-SAT core with hard constraints plus weighted soft constraints, room assignment, lab blocks, and pre-assignments; an advanced-rule engine (global breaks, allowed slots, daily teaching caps, same-day exclusions, orderings, room reservations and tags) that names the exact rules clashing when a problem is infeasible, so any of them can be demoted to a weighted preference; an independent quality scorer that checks and prices every rule - advanced rules and softened preferences included - plus statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
 
-**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles, soft preferences weighted by importance, and plain-language authoring for advanced rules like breaks, sequencing, and room policies), a live Scheduler monitor (SSE progress, cancellable) with post-solve analytics and export - and when no valid timetable exists, a conflict panel that names the clashing rules and softens any of them to a preference in one click, a filterable Timetable view with pin/unpin, and a Settings screen, plus built-in onboarding - a first-run welcome card, a replayable guided tour, and toggleable ambient hints that explain each screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
+**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles, soft preferences weighted by importance, and plain-language authoring for advanced rules like breaks, sequencing, and room policies), a live Scheduler monitor (SSE progress, cancellable, with an optional polish pass that keeps refining the timetable after the main solve) with post-solve analytics and export - and when no valid timetable exists, a conflict panel that names the clashing rules and softens any of them to a preference in one click, a filterable Timetable view with pin/unpin, and a Settings screen, plus built-in onboarding - a first-run welcome card, a replayable guided tour, and toggleable ambient hints that explain each screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
 
-**Next:** code signing + notarization (to drop the Gatekeeper warning), Windows and Linux builds, and PDF / calendar (ICS) export.
+**Next:** manual timetable editing (drag sessions around with live conflict checking and rescoring), code signing + notarization (to drop the Gatekeeper warning), Windows and Linux builds, and PDF / calendar (ICS) export.
 
 ## Background
 
