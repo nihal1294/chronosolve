@@ -76,6 +76,19 @@ describe("double-booking", () => {
     const schedule = [entry("math", "Mon", 1), entry("math", "Mon", 2)];
     expect(kinds({}, schedule)).toEqual([]);
   });
+
+  it("flags a subject stacked onto its own other occurrence (PR #34 review)", () => {
+    // Moving one occurrence of math onto the other leaves two identical
+    // entries; the backend's _clashes flags teacher AND group, so the
+    // mirror must not collapse them into one schedule key.
+    const schedule = [entry("math", "Mon", 1), entry("math", "Mon", 1)];
+    expect(kinds({}, schedule)).toEqual(["group-double-book", "teacher-double-book"]);
+  });
+
+  it("does not flag duplicated owner ids within a single entry", () => {
+    const schedule = [entry("math", "Mon", 1, { teachers: ["t1", "t1"] })];
+    expect(kinds({}, schedule)).toEqual([]);
+  });
 });
 
 describe("availability", () => {

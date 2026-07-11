@@ -43,22 +43,24 @@ function doubleBookings(inputs: ConflictInputs, schedule: ScheduleEntry[]): Conf
   };
   for (const entry of schedule) {
     const at = `${entry.day}|${entry.slot}`;
+    // Dedupe owner ids WITHIN an entry (a malformed ["t1", "t1"] is one
+    // booking); each entry OCCURRENCE still counts, so a subject stacked
+    // onto its own other occurrence double-books like the backend says.
     if (inputs.flags.teacherNoClash) {
-      for (const t of entry.teacher_ids) claim(`teacher|${t}|${at}`, entry);
+      for (const t of new Set(entry.teacher_ids)) claim(`teacher|${t}|${at}`, entry);
     }
     if (inputs.flags.groupNoClash) {
-      for (const g of entry.group_ids) claim(`group|${g}|${at}`, entry);
+      for (const g of new Set(entry.group_ids)) claim(`group|${g}|${at}`, entry);
     }
     if (inputs.flags.roomNoClash && entry.room_id) claim(`room|${entry.room_id}|${at}`, entry);
   }
   for (const [owner, entries] of claims) {
-    const distinct = new Set(entries.map(key));
-    if (distinct.size < 2) continue;
+    if (entries.length < 2) continue;
     const [what, id, day, slot] = owner.split("|");
     found.push({
       kind: `${what}-double-book` as ConflictKind,
       message: `${OWNER_LABEL[what]} '${id}' double-booked on ${day} slot ${slot}`,
-      entryKeys: [...distinct],
+      entryKeys: [...new Set(entries.map(key))],
     });
   }
   return found;
