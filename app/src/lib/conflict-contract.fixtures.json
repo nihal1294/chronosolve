@@ -1,0 +1,306 @@
+{
+  "$comment": "Shared conflict-checker contract. vitest (conflict-contract.test.ts) asserts lib/conflicts.ts produces exactly these kinds; pytest (tests/test_conflict_contract.py) asserts find_hard_violations contains each python_substring (and nothing at all for clean cases). Fixture rule: problems must be clean on every NON-mirrored backend check (hours match entry counts, rooms assigned whenever rooms exist, capacity > 0).",
+  "cases": [
+    {
+      "name": "clean single entry",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "teacher double-booked",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [
+          { "id": "g1", "name": "G1", "size": 30 },
+          { "id": "g2", "name": "G2", "size": 25 }
+        ],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] },
+          { "id": "eng", "name": "E", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g2"] }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        },
+        {
+          "subject_id": "eng",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g2"],
+          "room_id": null
+        }
+      ],
+      "expect": [{ "kind": "teacher-double-book", "python_substring": "'t1' double-booked on Mon slot 1" }]
+    },
+    {
+      "name": "subject stacked onto its own other occurrence",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 2, "teacher_ids": ["t1"], "group_ids": ["g1"] }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        },
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        }
+      ],
+      "expect": [
+        { "kind": "teacher-double-book", "python_substring": "'t1' double-booked on Mon slot 1" },
+        { "kind": "group-double-book", "python_substring": "'g1' double-booked on Mon slot 1" }
+      ]
+    },
+    {
+      "name": "group double-booked",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [
+          { "id": "t1", "name": "A" },
+          { "id": "t2", "name": "B" }
+        ],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] },
+          { "id": "eng", "name": "E", "hours_per_week": 1, "teacher_ids": ["t2"], "group_ids": ["g1"] }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Tue",
+          "slot": 2,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        },
+        {
+          "subject_id": "eng",
+          "day": "Tue",
+          "slot": 2,
+          "teacher_ids": ["t2"],
+          "group_ids": ["g1"],
+          "room_id": null
+        }
+      ],
+      "expect": [{ "kind": "group-double-book", "python_substring": "'g1' double-booked on Tue slot 2" }]
+    },
+    {
+      "name": "room double-booked",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [
+          { "id": "t1", "name": "A" },
+          { "id": "t2", "name": "B" }
+        ],
+        "student_groups": [
+          { "id": "g1", "name": "G1", "size": 30 },
+          { "id": "g2", "name": "G2", "size": 25 }
+        ],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] },
+          { "id": "eng", "name": "E", "hours_per_week": 1, "teacher_ids": ["t2"], "group_ids": ["g2"] }
+        ],
+        "rooms": [
+          { "id": "r1", "name": "R1", "capacity": 60, "type": "any" },
+          { "id": "r2", "name": "R2", "capacity": 60, "type": "any" }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 3,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": "r1"
+        },
+        {
+          "subject_id": "eng",
+          "day": "Mon",
+          "slot": 3,
+          "teacher_ids": ["t2"],
+          "group_ids": ["g2"],
+          "room_id": "r1"
+        }
+      ],
+      "expect": [{ "kind": "room-double-book", "python_substring": "Room 'r1' double-booked on Mon slot 3" }]
+    },
+    {
+      "name": "teacher unavailable slot",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A", "unavailable": { "Mon": [1, 2] } }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 2,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        }
+      ],
+      "expect": [
+        { "kind": "unavailable", "python_substring": "'t1' scheduled during unavailable Mon slot 2" }
+      ]
+    },
+    {
+      "name": "availability flag off silences the same layout",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A", "unavailable": { "Mon": [1, 2] } }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] }
+        ],
+        "constraints": { "hard": { "respect_availability": false } }
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 2,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "room lacks required tags and type",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          {
+            "id": "cs",
+            "name": "CS",
+            "hours_per_week": 1,
+            "teacher_ids": ["t1"],
+            "group_ids": ["g1"],
+            "preferred_room_type": "lab",
+            "required_tags": ["gpu"]
+          }
+        ],
+        "rooms": [
+          { "id": "small", "name": "S", "capacity": 60, "type": "lecture" },
+          { "id": "lab1", "name": "L", "capacity": 60, "type": "lab", "tags": ["gpu"] }
+        ]
+      },
+      "schedule": [
+        {
+          "subject_id": "cs",
+          "day": "Tue",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": "small"
+        }
+      ],
+      "expect": [
+        { "kind": "room-type", "python_substring": "needs a 'lab' room but is in 'small'" },
+        { "kind": "room-tags", "python_substring": "Room 'small' lacks tags" }
+      ]
+    },
+    {
+      "name": "room over capacity with opt-in flag",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [
+          { "id": "g1", "name": "G1", "size": 30 },
+          { "id": "g2", "name": "G2", "size": 25 }
+        ],
+        "subjects": [
+          { "id": "cs", "name": "CS", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1", "g2"] }
+        ],
+        "rooms": [{ "id": "r1", "name": "R", "capacity": 50, "type": "any" }],
+        "constraints": { "hard": { "room_capacity": true } }
+      },
+      "schedule": [
+        {
+          "subject_id": "cs",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1", "g2"],
+          "room_id": "r1"
+        }
+      ],
+      "expect": [{ "kind": "room-capacity", "python_substring": "Room 'r1' seats 50 but 'cs' needs 55" }]
+    },
+    {
+      "name": "capacity flag off silences the same layout",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [
+          { "id": "g1", "name": "G1", "size": 30 },
+          { "id": "g2", "name": "G2", "size": 25 }
+        ],
+        "subjects": [
+          { "id": "cs", "name": "CS", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1", "g2"] }
+        ],
+        "rooms": [{ "id": "r1", "name": "R", "capacity": 50, "type": "any" }]
+      },
+      "schedule": [
+        {
+          "subject_id": "cs",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1", "g2"],
+          "room_id": "r1"
+        }
+      ],
+      "expect": []
+    }
+  ]
+}
