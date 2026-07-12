@@ -58,10 +58,14 @@ const pinKey = (value: unknown): string | null => {
 
 /** The doc minus pins that match no schedule slot - what a reverted edit
     session leaves behind after pin-after-move (invisible on the grid, yet
-    re-applying the move as a hard pre-assignment on the next solve). Returns
-    the SAME doc when nothing dangles so callers can skip a no-op doc write;
-    an empty schedule prunes nothing (there is no result to compare against);
-    malformed entries always survive (doc round-trip rule). */
+    re-applying the move as a hard pre-assignment on the next solve). A pin
+    whose slot IS occupied in the base - even by another occurrence of the
+    same subject - deliberately stays: pins are occurrence-agnostic
+    subject|day|slot booleans, and such a pin renders as a visible pinned
+    block after reset (one click from unpin), unlike the dangling case.
+    Returns the SAME doc when nothing dangles so callers can skip a no-op
+    doc write; an empty schedule prunes nothing (there is no result to
+    compare against); malformed entries always survive (doc round-trip). */
 export function withoutDanglingPins(doc: ProblemDoc, schedule: ScheduleEntry[]): ProblemDoc {
   const list = Array.isArray(doc.pre_assignments) ? (doc.pre_assignments as unknown[]) : [];
   if (list.length === 0 || schedule.length === 0) return doc;
