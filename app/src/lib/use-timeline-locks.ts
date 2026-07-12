@@ -3,6 +3,12 @@ import { blockAnchor, expandLockedKeys, scheduleKey } from "./grid";
 import type { ProblemEntities } from "./entities";
 import type { ScheduleEntry } from "./solver-client";
 
+/** Block size per subject id (consecutive hours) - the map every block-aware
+    layer shares (locks, manual edits, drag geometry). */
+export function subjectBlockSizes(entities: ProblemEntities | null): Map<string, number> {
+  return new Map((entities?.subjects ?? []).map((subject) => [subject.id, subject.consecutiveHours]));
+}
+
 /** Pin/unpin semantics for the timeline. The solver reads a pre_assignment
     on a consecutive-hours subject as the block START slot, while users
     right-click any slot of a rendered block - so writes anchor to the start
@@ -11,14 +17,10 @@ import type { ScheduleEntry } from "./solver-client";
 export function useTimelineLocks(
   entities: ProblemEntities | null,
   schedule: ScheduleEntry[],
+  blockSizes: ReadonlyMap<string, number>,
   pin: (entry: ScheduleEntry) => void,
   unpin: (entry: ScheduleEntry) => void,
 ) {
-  const blockSizes = useMemo(
-    () => new Map((entities?.subjects ?? []).map((subject) => [subject.id, subject.consecutiveHours])),
-    [entities],
-  );
-
   const lockedKeys = useMemo(() => {
     const pins = new Set(
       (entities?.preAssignments ?? []).map((p) => scheduleKey(p.subjectId, p.day, p.slot)),
