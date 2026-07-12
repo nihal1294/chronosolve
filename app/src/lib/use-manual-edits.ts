@@ -36,6 +36,17 @@ export function appendMove(
   ];
 }
 
+/** The selection, kept only while its exact entry is still rendered. Moves,
+    resets, and new solves replace the objects they touch (applyOverrides keeps
+    untouched entries by identity), so a stale panel target derives to null
+    instead of describing - or pinning - a slot the block no longer occupies. */
+export function displayedSelection(
+  displaySchedule: ScheduleEntry[],
+  selected: ScheduleEntry | null,
+): ScheduleEntry | null {
+  return selected !== null && displaySchedule.includes(selected) ? selected : null;
+}
+
 /** A raw pre_assignments entry's schedule key, or null when it is not one. */
 const pinKey = (value: unknown): string | null => {
   if (typeof value !== "object" || value === null) return null;

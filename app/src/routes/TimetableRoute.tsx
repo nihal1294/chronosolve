@@ -5,6 +5,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { CalendarDays, Database, Edit2, Lock, Play, Unlock } from "lucide-react";
 import { useWorkspace } from "../providers/problem-doc-provider";
 import { listEntities } from "../lib/problem-doc";
+import { displayedSelection } from "../lib/use-manual-edits";
 import { scheduleKey } from "../lib/grid";
 import type { ScheduleEntry } from "../lib/solver-client";
 import {
@@ -133,6 +134,10 @@ export function TimetableRoute() {
     });
   };
 
+  // The panel/highlight target survives only while its exact entry is still
+  // rendered - moving, resetting, or re-solving the selected block would
+  // otherwise leave a stale panel pinning the block's OLD slot (PR #36 R2).
+  const selected = displayedSelection(manual.displaySchedule, ws.selected);
   const gridProps = {
     days,
     slots,
@@ -142,7 +147,7 @@ export function TimetableRoute() {
     dragSpec: (entry: ScheduleEntry) =>
       sessionDragItem(entry, lockedKeys, manual.displaySchedule, ws.blockSizes),
     onMove: (item: DragItem, day: string, slot: number) => manual.moveSession(item.entry, { day, slot }),
-    selected: ws.selected,
+    selected,
     secondary,
     onSelect: ws.setSelected,
     onContextMenu: openMenu,
@@ -193,7 +198,6 @@ export function TimetableRoute() {
       );
   }
 
-  const selected = ws.selected;
   return (
     <div className="relative z-10 flex h-full overflow-hidden" data-tour="timetable">
       <div className="flex min-w-0 flex-1 flex-col">

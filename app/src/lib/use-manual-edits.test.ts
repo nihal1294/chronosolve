@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { activeMoves, appendMove, withoutDanglingPins, type MoveState } from "./use-manual-edits";
+import {
+  activeMoves,
+  appendMove,
+  displayedSelection,
+  withoutDanglingPins,
+  type MoveState,
+} from "./use-manual-edits";
 import { applyOverrides } from "./overrides";
 import { buildConflictInputs } from "./conflict-model";
 import { findConflicts } from "./conflicts";
@@ -59,6 +65,27 @@ describe("appendMove", () => {
     const display = [entry("math", "Mon", 1)];
     const moves = appendMove([], display, display[0], { day: "Mon", slot: 1 }, NO_BLOCKS);
     expect(moves).toEqual([]);
+  });
+});
+
+describe("displayedSelection (stale panel target after a drag, PR #36 round 2)", () => {
+  it("keeps a selection whose exact entry is still rendered", () => {
+    const kept = entry("eng", "Mon", 2);
+    expect(displayedSelection([kept, entry("math", "Tue", 1)], kept)).toBe(kept);
+  });
+
+  it("clears when the entry is gone, even if an equal-content one replaced it", () => {
+    const stale = entry("math", "Mon", 1);
+    expect(displayedSelection([entry("math", "Mon", 1)], stale)).toBeNull();
+    expect(displayedSelection([], null)).toBeNull();
+  });
+
+  it("moving the selected block clears it; an unrelated move keeps it", () => {
+    const base = [entry("math", "Mon", 1), entry("eng", "Mon", 2)];
+    const moves = appendMove([], base, base[0], { day: "Tue", slot: 3 }, NO_BLOCKS);
+    const display = applyOverrides(base, moves, NO_BLOCKS);
+    expect(displayedSelection(display, base[0])).toBeNull(); // math moved: replaced object
+    expect(displayedSelection(display, base[1])).toBe(base[1]); // eng untouched: same object
   });
 });
 
