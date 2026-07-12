@@ -229,7 +229,7 @@ export function TimetableRoute() {
           conflicts={manual.conflicts}
           baseQuality={ws.result?.quality_score ?? null}
           editedQuality={ws.editedQuality}
-          onReset={manual.resetEdits}
+          onReset={ws.resetManualEdits}
         />
         <DndProvider backend={HTML5Backend}>
           <div className="flex-1 space-y-10 overflow-auto p-8" data-tour="timetable-grid">

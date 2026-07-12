@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { applyOverrides, type ManualOverride } from "./overrides";
 import { buildConflictInputs } from "./conflict-model";
 import { findConflicts, type Conflict } from "./conflicts";
-import { blockAnchor } from "./grid";
+import { blockAnchor, scheduleKey } from "./grid";
 import type { ProblemDoc } from "./problem-doc";
 import type { ScheduleEntry } from "./solver-client";
 
@@ -34,6 +34,32 @@ export function appendMove(
     ...moves,
     { kind: "move", subjectId: entry.subject_id, from: { day: anchor.day, slot: anchor.slot }, to },
   ];
+}
+
+/** A raw pre_assignments entry's schedule key, or null when it is not one. */
+const pinKey = (value: unknown): string | null => {
+  if (typeof value !== "object" || value === null) return null;
+  const entry = value as Record<string, unknown>;
+  if (typeof entry.subject_id !== "string") return null;
+  if (typeof entry.day !== "string" || typeof entry.slot !== "number") return null;
+  return scheduleKey(entry.subject_id, entry.day, entry.slot);
+};
+
+/** The doc minus pins that match no schedule slot - what a reverted edit
+    session leaves behind after pin-after-move (invisible on the grid, yet
+    re-applying the move as a hard pre-assignment on the next solve). Returns
+    the SAME doc when nothing dangles so callers can skip a no-op doc write;
+    an empty schedule prunes nothing (there is no result to compare against);
+    malformed entries always survive (doc round-trip rule). */
+export function withoutDanglingPins(doc: ProblemDoc, schedule: ScheduleEntry[]): ProblemDoc {
+  const list = Array.isArray(doc.pre_assignments) ? (doc.pre_assignments as unknown[]) : [];
+  if (list.length === 0 || schedule.length === 0) return doc;
+  const placed = new Set(schedule.map((s) => scheduleKey(s.subject_id, s.day, s.slot)));
+  const kept = list.filter((entry) => {
+    const key = pinKey(entry);
+    return key === null || placed.has(key);
+  });
+  return kept.length === list.length ? doc : { ...doc, pre_assignments: kept };
 }
 
 export interface ManualEdits {

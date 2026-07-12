@@ -4,17 +4,32 @@ import type { ProblemDoc } from "./problem-doc";
 
 const DEBOUNCE_MS = 500;
 
+/** A /score response tied to the exact schedule array it priced. */
+export interface ScoredSchedule {
+  schedule: ScheduleEntry[];
+  score: number;
+}
+
+/** The edited-quality number to show: only a score priced for exactly the
+    schedule on screen. Comparing by identity (each edit builds a new array)
+    means stale responses, resets, and new solves all resolve to null here
+    instead of through effect bookkeeping. */
+export function visibleEditedScore(
+  scored: ScoredSchedule | null,
+  displaySchedule: ScheduleEntry[],
+  edited: boolean,
+): number | null {
+  return edited && scored?.schedule === displaySchedule ? scored.score : null;
+}
+
 /** Re-price an edited schedule via /score, debounced per burst of drops.
-    The response is stored WITH the schedule identity it priced, and only a
-    score matching the currently shown schedule is returned - so stale
-    responses, resets, and new solves all fall out of one derivation instead
-    of effect bookkeeping. Returns null while unedited or in flight. */
+    Returns null while unedited or in flight (see visibleEditedScore). */
 export function useEditedQuality(
   doc: ProblemDoc | null,
   displaySchedule: ScheduleEntry[],
   edited: boolean,
 ): number | null {
-  const [scored, setScored] = useState<{ schedule: ScheduleEntry[]; score: number } | null>(null);
+  const [scored, setScored] = useState<ScoredSchedule | null>(null);
 
   useEffect(() => {
     if (!doc || !edited) return;
@@ -28,5 +43,5 @@ export function useEditedQuality(
     return () => clearTimeout(timer);
   }, [doc, displaySchedule, edited]);
 
-  return edited && scored?.schedule === displaySchedule ? scored.score : null;
+  return visibleEditedScore(scored, displaySchedule, edited);
 }

@@ -17,11 +17,10 @@ export function subjectBlockSizes(entities: ProblemEntities | null): Map<string,
 export function useTimelineLocks(
   entities: ProblemEntities | null,
   schedule: ScheduleEntry[],
+  blockSizes: ReadonlyMap<string, number>,
   pin: (entry: ScheduleEntry) => void,
   unpin: (entry: ScheduleEntry) => void,
 ) {
-  const blockSizes = useMemo(() => subjectBlockSizes(entities), [entities]);
-
   const lockedKeys = useMemo(() => {
     const pins = new Set(
       (entities?.preAssignments ?? []).map((p) => scheduleKey(p.subjectId, p.day, p.slot)),

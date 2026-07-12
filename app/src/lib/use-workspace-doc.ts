@@ -11,7 +11,7 @@ import { isTauri, useProblemFile } from "./use-problem-file";
 import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
 import { subjectBlockSizes, useTimelineLocks } from "./use-timeline-locks";
-import { useManualEdits } from "./use-manual-edits";
+import { useManualEdits, withoutDanglingPins } from "./use-manual-edits";
 import { useEditedQuality } from "./use-edited-quality";
 
 /** Is there user work the first-run template bootstrap must not clobber? A parsed
@@ -113,7 +113,17 @@ export function useWorkspaceDoc() {
   const blockSizes = useMemo(() => subjectBlockSizes(entities), [entities]);
   const manual = useManualEdits(doc, schedule, blockSizes);
   const editedQuality = useEditedQuality(doc, manual.displaySchedule, manual.overrides.length > 0);
-  const locks = useTimelineLocks(entities, manual.displaySchedule, editing.pin, editing.unpin);
+  const locks = useTimelineLocks(entities, manual.displaySchedule, blockSizes, editing.pin, editing.unpin);
+  // Reset must also revert the pins the edit session wrote at moved slots -
+  // left behind they match no shown block (invisible) yet re-apply the move
+  // as a hard pre-assignment on the next solve. Pins at unmoved slots stay.
+  const resetManualEdits = () => {
+    if (doc) {
+      const pruned = withoutDanglingPins(doc, schedule);
+      if (pruned !== doc) applyDocEdit(pruned);
+    }
+    manual.resetEdits();
+  };
   const { subjectNames, roomNames } = useEntityNames(entities);
 
   // Each solve reads the latest saved time limit (Settings persists it).
@@ -160,6 +170,7 @@ export function useWorkspaceDoc() {
     blockSizes,
     manual,
     editedQuality,
+    resetManualEdits,
   };
 }
 
