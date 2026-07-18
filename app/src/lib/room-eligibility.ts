@@ -9,22 +9,23 @@ export interface RoomOption {
 }
 
 /** Every doc room judged for `subjectId`, in doc order - the picker's model.
-    Mirrors the backend's compatible_rooms MINUS reservations (those stay
-    backend authority via /score): room type, required tags, then the opt-in
-    capacity check. An unknown subject has nothing to judge against, so every
-    room stays usable. */
+    Mirrors the backend's compatible_rooms rule for rule: room type, required
+    tags, reservations, then the opt-in capacity check - a pinned room the
+    backend would reject must never look pickable. An unknown subject has
+    nothing to judge against, so every room stays usable. */
 export function eligibleRooms(inputs: ConflictInputs, subjectId: string): RoomOption[] {
   const subject = inputs.subjects.get(subjectId);
   const need = subject ? subject.groupIds.reduce((sum, g) => sum + (inputs.groupSizes.get(g) ?? 0), 0) : 0;
   return [...inputs.rooms.entries()].map(([roomId, room]) => {
-    const reason = subject ? firstFailure(subject, room, need, inputs.flags.roomCapacity) : null;
+    const reason = subject ? firstFailure(subjectId, subject, room, need, inputs.flags.roomCapacity) : null;
     return { roomId, eligible: reason === null, reason };
   });
 }
 
 /** The first rule the room breaks, in the same order compatible_rooms
-    filters: type, tags, capacity ("any" matches in both directions). */
+    filters: type, tags, reservations, capacity ("any" matches both ways). */
 function firstFailure(
+  subjectId: string,
   subject: SubjectFacts,
   room: RoomFacts,
   need: number,
@@ -34,6 +35,7 @@ function firstFailure(
   if (pref && pref !== "any" && room.type !== pref && room.type !== "any") return "wrong type";
   const missing = subject.requiredTags.filter((tag) => !room.tags.includes(tag));
   if (missing.length > 0) return `missing tags: ${missing.join(", ")}`;
+  if (room.reservedFor && !room.reservedFor.has(subjectId)) return "reserved for other subjects";
   if (capacityOn && room.capacity !== null && need > room.capacity) {
     return `seats ${room.capacity}, needs ${need}`;
   }

@@ -56,6 +56,33 @@ describe("eligibleRooms", () => {
     });
   });
 
+  it("blocks reserved rooms for subjects off the allow-list (rule 24)", () => {
+    const reserved = options({
+      constraints: {
+        hard: { room_capacity: true },
+        advanced: { room_reservations: [{ room_id: "multi", subject_ids: ["bio"] }] },
+      },
+    });
+    expect(reserved.find((o) => o.roomId === "multi")).toEqual({
+      roomId: "multi",
+      eligible: false,
+      reason: "reserved for other subjects",
+    });
+    // A listed subject keeps the room; capacity still applies AFTER reservations.
+    const allowed = options({
+      constraints: {
+        hard: { room_capacity: true },
+        advanced: { room_reservations: [{ room_id: "small", subject_ids: ["cs"] }] },
+      },
+    });
+    expect(allowed.find((o) => o.roomId === "small")).toEqual({
+      roomId: "small",
+      eligible: false,
+      reason: "seats 40, needs 55",
+    });
+    expect(allowed.find((o) => o.roomId === "multi")?.eligible).toBe(true);
+  });
+
   it("lets a subject with no preferences use every room", () => {
     const inputs = buildConflictInputs(
       doc({

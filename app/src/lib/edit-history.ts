@@ -107,6 +107,10 @@ export function invertAction(action: EditAction, exec: HistoryExec): void {
 /** Replay `action` after an undo (the redo executor). */
 export function replayAction(action: EditAction, exec: HistoryExec): void {
   if (action.kind === "move" || action.kind === "room") return exec.pushOverride(action.override);
+  // reapply() recomputes from live overrides instead of replaying the stored
+  // added/replaced pins. Sound ONLY because history is strictly LIFO: an apply
+  // can be redone solely when every action recorded after it has been undone
+  // first, so the doc and override log are back in their pre-apply state.
   if (action.kind === "apply") return exec.reapply();
   if (!exec.doc) return;
   exec.applyDocEdit(

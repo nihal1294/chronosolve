@@ -14,6 +14,9 @@ export interface RoomFacts {
   capacity: number | null;
   type: string;
   tags: string[];
+  /** Subjects allowed by EVERY reservation entry on this room (rule 24);
+      null when the room is unreserved. Empty set = reserved for nobody. */
+  reservedFor: Set<string> | null;
 }
 
 export interface ConflictFlags {
@@ -51,9 +54,24 @@ function unavailableMap(value: unknown): Map<string, Set<number>> {
   return byDay;
 }
 
+/** roomId -> intersection of its reservation entries' subject_ids. The
+    backend excludes a room when ANY entry omits the subject, which is
+    exactly membership in the intersection. */
+function reservationSets(value: unknown): Map<string, Set<string>> {
+  const byRoom = new Map<string, Set<string>>();
+  for (const res of asList(value)) {
+    const roomId = asStr(res.room_id);
+    const allowed = new Set(asStrList(res.subject_ids));
+    const prior = byRoom.get(roomId);
+    byRoom.set(roomId, prior ? new Set([...prior].filter((s) => allowed.has(s))) : allowed);
+  }
+  return byRoom;
+}
+
 export function buildConflictInputs(doc: ProblemDoc): ConflictInputs {
   const raw = asRecord(doc);
   const hard = asRecord(asRecord(raw.constraints).hard);
+  const reservations = reservationSets(asRecord(asRecord(raw.constraints).advanced).room_reservations);
   const subjects = new Map<string, SubjectFacts>();
   for (const s of asList(raw.subjects)) {
     subjects.set(asStr(s.id), {
@@ -65,10 +83,12 @@ export function buildConflictInputs(doc: ProblemDoc): ConflictInputs {
   }
   const rooms = new Map<string, RoomFacts>();
   for (const r of asList(raw.rooms)) {
-    rooms.set(asStr(r.id), {
+    const id = asStr(r.id);
+    rooms.set(id, {
       capacity: asNum(r.capacity),
       type: asStr(r.type, "any"),
       tags: asStrList(r.tags),
+      reservedFor: reservations.get(id) ?? null,
     });
   }
   const groupSizes = new Map<string, number>();
