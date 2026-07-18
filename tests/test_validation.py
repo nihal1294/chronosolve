@@ -176,6 +176,41 @@ class TestPreAssignmentClashes:
         errors = [i for i in issues if i.severity == Severity.ERROR]
         assert any("t1" in e.message and "clashing" in e.message for e in errors)
 
+    def _room_clash_problem(self, *, no_clash: bool) -> TimetableProblem:
+        """Two disjoint subjects pinned into the SAME room at the same slot."""
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Mon"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T1"), Teacher(id="t2", name="T2")],
+            student_groups=[
+                StudentGroup(id="g1", name="G1", size=30),
+                StudentGroup(id="g2", name="G2", size=30),
+            ],
+            subjects=[
+                Subject(id="s1", name="S1", hours_per_week=1, teacher_ids=["t1"], group_ids=["g1"]),
+                Subject(id="s2", name="S2", hours_per_week=1, teacher_ids=["t2"], group_ids=["g2"]),
+            ],
+            rooms=[
+                Room(id="r1", name="R1", capacity=60, type="any"),
+                Room(id="r2", name="R2", capacity=60, type="any"),
+            ],
+            constraints=ConstraintsConfig(hard=HardConstraints(room_no_clash=no_clash)),
+            pre_assignments=[
+                PreAssignment(subject_id="s1", day="Mon", slot=1, room_id="r1"),
+                PreAssignment(subject_id="s2", day="Mon", slot=1, room_id="r1"),
+            ],
+        )
+
+    def test_same_room_clashing_pre_assignments(self) -> None:
+        """Two pins claiming one room at one slot would make the solve infeasible."""
+        issues = validate_problem(self._room_clash_problem(no_clash=True))
+        errors = [i for i in issues if i.severity == Severity.ERROR]
+        assert any("r1" in e.message and "clashing" in e.message for e in errors)
+
+    def test_room_pin_overlap_allowed_when_no_clash_off(self) -> None:
+        """With room_no_clash off the solver accepts sharing, so validation must too."""
+        issues = validate_problem(self._room_clash_problem(no_clash=False))
+        assert not any("clashing" in i.message and "Room" in i.message for i in issues)
+
 
 class TestPreAssignmentRooms:
     def _problem(self, pinned_room: str) -> TimetableProblem:

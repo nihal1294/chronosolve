@@ -12,16 +12,17 @@ if TYPE_CHECKING:
 
 
 def check_pre_assignments(problem: TimetableProblem, issues: list[ValidationIssue]) -> None:
-    """Run every pre-assignment check (teacher/group clashes, room pins)."""
+    """Run every pre-assignment check (teacher/group/room clashes, room pins)."""
     _check_clashes(problem, issues)
     _check_rooms(problem, issues)
 
 
 def _check_clashes(problem: TimetableProblem, issues: list[ValidationIssue]) -> None:
-    """Detect pre-assignments that conflict on teacher or group at the same time."""
+    """Detect pre-assignments that conflict on teacher, group, or room at a slot."""
     subject_map = {s.id: s for s in problem.subjects}
     slot_teachers: dict[tuple[str, int], list[str]] = {}
     slot_groups: dict[tuple[str, int], list[str]] = {}
+    slot_rooms: dict[tuple[str, int], list[str]] = {}
 
     for pa in problem.pre_assignments:
         subj = subject_map.get(pa.subject_id)
@@ -32,9 +33,16 @@ def _check_clashes(problem: TimetableProblem, issues: list[ValidationIssue]) -> 
             slot_teachers.setdefault(key, []).append(tid)
         for gid in subj.group_ids:
             slot_groups.setdefault(key, []).append(gid)
+        if pa.room_id is not None:
+            slot_rooms.setdefault(key, []).append(pa.room_id)
 
     _report_duplicates(slot_teachers, "Teacher", issues)
     _report_duplicates(slot_groups, "Group", issues)
+    # Two pins claiming one room at one slot force competing required room
+    # choices past solver/rooms.py's at-most-one constraint - but only when
+    # that constraint exists, so mirror its room_no_clash gate.
+    if problem.constraints.hard.room_no_clash:
+        _report_duplicates(slot_rooms, "Room", issues)
 
 
 def _report_duplicates(
