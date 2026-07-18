@@ -1,5 +1,6 @@
 /** Cascade for entity deletion: removing an entity also removes every advanced
-    rule instance, softened ref (M7.3), and pin that references its id. Without
+    rule instance, softened ref (M7.3), and pin that references its id (a room
+    reference is stripped OFF the pin rather than dropping the pin). Without
     this, dangling ids block validation after a delete, and re-using the id
     later would inherit a stale softened state (soften.ts matches kind+key).
 
@@ -86,8 +87,23 @@ function cascadeSubject(doc: ProblemDoc, id: string): ProblemDoc {
   return dropSubjectPins(next, id);
 }
 
+/** Pins carry the deleted room only as an attribute: the slot half is still
+    the user's intent, so strip room_id instead of dropping the whole pin
+    (backend rejects unknown pre_assignment room ids). */
+function stripRoomFromPins(doc: ProblemDoc, id: string): ProblemDoc {
+  if (!Array.isArray(doc.pre_assignments)) return doc;
+  if (!doc.pre_assignments.some((entry) => refIs(entry, "room_id", id))) return doc;
+  const stripped = doc.pre_assignments.map((entry) =>
+    refIs(entry, "room_id", id)
+      ? Object.fromEntries(Object.entries(entry as object).filter(([key]) => key !== "room_id"))
+      : entry,
+  );
+  return { ...doc, pre_assignments: stripped };
+}
+
 function cascadeRoom(doc: ProblemDoc, id: string): ProblemDoc {
-  return filterAdvancedList(doc, "room_reservations", (entry) => !refIs(entry, "room_id", id));
+  const next = filterAdvancedList(doc, "room_reservations", (entry) => !refIs(entry, "room_id", id));
+  return stripRoomFromPins(next, id);
 }
 
 function cascadeGroup(doc: ProblemDoc, id: string): ProblemDoc {
