@@ -95,20 +95,23 @@ function unavailability(inputs: ConflictInputs, schedule: ScheduleEntry[]): Conf
     room-missing / room-unknown (M8c gap close). Reservations are deliberately
     NOT mirrored - the backend prices them via /score (M8 design). */
 function roomEligibility(inputs: ConflictInputs, schedule: ScheduleEntry[]): Conflict[] {
-  const found: Conflict[] = [];
-  if (inputs.rooms.size === 0) return found;
-  const seen = new Set<string>(); // one conflict per (subject, room, kind)
+  if (inputs.rooms.size === 0) return [];
+  // room-missing keys per ENTRY (the backend emits one distinctly-worded
+  // violation per roomless entry); every other kind keeps one conflict per
+  // (subject, room, kind) but still collects each offending cell's key.
+  const bySig = new Map<string, Conflict>();
   for (const entry of schedule) {
-    const emit = (kind: ConflictKind, message: string) => {
-      const dedupe = `${entry.subject_id}|${entry.room_id}|${kind}`;
-      if (seen.has(dedupe)) return;
-      seen.add(dedupe);
-      found.push({ kind, message, entryKeys: [key(entry)] });
+    const emit = (kind: ConflictKind, message: string, perEntry = false) => {
+      const sig = `${entry.subject_id}|${entry.room_id}|${kind}${perEntry ? `|${key(entry)}` : ""}`;
+      const prior = bySig.get(sig);
+      if (!prior) bySig.set(sig, { kind, message, entryKeys: [key(entry)] });
+      else if (!prior.entryKeys.includes(key(entry))) prior.entryKeys.push(key(entry));
     };
     if (!entry.room_id) {
       emit(
         "room-missing",
         `Entry for '${entry.subject_id}' on ${entry.day} slot ${entry.slot} has no room assigned`,
+        true,
       );
       continue;
     }
@@ -143,5 +146,5 @@ function roomEligibility(inputs: ConflictInputs, schedule: ScheduleEntry[]): Con
       }
     }
   }
-  return found;
+  return [...bySig.values()];
 }
