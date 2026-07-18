@@ -36,6 +36,25 @@ export function appendMove(
   ];
 }
 
+/** The override list after changing `entry`'s block to `roomId` (anchor
+    semantics, matching appendMove). Re-picking the room the entry already
+    shows is a no-op with identity return, so history (M8c undo) never
+    records a no-change verb. */
+export function appendRoom(
+  overrides: ManualOverride[],
+  displaySchedule: ScheduleEntry[],
+  entry: ScheduleEntry,
+  roomId: string,
+  blockSizes: ReadonlyMap<string, number>,
+): ManualOverride[] {
+  if (entry.room_id === roomId) return overrides;
+  const anchor = blockAnchor(displaySchedule, entry, blockSizes);
+  return [
+    ...overrides,
+    { kind: "room", subjectId: entry.subject_id, at: { day: anchor.day, slot: anchor.slot }, roomId },
+  ];
+}
+
 /** The selection, kept only while its exact entry is still rendered. Moves,
     resets, and new solves replace the objects they touch (applyOverrides keeps
     untouched entries by identity), so a stale panel target derives to null
@@ -84,8 +103,16 @@ export interface ManualEdits {
   conflicts: Conflict[];
   /** "subject|day|slot" keys of every conflicted entry (block styling). */
   conflictKeys: Set<string>;
-  /** Move the block covering `entry` so its anchor lands on (day, slot). */
-  moveSession: (entry: ScheduleEntry, to: { day: string; slot: number }) => void;
+  /** Move the block covering `entry` so its anchor lands on (day, slot).
+      Returns the recorded override - or null when the drop was a no-op, the
+      seam edit history (M8c) keys its pushes on. */
+  moveSession: (entry: ScheduleEntry, to: { day: string; slot: number }) => ManualOverride | null;
+  /** Reassign the room for the block covering `entry` (session-level).
+      Same return contract as moveSession. */
+  roomSession: (entry: ScheduleEntry, roomId: string) => ManualOverride | null;
+  /** Undo/redo primitives: drop / re-append the override log tail verbatim. */
+  popOverride: () => void;
+  pushOverride: (override: ManualOverride) => void;
   resetEdits: () => void;
 }
 
@@ -111,8 +138,17 @@ export function useManualEdits(
   );
   const conflictKeys = useMemo(() => new Set(conflicts.flatMap((c) => c.entryKeys)), [conflicts]);
 
+  // Verbs hand back what they appended (null = no-op identity return from
+  // the pure append) so callers push history only for real changes.
+  const record = (moves: ManualOverride[]): ManualOverride | null => {
+    if (moves === overrides) return null;
+    setState({ base: schedule, moves });
+    return moves[moves.length - 1] as ManualOverride;
+  };
   const moveSession = (entry: ScheduleEntry, to: { day: string; slot: number }) =>
-    setState({ base: schedule, moves: appendMove(overrides, displaySchedule, entry, to, blockSizes) });
+    record(appendMove(overrides, displaySchedule, entry, to, blockSizes));
+  const roomSession = (entry: ScheduleEntry, roomId: string) =>
+    record(appendRoom(overrides, displaySchedule, entry, roomId, blockSizes));
 
   return {
     overrides,
@@ -120,6 +156,9 @@ export function useManualEdits(
     conflicts,
     conflictKeys,
     moveSession,
+    roomSession,
+    popOverride: () => setState({ base: schedule, moves: overrides.slice(0, -1) }),
+    pushOverride: (override) => setState({ base: schedule, moves: [...overrides, override] }),
     resetEdits: () => setState(null),
   };
 }

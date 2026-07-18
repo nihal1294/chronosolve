@@ -92,6 +92,8 @@ export function ApplicationShell() {
     navigate,
     startTour,
     toggleHints: toggleHelpMode,
+    undoEdit: ws.undo,
+    redoEdit: ws.redo,
   });
 
   // Native menu-bar items dispatch through the same command registry as the

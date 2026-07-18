@@ -5,10 +5,13 @@ then disables that constraint and asserts it becomes solvable. If someone
 deletes a constraint builder, the "on" half of its test fails.
 """
 
+import pytest
+
 from timetable_solver import solve
 from timetable_solver.models import (
     ConstraintsConfig,
     HardConstraints,
+    PreAssignment,
     Room,
     StudentGroup,
     Subject,
@@ -208,6 +211,66 @@ class TestGroupMaxHours:
 
     def test_cap_makes_single_day_infeasible(self) -> None:
         assert solve(self._problem(["Mon"]), time_limit=5).status == "infeasible"
+
+
+class TestRoomPreAssignments:
+    """M8c: a pre-assignment can pin the room, not just the slot."""
+
+    def _problem(self, subject: Subject, rooms: list[Room], pin: PreAssignment) -> TimetableProblem:
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Monday"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T")],
+            student_groups=[StudentGroup(id="g1", name="A", size=10)],
+            subjects=[subject],
+            rooms=rooms,
+            pre_assignments=[pin],
+        )
+
+    def test_pin_selects_the_room(self) -> None:
+        """Both directions, so the assertion cannot pass by solver accident."""
+        rooms = [Room(id="r1", name="R1", capacity=30), Room(id="r2", name="R2", capacity=30)]
+        for wanted in ("r1", "r2"):
+            pin = PreAssignment(subject_id="s1", day="Monday", slot=1, room_id=wanted)
+            result = solve(self._problem(_subject("s1", "t1", "g1"), rooms, pin), time_limit=5)
+            assert result.status == "optimal"
+            entry = next(e for e in result.schedule if e.slot == 1)
+            assert entry.room_id == wanted
+
+    def test_block_pin_holds_room_across_slots(self) -> None:
+        subject = Subject(
+            id="lab",
+            name="Lab",
+            hours_per_week=2,
+            type="lab",
+            teacher_ids=["t1"],
+            group_ids=["g1"],
+            consecutive_hours=2,
+        )
+        rooms = [Room(id="r1", name="R1", capacity=30), Room(id="r2", name="R2", capacity=30)]
+        for wanted in ("r1", "r2"):
+            pin = PreAssignment(subject_id="lab", day="Monday", slot=2, room_id=wanted)
+            result = solve(self._problem(subject, rooms, pin), time_limit=5)
+            assert result.status == "optimal"
+            assert sorted(e.slot for e in result.schedule) == [2, 3]
+            assert {e.room_id for e in result.schedule} == {wanted}
+
+    def test_incompatible_room_pin_fails_clean(self) -> None:
+        """/solve skips validate_problem, so the builder must raise, not KeyError."""
+        subject = Subject(
+            id="s1",
+            name="S",
+            hours_per_week=1,
+            teacher_ids=["t1"],
+            group_ids=["g1"],
+            preferred_room_type="lab",
+        )
+        rooms = [
+            Room(id="lec", name="Lecture Hall", capacity=30, type="lecture"),
+            Room(id="lab1", name="Lab", capacity=30, type="lab"),
+        ]
+        pin = PreAssignment(subject_id="s1", day="Monday", slot=1, room_id="lec")
+        with pytest.raises(ValueError, match="not compatible"):
+            solve(self._problem(subject, rooms, pin), time_limit=5)
 
 
 class TestMaxPerDay:

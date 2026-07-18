@@ -301,6 +301,52 @@
         }
       ],
       "expect": []
+    },
+    {
+      "name": "entry with no room while the problem defines rooms",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] }
+        ],
+        "rooms": [{ "id": "r1", "name": "R", "capacity": 40, "type": "any", "tags": [] }]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": null
+        }
+      ],
+      "expect": [{ "kind": "room-missing", "python_substring": "has no room assigned" }]
+    },
+    {
+      "name": "entry naming a room the problem does not define",
+      "problem": {
+        "time_structure": { "days": ["Mon", "Tue"], "slots_per_day": 4 },
+        "teachers": [{ "id": "t1", "name": "A" }],
+        "student_groups": [{ "id": "g1", "name": "G", "size": 30 }],
+        "subjects": [
+          { "id": "math", "name": "M", "hours_per_week": 1, "teacher_ids": ["t1"], "group_ids": ["g1"] }
+        ],
+        "rooms": [{ "id": "r1", "name": "R", "capacity": 40, "type": "any", "tags": [] }]
+      },
+      "schedule": [
+        {
+          "subject_id": "math",
+          "day": "Mon",
+          "slot": 1,
+          "teacher_ids": ["t1"],
+          "group_ids": ["g1"],
+          "room_id": "ghost"
+        }
+      ],
+      "expect": [{ "kind": "room-unknown", "python_substring": "uses unknown room 'ghost'" }]
     }
   ]
 }

@@ -12,11 +12,14 @@ import {
   Lightbulb,
   Network,
   Play,
+  Redo2,
   Save,
   Settings as SettingsIcon,
   Square,
+  Undo2,
   UploadCloud,
 } from "lucide-react";
+import { bindingOf, runEditVerb, type KeyBinding } from "./shortcuts";
 
 export type IconType = ComponentType<{ size?: number; className?: string }>;
 
@@ -29,7 +32,7 @@ export interface Command {
   keys?: string[];
   /** Global key binding dispatched by the command center (browser only - on
       desktop the native menu owns shortcuts). */
-  shortcut?: { meta: boolean; key: string };
+  shortcut?: KeyBinding;
   run: () => void;
 }
 
@@ -53,39 +56,9 @@ export interface AppCommandDeps {
   startTour: () => void;
   /** Flip ambient help hints (also bound to Cmd-/). */
   toggleHints: () => void;
-}
-
-export interface ShortcutSpec {
-  /** Command id this binding belongs to. */
-  id: string;
-  /** Plain-language label for the Shortcuts sheet. */
-  label: string;
-  /** Display chips, e.g. ["⌘", "Enter"]. */
-  keys: string[];
-  /** Key binding the browser keydown dispatcher fires. */
-  shortcut: { meta: boolean; key: string };
-}
-
-/** The exhaustive, canonical list of keyboard shortcuts - the single source of
-    truth for the palette chips, the browser keydown dispatcher, AND the
-    Shortcuts sheet (which lists ALL of them regardless of whether the command is
-    currently available). On desktop the native menu owns these accelerators (see
-    `menu.rs`) and the JS dispatcher defers, so keep this list and `menu.rs` in
-    sync. ⌘K (palette) is listed separately in the sheet - it is not a command. */
-export const SHORTCUTS: ShortcutSpec[] = [
-  { id: "solve", label: "Run scheduler", keys: ["⌘", "Enter"], shortcut: { meta: true, key: "enter" } },
-  { id: "halt", label: "Halt scheduler", keys: ["⌘", "."], shortcut: { meta: true, key: "." } },
-  { id: "new", label: "New problem", keys: ["⌘", "N"], shortcut: { meta: true, key: "n" } },
-  { id: "open", label: "Open problem", keys: ["⌘", "O"], shortcut: { meta: true, key: "o" } },
-  { id: "save", label: "Save problem", keys: ["⌘", "S"], shortcut: { meta: true, key: "s" } },
-  { id: "nav-/settings", label: "Settings", keys: ["⌘", ","], shortcut: { meta: true, key: "," } },
-  { id: "toggle-help-hints", label: "Show help hints", keys: ["⌘", "/"], shortcut: { meta: true, key: "/" } },
-];
-
-/** Just the binding fields for a command id, spreadable into a Command. */
-function bindingOf(id: string): Pick<ShortcutSpec, "keys" | "shortcut"> | undefined {
-  const spec = SHORTCUTS.find((entry) => entry.id === id);
-  return spec ? { keys: spec.keys, shortcut: spec.shortcut } : undefined;
+  /** Session undo/redo over timetable edits (⌘Z / ⇧⌘Z outside editors). */
+  undoEdit: () => void;
+  redoEdit: () => void;
 }
 
 interface NavSpec {
@@ -174,6 +147,22 @@ export function buildActions(deps: AppCommandDeps, openShortcuts: () => void): C
           run: f.onSave,
         }
       : null,
+    {
+      id: "edit-undo",
+      group: "Actions",
+      label: "Undo timetable edit",
+      icon: Undo2,
+      ...bindingOf("edit-undo"),
+      run: () => runEditVerb("undo", deps.undoEdit),
+    },
+    {
+      id: "edit-redo",
+      group: "Actions",
+      label: "Redo timetable edit",
+      icon: Redo2,
+      ...bindingOf("edit-redo"),
+      run: () => runEditVerb("redo", deps.redoEdit),
+    },
     // "How to Use" launches the guided tour - the same entry the native Help
     // menu item and the first-run welcome card use.
     { id: "help-guide", group: "Actions", label: "How to Use", icon: BookOpen, run: deps.startTour },

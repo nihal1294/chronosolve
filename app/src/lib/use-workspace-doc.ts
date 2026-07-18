@@ -10,9 +10,7 @@ import { loadPreferences } from "./use-preferences";
 import { isTauri, useProblemFile } from "./use-problem-file";
 import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
-import { subjectBlockSizes, useTimelineLocks } from "./use-timeline-locks";
-import { useManualEdits, withoutDanglingPins } from "./use-manual-edits";
-import { useEditedQuality } from "./use-edited-quality";
+import { useEditSession } from "./use-edit-session";
 
 /** Is there user work the first-run template bootstrap must not clobber? A parsed
  *  doc OR a non-empty (possibly malformed) yamlText draft both count - the latter
@@ -107,24 +105,26 @@ export function useWorkspaceDoc() {
     () => (solveState.result ? countScheduled(solveState.result.schedule) : null),
     [solveState.result],
   );
-  // Manual-edit layer (M8b): moves apply to the shown schedule instantly and
-  // reset with each new solve. Locks read the EDITED schedule, so pinning a
-  // moved session writes its new slot into the doc - the per-session persist.
-  const blockSizes = useMemo(() => subjectBlockSizes(entities), [entities]);
-  const manual = useManualEdits(doc, schedule, blockSizes);
-  const editedQuality = useEditedQuality(doc, manual.displaySchedule, manual.overrides.length > 0);
-  const locks = useTimelineLocks(entities, manual.displaySchedule, blockSizes, editing.pin, editing.unpin);
-  // Reset must also revert the pins the edit session wrote at moved slots -
-  // left behind they match no shown block (invisible) yet re-apply the move
-  // as a hard pre-assignment on the next solve. Pins at unmoved slots stay.
-  const resetManualEdits = () => {
-    if (doc) {
-      const pruned = withoutDanglingPins(doc, schedule);
-      if (pruned !== doc) applyDocEdit(pruned);
-    }
-    manual.resetEdits();
-  };
+  // The M8 manual-edit session (moves, room changes, conflicts, /score
+  // re-pricing, locks, reset) lives in its own hook since M8c.
+  const session = useEditSession(doc, schedule, entities, {
+    applyDocEdit,
+    pin: editing.pin,
+    unpin: editing.unpin,
+  });
   const { subjectNames, roomNames } = useEntityNames(entities);
+
+  // Saving with unapplied session edits writes a problem that will re-solve
+  // away from what the screen shows - warn, then save anyway (never block).
+  const saveFile = () => {
+    const count = session.unappliedCount;
+    if (count > 0) {
+      toast.warning(
+        `${count} session ${count === 1 ? "edit is" : "edits are"} not applied - Apply edits writes them into the problem`,
+      );
+    }
+    return file.saveFile();
+  };
 
   // Each solve reads the latest saved time limit (Settings persists it).
   const solve = () => solveState.solve(loadPreferences().timeLimit);
@@ -148,7 +148,7 @@ export function useWorkspaceDoc() {
     isTauri: isTauri(),
     fileError: file.fileError,
     openFile: file.openFile,
-    saveFile: file.saveFile,
+    saveFile,
     result: solveState.result,
     selected: solveState.selected,
     polish: solveState.polish,
@@ -166,11 +166,7 @@ export function useWorkspaceDoc() {
     subjectNames,
     roomNames,
     editing,
-    locks,
-    blockSizes,
-    manual,
-    editedQuality,
-    resetManualEdits,
+    ...session,
   };
 }
 

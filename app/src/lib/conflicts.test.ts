@@ -159,3 +159,28 @@ describe("room eligibility", () => {
     ]);
   });
 });
+
+describe("missing and unknown rooms (M8c mirror-gap close)", () => {
+  const oneRoom = { rooms: [{ id: "r1", name: "R", capacity: 40, type: "any", tags: [] }] };
+
+  it("flags a roomless entry when the problem defines rooms", () => {
+    expect(kinds(oneRoom, [entry("math", "Mon", 1)])).toEqual(["room-missing"]);
+  });
+
+  it("flags an entry naming a room the problem does not define", () => {
+    expect(kinds(oneRoom, [entry("math", "Mon", 1, { room: "ghost" })])).toEqual(["room-unknown"]);
+  });
+
+  it("stays silent when the problem defines no rooms (backend gate mirrored)", () => {
+    expect(kinds({}, [entry("math", "Mon", 1)])).toEqual([]);
+    expect(kinds({}, [entry("math", "Mon", 1, { room: "ghost" })])).toEqual([]);
+  });
+
+  it("mirrors the backend's wording for both kinds", () => {
+    const inputs = buildConflictInputs(doc(oneRoom));
+    const missing = findConflicts(inputs, [entry("math", "Mon", 1)]);
+    expect(missing[0].message).toBe("Entry for 'math' on Mon slot 1 has no room assigned");
+    const unknown = findConflicts(inputs, [entry("math", "Mon", 1, { room: "ghost" })]);
+    expect(unknown[0].message).toBe("Entry for 'math' uses unknown room 'ghost'");
+  });
+});

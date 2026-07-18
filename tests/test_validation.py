@@ -177,6 +177,46 @@ class TestPreAssignmentClashes:
         assert any("t1" in e.message and "clashing" in e.message for e in errors)
 
 
+class TestPreAssignmentRooms:
+    def _problem(self, pinned_room: str) -> TimetableProblem:
+        """A lab-preferring subject pinned into `pinned_room` (lec or lab1)."""
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Mon"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T1")],
+            student_groups=[StudentGroup(id="g1", name="G1", size=30)],
+            subjects=[
+                Subject(
+                    id="s1",
+                    name="S1",
+                    hours_per_week=1,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    preferred_room_type="lab",
+                ),
+            ],
+            rooms=[
+                Room(id="lec", name="Lecture", capacity=50, type="lecture"),
+                Room(id="lab1", name="Lab", capacity=30, type="lab"),
+            ],
+            pre_assignments=[
+                PreAssignment(subject_id="s1", day="Mon", slot=1, room_id=pinned_room)
+            ],
+        )
+
+    def test_incompatible_room_pin_errors(self) -> None:
+        """Solve would reject this pin (no room var exists), so validation names it."""
+        issues = validate_problem(self._problem("lec"))
+        errors = [i for i in issues if i.severity == Severity.ERROR]
+        assert any(
+            "s1" in e.message and "lec" in e.message and "not compatible" in e.message
+            for e in errors
+        )
+
+    def test_compatible_room_pin_is_clean(self) -> None:
+        issues = validate_problem(self._problem("lab1"))
+        assert not any("not compatible" in i.message for i in issues)
+
+
 class TestRoomCapacityWarnings:
     def test_group_exceeds_room_capacity(self) -> None:
         """Subject with 100 students but largest room holds 50."""
