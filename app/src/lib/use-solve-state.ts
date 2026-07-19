@@ -29,8 +29,11 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
     setProgress(null);
   };
 
-  const solve = async (timeLimit = 60) => {
-    if (busy || doc === null) return; // button is disabled, but keep the invariant explicit
+  // `problem` exists for callers that wrote the doc in this same tick (the
+  // re-run-with-locks fold): applyDocEdit is a state write the hook's `doc`
+  // cannot observe yet, so they must hand the fresh value in explicitly.
+  const solve = async (timeLimit = 60, problem: ProblemDoc | null = doc) => {
+    if (busy || problem === null) return; // button is disabled, but keep the invariant explicit
     setBusy(true);
     setSolveError(null);
     invalidate();
@@ -38,7 +41,7 @@ export function useSolveState(doc: ProblemDoc | null, onSolved: (result: SolveRe
     controllerRef.current = controller;
     let finalObjective: number | null = null;
     try {
-      const solved = await solverClient.solveStream(doc, timeLimit, {
+      const solved = await solverClient.solveStream(problem, timeLimit, {
         signal: controller.signal,
         refine: polish,
         onProgress: (snapshot) => {

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyPins, applyPlan, overridesToPreAssignments, pinDiff, unappliedPinCount } from "./apply-edits";
+import {
+  applyPins,
+  applyPlan,
+  overridesToPreAssignments,
+  pinDiff,
+  planApplyDoc,
+  unappliedPinCount,
+} from "./apply-edits";
 import type { ManualOverride } from "./overrides";
 
 const move = (subject: string, from: [string, number], to: [string, number]): ManualOverride => ({
@@ -159,6 +166,21 @@ describe("applyPins / unappliedPinCount (Apply edits)", () => {
       pre_assignments: [{ subject_id: "math", day: "Tue", slot: 2, room_id: "r7" }],
     };
     expect(unappliedPinCount(applied, overrides)).toBe(0);
+  });
+});
+
+describe("planApplyDoc (the doc a re-run or Apply must submit)", () => {
+  it("returns the doc the solve must read: stale pin gone, destination pin on", () => {
+    const doc = { pre_assignments: [{ subject_id: "math", day: "Mon", slot: 1, room_id: "r7" }] };
+    const { next } = planApplyDoc(doc, [move("math", ["Mon", 1], ["Tue", 2])]);
+    expect(next.pre_assignments).toEqual([{ subject_id: "math", day: "Tue", slot: 2, room_id: "r7" }]);
+  });
+
+  it("keeps doc identity when nothing changes (no-op re-run skips the write)", () => {
+    const doc = { pre_assignments: [{ subject_id: "math", day: "Mon", slot: 1 }] };
+    expect(planApplyDoc(doc, []).next).toBe(doc);
+    const roundTrip = [move("math", ["Mon", 1], ["Tue", 2]), move("math", ["Tue", 2], ["Mon", 1])];
+    expect(planApplyDoc(doc, roundTrip).next).toBe(doc);
   });
 });
 

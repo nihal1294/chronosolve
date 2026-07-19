@@ -1,6 +1,6 @@
 import type { PreAssignment } from "./entities";
 import type { ManualOverride } from "./overrides";
-import { pinAssignment, type PinSlot, type ProblemDoc } from "./problem-doc";
+import { pinAssignment, unpinAssignment, type PinSlot, type ProblemDoc } from "./problem-doc";
 
 const pinList = (doc: ProblemDoc): Record<string, unknown>[] =>
   Array.isArray(doc.pre_assignments) ? (doc.pre_assignments as Record<string, unknown>[]) : [];
@@ -78,6 +78,20 @@ export function applyPins(doc: ProblemDoc, pins: PinSlot[]): ProblemDoc {
     }
   }
   return changed ? current : doc;
+}
+
+/** The full Apply fold as one pure step: stale source pins come OFF before
+    the destination pins go on, so a moved doc pin is relocated - never
+    doubled into an unsolvable two-slot requirement. `next` is the doc both
+    the Apply button and a re-run-with-locks must submit; it keeps the input
+    doc's identity when nothing changes (callers skip the doc write). */
+export function planApplyDoc(
+  doc: ProblemDoc,
+  overrides: ManualOverride[],
+): { pins: PreAssignment[]; stale: PinSlot[]; next: ProblemDoc } {
+  const { pins, stale } = applyPlan(doc, overrides);
+  const cleared = stale.reduce((d, pin) => unpinAssignment(d, pin), doc);
+  return { pins, stale, next: applyPins(cleared, pins) };
 }
 
 /** What Apply would upsert: pins absent from the doc (`added`) and the PRIOR

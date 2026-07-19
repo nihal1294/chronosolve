@@ -14,8 +14,8 @@ import {
   type HistoryExec,
   type HistoryState,
 } from "./edit-history";
-import { applyPins, applyPlan, pinDiff, unappliedPinCount } from "./apply-edits";
-import { unpinAssignment, type ProblemDoc } from "./problem-doc";
+import { pinDiff, planApplyDoc, unappliedPinCount } from "./apply-edits";
+import type { ProblemDoc } from "./problem-doc";
 import type { ProblemEntities } from "./entities";
 import { eligibleRooms, type RoomOption } from "./room-eligibility";
 import type { ScheduleEntry } from "./solver-client";
@@ -122,11 +122,7 @@ export function useEditSession(
   // Both write paths share the doc-aware plan: stale pins (a move left the
   // slot) come OFF before the destination pins go on, so a moved doc pin is
   // relocated - never doubled into an unsolvable two-slot requirement.
-  const planApply = () => {
-    const { pins, stale } = applyPlan(doc as ProblemDoc, edits.overrides);
-    const cleared = stale.reduce((d, pin) => unpinAssignment(d, pin), doc as ProblemDoc);
-    return { pins, stale, next: applyPins(cleared, pins) };
-  };
+  const planApply = () => planApplyDoc(doc as ProblemDoc, edits.overrides);
   const reapply = () => {
     if (!doc) return;
     const { next } = planApply();
@@ -138,6 +134,16 @@ export function useEditSession(
     if (next === doc) return;
     record({ kind: "apply", ...pinDiff(doc, pins), removed: stale });
     io.applyDocEdit(next);
+  };
+  // Re-run-with-locks half of the verb: same fold as Apply but WITHOUT a
+  // history record - the solve this precedes invalidates the schedule, which
+  // derives history to empty in the same tick. Returns the doc the solve
+  // must read (the hook closures cannot observe this tick's doc write).
+  const applyForReSolve = (): ProblemDoc | null => {
+    if (!doc) return null;
+    const { next } = planApply();
+    if (next !== doc) io.applyDocEdit(next);
+    return next;
   };
 
   const exec: HistoryExec = {
@@ -170,6 +176,7 @@ export function useEditSession(
     changeRoom,
     unappliedCount,
     applyEdits,
+    applyForReSolve,
     undo,
     redo,
     canUndo: canUndo(history),
