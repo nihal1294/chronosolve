@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from timetable_solver.solver.variables import compatible_rooms
+from timetable_solver.solver.variables import block_size, compatible_rooms
 from timetable_solver.validation.validator import Severity, ValidationIssue
 
 if TYPE_CHECKING:
@@ -28,13 +28,16 @@ def _check_clashes(problem: TimetableProblem, issues: list[ValidationIssue]) -> 
         subj = subject_map.get(pa.subject_id)
         if subj is None:
             continue  # Pydantic already catches missing references
-        key = (pa.day, pa.slot)
-        for tid in subj.teacher_ids:
-            slot_teachers.setdefault(key, []).append(tid)
-        for gid in subj.group_ids:
-            slot_groups.setdefault(key, []).append(gid)
-        if pa.room_id is not None:
-            slot_rooms.setdefault(key, []).append(pa.room_id)
+        # A pin fixes the block START; the solver's continuity constraint
+        # occupies the following slots too, so claims span the whole block.
+        for slot in range(pa.slot, pa.slot + block_size(subj)):
+            key = (pa.day, slot)
+            for tid in subj.teacher_ids:
+                slot_teachers.setdefault(key, []).append(tid)
+            for gid in subj.group_ids:
+                slot_groups.setdefault(key, []).append(gid)
+            if pa.room_id is not None:
+                slot_rooms.setdefault(key, []).append(pa.room_id)
 
     _report_duplicates(slot_teachers, "Teacher", issues)
     _report_duplicates(slot_groups, "Group", issues)
