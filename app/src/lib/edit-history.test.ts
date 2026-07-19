@@ -167,6 +167,7 @@ describe("invertAction / replayAction (doc-level executors)", () => {
       kind: "apply",
       added: [{ subjectId: "math", day: "Mon", slot: 1, roomId: "r9" }],
       replaced: [{ subjectId: "eng", day: "Tue", slot: 2 }], // prior was roomless
+      removed: [],
     };
     const h = harness(doc);
     invertAction(action, h.exec);
@@ -176,9 +177,22 @@ describe("invertAction / replayAction (doc-level executors)", () => {
     ]);
   });
 
+  it("undo of an apply re-pins the doc pins a move had removed (room kept)", () => {
+    const doc = { pre_assignments: [{ subject_id: "math", day: "Tue", slot: 2, room_id: "r7" }] };
+    const action: EditAction = {
+      kind: "apply",
+      added: [{ subjectId: "math", day: "Tue", slot: 2, roomId: "r7" }],
+      replaced: [],
+      removed: [{ subjectId: "math", day: "Mon", slot: 1, roomId: "r7" }],
+    };
+    const h = harness(doc);
+    invertAction(action, h.exec);
+    expect(h.pins()).toEqual([{ subject_id: "math", day: "Mon", slot: 1, room_id: "r7" }]);
+  });
+
   it("redo of an apply recomputes through reapply", () => {
     const h = harness({});
-    replayAction({ kind: "apply", added: [], replaced: [] }, h.exec);
+    replayAction({ kind: "apply", added: [], replaced: [], removed: [] }, h.exec);
     expect(h.log).toEqual(["reapply"]);
   });
 });

@@ -14,8 +14,8 @@ import {
   type HistoryExec,
   type HistoryState,
 } from "./edit-history";
-import { applyPins, overridesToPreAssignments, pinDiff, unappliedPinCount } from "./overrides";
-import type { ProblemDoc } from "./problem-doc";
+import { applyPins, applyPlan, pinDiff, unappliedPinCount } from "./apply-edits";
+import { unpinAssignment, type ProblemDoc } from "./problem-doc";
 import type { ProblemEntities } from "./entities";
 import { eligibleRooms, type RoomOption } from "./room-eligibility";
 import type { ScheduleEntry } from "./solver-client";
@@ -119,17 +119,24 @@ export function useEditSession(
     () => (doc ? unappliedPinCount(doc, edits.overrides) : 0),
     [doc, edits.overrides],
   );
+  // Both write paths share the doc-aware plan: stale pins (a move left the
+  // slot) come OFF before the destination pins go on, so a moved doc pin is
+  // relocated - never doubled into an unsolvable two-slot requirement.
+  const planApply = () => {
+    const { pins, stale } = applyPlan(doc as ProblemDoc, edits.overrides);
+    const cleared = stale.reduce((d, pin) => unpinAssignment(d, pin), doc as ProblemDoc);
+    return { pins, stale, next: applyPins(cleared, pins) };
+  };
   const reapply = () => {
     if (!doc) return;
-    const next = applyPins(doc, overridesToPreAssignments(edits.overrides));
+    const { next } = planApply();
     if (next !== doc) io.applyDocEdit(next);
   };
   const applyEdits = () => {
     if (!doc) return;
-    const pins = overridesToPreAssignments(edits.overrides);
-    const next = applyPins(doc, pins);
+    const { pins, stale, next } = planApply();
     if (next === doc) return;
-    record({ kind: "apply", ...pinDiff(doc, pins) });
+    record({ kind: "apply", ...pinDiff(doc, pins), removed: stale });
     io.applyDocEdit(next);
   };
 

@@ -7,12 +7,13 @@ import type { ScheduleEntry } from "./solver-client";
     (undo drops the log tail, redo re-appends this payload - without it the
     popped entry is unrecoverable), lock keeps the pin as written (with the
     room it carried, so undoing an unpin restores it), apply keeps what it
-    added plus the PRIOR versions of pins it overwrote. */
+    added, the PRIOR versions of pins it overwrote, and the doc pins it
+    removed because a move had left them behind. */
 export type EditAction =
   | { kind: "move"; override: ManualOverride }
   | { kind: "room"; override: ManualOverride }
   | { kind: "lock"; pin: PinSlot; wasLocked: boolean }
-  | { kind: "apply"; added: PinSlot[]; replaced: PinSlot[] };
+  | { kind: "apply"; added: PinSlot[]; replaced: PinSlot[]; removed: PinSlot[] };
 
 export interface EditHistory {
   done: EditAction[];
@@ -101,6 +102,7 @@ export function invertAction(action: EditAction, exec: HistoryExec): void {
   // Remove-then-re-pin: a bare upsert cannot strip a room back OFF, so a
   // roomless prior is restored by deleting the roomful pin first.
   for (const prior of action.replaced) next = pinAssignment(unpinAssignment(next, prior), prior);
+  for (const pin of action.removed) next = pinAssignment(next, pin);
   exec.applyDocEdit(next);
 }
 
