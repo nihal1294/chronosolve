@@ -129,6 +129,14 @@ export function useWorkspaceDoc() {
   // Each solve reads the latest saved time limit (Settings persists it).
   const solve = () => solveState.solve(loadPreferences().timeLimit);
 
+  // Re-run keeping every edit and lock: fold session edits into pins, then
+  // solve the JUST-written doc - solve's explicit-problem param dodges the
+  // stale closure (applyDocEdit is a state write this tick cannot observe).
+  const reSolve = () => {
+    const next = session.applyForReSolve();
+    if (next) solveState.solve(loadPreferences().timeLimit, next);
+  };
+
   return {
     yamlText,
     doc,
@@ -159,6 +167,7 @@ export function useWorkspaceDoc() {
     progress: solveState.progress,
     lastObjective: solveState.lastObjective,
     solve,
+    reSolve,
     cancel: solveState.cancel,
     invalidate: solveState.invalidate,
     schedule,

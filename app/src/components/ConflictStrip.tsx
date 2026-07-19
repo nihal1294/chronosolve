@@ -5,6 +5,7 @@ import {
   ChevronRight,
   PencilLine,
   Pin,
+  Play,
   Redo2,
   RotateCcw,
   Undo2,
@@ -23,11 +24,15 @@ export interface ConflictStripProps {
   editedQuality: number | null;
   /** Session pins the doc does not carry yet (0 disables Apply). */
   unappliedCount: number;
+  /** A solve is running (disables the re-run verb). */
+  busy: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onApply: () => void;
+  /** Apply the edits as locks, then reschedule everything else around them. */
+  onReSolve: () => void;
   onReset: () => void;
 }
 
@@ -40,11 +45,13 @@ export function ConflictStrip({
   baseQuality,
   editedQuality,
   unappliedCount,
+  busy,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
   onApply,
+  onReSolve,
   onReset,
 }: ConflictStripProps) {
   const [open, setOpen] = useState(false);
@@ -92,6 +99,15 @@ export function ConflictStrip({
           className={ICON_BUTTON}
         >
           <Redo2 size={12} />
+        </button>
+        <button
+          onClick={onReSolve}
+          disabled={busy}
+          title="Apply your edits as locked sessions, then reschedule everything else around them"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-400/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-500/10 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent dark:border-indigo-500/40 dark:text-indigo-300"
+        >
+          <Play size={12} />
+          Re-run with locks
         </button>
         <button
           onClick={onApply}

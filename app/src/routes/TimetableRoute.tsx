@@ -223,11 +223,16 @@ export function TimetableRoute() {
           baseQuality={ws.result?.quality_score ?? null}
           editedQuality={ws.editedQuality}
           unappliedCount={ws.unappliedCount}
+          busy={ws.busy}
           canUndo={ws.canUndo}
           canRedo={ws.canRedo}
           onUndo={ws.undo}
           onRedo={ws.redo}
           onApply={ws.applyEdits}
+          onReSolve={() => {
+            ws.reSolve();
+            navigate("/solver");
+          }}
           onReset={ws.resetManualEdits}
         />
         <DndProvider backend={HTML5Backend}>
