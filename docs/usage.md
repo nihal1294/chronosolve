@@ -32,7 +32,7 @@ Run the solver and watch it converge live; cancel anytime. An optional **Polish 
 
 ## 5. Timetable
 
-View the solved schedule by class, teacher, or room - or a master overview. Filter by type, department, or semester to focus any slice, and pin the sessions you want to keep if you re-run the solve.
+View the solved schedule by class, teacher, or room - or a master overview. Filter by type, department, or semester to focus any slice - then edit it directly: drag a session to a new slot, reassign its room, and lock what must stay. Conflicts flag instantly and the quality score re-prices as you edit; apply your edits into the problem, undo/redo any step, or re-run the scheduler around your locks to rebuild everything else.
 
 ![ChronoSolve Timetable - solved weekly grid by section](../assets/screenshots/timetable.png)
 
