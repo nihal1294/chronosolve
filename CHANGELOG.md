@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0](https://github.com/nihal1294/chronosolve/compare/v0.7.0...v0.8.0) (2026-07-19)
+
+
+### Features
+
+* **app+solver:** Room reassignment, edit persistence, undo/redo ([#37](https://github.com/nihal1294/chronosolve/issues/37)) ([43d3e01](https://github.com/nihal1294/chronosolve/commit/43d3e010ce36566a8743e320e65454662b23799b))
+* **app:** M8a manual-edit override model + mirrored conflict checker ([#34](https://github.com/nihal1294/chronosolve/issues/34)) ([39958bf](https://github.com/nihal1294/chronosolve/commit/39958bfc2e3ac0d578e1094cb543bba9e2b7a68f))
+* **app:** M8b drag-to-move with live conflict flagging + score refresh ([#36](https://github.com/nihal1294/chronosolve/issues/36)) ([1e7c070](https://github.com/nihal1294/chronosolve/commit/1e7c0701c33853ed18cba63b626bbfaae98e356b))
+* **app:** re-run the scheduler around locked and edited sessions ([#38](https://github.com/nihal1294/chronosolve/issues/38)) ([9e75073](https://github.com/nihal1294/chronosolve/commit/9e7507322c27416209db6ca278339351be102d0d))
+
+
+### Bug Fixes
+
+* **app:** conflict checker keeps every roomless entry visible ([43d3e01](https://github.com/nihal1294/chronosolve/commit/43d3e010ce36566a8743e320e65454662b23799b))
+* **app:** palette releases focus before running a command ([43d3e01](https://github.com/nihal1294/chronosolve/commit/43d3e010ce36566a8743e320e65454662b23799b))
+
 ## [0.7.0](https://github.com/nihal1294/chronosolve/compare/v0.6.0...v0.7.0) (2026-07-07)
 
 
