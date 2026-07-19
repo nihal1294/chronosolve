@@ -105,10 +105,10 @@ just dev     # full desktop app (Tauri)
 
 ### Download & install (macOS)
 
-Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Apple Silicon / `aarch64` for now). Releases are **automated**: merges to `main` accumulate into a "Release" pull request that, when merged, bumps the version, updates the changelog, and publishes a GitHub release with a freshly built `.dmg` attached - no manual tagging or publish step. To install:
+Prebuilt `.dmg` builds are attached to each [GitHub release](../../releases) (Apple Silicon / `aarch64`). Releases are **automated**: merges to `main` accumulate into a "Release" pull request that, when merged, bumps the version, updates the changelog, and publishes a GitHub release with a freshly built `.dmg` attached - no manual tagging or publish step. To install:
 
 1. Download `ChronoSolve_<version>_aarch64.dmg`, open it, and drag **ChronoSolve** into your Applications folder.
-2. The build is **not signed or notarized yet**, so macOS Gatekeeper blocks the first launch. Clear it once, either way:
+2. The build is **not signed or notarized**, so macOS Gatekeeper blocks the first launch. Clear it once, either way:
    - Control-click (right-click) ChronoSolve in Applications, choose **Open**, then **Open** again in the dialog. macOS remembers the choice.
    - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/ChronoSolve.app`
 
@@ -135,17 +135,15 @@ The left sidebar follows the workflow top to bottom:
 2. **Data** - edit courses, instructors, student groups, and rooms as tables, or switch to the YAML view to edit the raw definition. Import entities from CSV with column auto-matching.
 3. **Constraints** - toggle the hard rules every timetable must satisfy and set how much each soft preference matters, with quick presets and a live impact preview. Author advanced rules (breaks, allowed slots, daily caps, sequencing, room policies) from plain-language templates.
 4. **Scheduler** - run the solver and watch it converge live (best result and solutions-found stream in); cancel any time. If no valid timetable exists, the clashing rules are listed with a one-click "Soften to preference" escape hatch, so a re-run can trade that rule off instead of failing.
-5. **Timetable** - view the generated schedule by class, teacher, or room (or a master overview), filter by type/department/semester, and pin sessions you want to keep.
+5. **Timetable** - view the generated schedule by class, teacher, or room (or a master overview) and filter by type/department/semester - then edit it directly: drag sessions to new slots, reassign rooms, and lock what must stay. Conflicts flag instantly and the quality score re-prices as you edit; apply your edits into the problem, undo/redo any step, or re-run the scheduler around your locks to rebuild everything else.
 
 A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes. New here? On first launch a welcome card offers a quick guided tour or a self-guided look around, and you can reopen either later from the **Help** menu - replay the tour, or press ⌘/ to toggle ambient hints that label whatever is on screen.
 
-## Status
+## Status & Roadmap
 
-**Solver (complete):** CP-SAT core with hard constraints plus weighted soft constraints, room assignment, lab blocks, and pre-assignments; an advanced-rule engine (global breaks, allowed slots, daily teaching caps, same-day exclusions, orderings, room reservations and tags) that names the exact rules clashing when a problem is infeasible, so any of them can be demoted to a weighted preference; an independent quality scorer that checks and prices every rule - advanced rules and softened preferences included - plus statistics; the Typer CLI; and a FastAPI sidecar that streams solve progress over SSE, with simulated-annealing refinement.
+Both halves are feature-complete: the solver (CP-SAT core, advanced rule engine, independent quality scorer, CLI, streaming sidecar) and the desktop app (the full workflow from data entry through solving to direct timetable editing, packaged as a self-contained macOS `.dmg`).
 
-**Desktop app:** a route-based shell covering the full workflow - a journey-first Dashboard, a Data workspace (entity tables + raw YAML editor + CSV import wizard), a Constraints screen (hard toggles, soft preferences weighted by importance, and plain-language authoring for advanced rules like breaks, sequencing, and room policies), a live Scheduler monitor (SSE progress, cancellable, with an optional polish pass that keeps refining the timetable after the main solve) with post-solve analytics and export - and when no valid timetable exists, a conflict panel that names the clashing rules and softens any of them to a preference in one click, a filterable Timetable view with pin/unpin, and a Settings screen, plus built-in onboarding - a first-run welcome card, a replayable guided tour, and toggleable ambient hints that explain each screen. A ⌘K command palette, keyboard shortcuts, and a native macOS menu drive every action. It packages into a self-contained macOS `.dmg` - the Python solver is bundled with PyInstaller and its lifecycle managed by Tauri, so end users install nothing else.
-
-**Next:** manual timetable editing (drag sessions around with live conflict checking and rescoring), code signing + notarization (to drop the Gatekeeper warning), Windows and Linux builds, and PDF / calendar (ICS) export.
+**Next:** PDF / calendar (ICS) export, and adding or removing individual sessions from the timetable editor.
 
 ## Background
 
