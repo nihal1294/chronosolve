@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
-import { SHORTCUTS } from "../lib/command-catalog";
+import { SHORTCUTS } from "../lib/shortcuts";
 import { useDialogFocus } from "../lib/use-dialog-focus";
 import { Kbd } from "./Kbd";
 

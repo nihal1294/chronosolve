@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   activeMoves,
   appendMove,
+  appendRoom,
   displayedSelection,
   withoutDanglingPins,
   type MoveState,
 } from "./use-manual-edits";
-import { applyOverrides } from "./overrides";
+import { applyOverrides, type ManualOverride } from "./overrides";
 import { buildConflictInputs } from "./conflict-model";
 import { findConflicts } from "./conflicts";
 import type { ScheduleEntry } from "./solver-client";
@@ -65,6 +66,28 @@ describe("appendMove", () => {
     const display = [entry("math", "Mon", 1)];
     const moves = appendMove([], display, display[0], { day: "Mon", slot: 1 }, NO_BLOCKS);
     expect(moves).toEqual([]);
+  });
+});
+
+describe("appendRoom (M8c room verb)", () => {
+  it("records a room change anchored at the block start, from any covered slot", () => {
+    const blocks = new Map([["lab", 2]]);
+    const display = [
+      { ...entry("lab", "Mon", 1), room_id: "r1" },
+      { ...entry("lab", "Mon", 2), room_id: "r1" },
+    ];
+    const next = appendRoom([], display, display[1], "r9", blocks);
+    expect(next).toEqual([{ kind: "room", subjectId: "lab", at: { day: "Mon", slot: 1 }, roomId: "r9" }]);
+    expect(applyOverrides(display, next, blocks)).toEqual([
+      { ...entry("lab", "Mon", 1), room_id: "r9" },
+      { ...entry("lab", "Mon", 2), room_id: "r9" },
+    ]);
+  });
+
+  it("re-picking the room the entry already shows is a no-op (list identity)", () => {
+    const overrides: ManualOverride[] = [];
+    const display = [{ ...entry("math", "Mon", 1), room_id: "r1" }];
+    expect(appendRoom(overrides, display, display[0], "r1", NO_BLOCKS)).toBe(overrides);
   });
 });
 

@@ -99,6 +99,25 @@ describe("removeEntityAndRefs", () => {
     expect(getAdvancedList(next, "room_reservations")).toEqual([{ room_id: "r2", subject_ids: ["s1"] }]);
   });
 
+  it("strips the deleted room off pins but keeps the slot pin itself", () => {
+    const doc: ProblemDoc = {
+      pre_assignments: [
+        { subject_id: "s1", day: "Mon", slot: 1, room_id: "rX" },
+        { subject_id: "s2", day: "Tue", slot: 2, room_id: "r2" },
+        { subject_id: "s3", day: "Wed", slot: 3 },
+      ],
+    };
+    const next = removeEntityAndRefs(doc, "rooms", "rX");
+    expect(next.pre_assignments).toEqual([
+      { subject_id: "s1", day: "Mon", slot: 1 },
+      { subject_id: "s2", day: "Tue", slot: 2, room_id: "r2" },
+      { subject_id: "s3", day: "Wed", slot: 3 },
+    ]);
+    // No pins name the room -> the doc (and list) come back untouched.
+    const untouched = removeEntityAndRefs(next, "rooms", "r9");
+    expect(untouched.pre_assignments).toBe(next.pre_assignments);
+  });
+
   it("drops free half-days for a deleted group", () => {
     const doc = docWith({
       group_free_halfdays: [

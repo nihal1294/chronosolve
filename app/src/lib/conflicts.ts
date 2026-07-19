@@ -9,7 +9,9 @@ export type ConflictKind =
   | "unavailable"
   | "room-capacity"
   | "room-type"
-  | "room-tags";
+  | "room-tags"
+  | "room-missing"
+  | "room-unknown";
 
 export interface Conflict {
   kind: ConflictKind;
@@ -87,23 +89,39 @@ function unavailability(inputs: ConflictInputs, schedule: ScheduleEntry[]): Conf
   return found;
 }
 
-/** Mirror of compatible_rooms: room_type_matches + required-tag cover + the
-    opt-in capacity check. Reservations are deliberately NOT mirrored - the
-    backend prices them via /score (M8 design, Post-M7 refresh). */
+/** Mirror of compatible_rooms + the backend's missing/unknown-room flags
+    (both gated on the problem defining rooms, like _room_type_violations):
+    room_type_matches + required-tag cover + the opt-in capacity check, plus
+    room-missing / room-unknown (M8c gap close). Reservations are deliberately
+    NOT mirrored - the backend prices them via /score (M8 design). */
 function roomEligibility(inputs: ConflictInputs, schedule: ScheduleEntry[]): Conflict[] {
-  const found: Conflict[] = [];
-  const seen = new Set<string>(); // one conflict per (subject, room, kind)
+  if (inputs.rooms.size === 0) return [];
+  // room-missing keys per ENTRY (the backend emits one distinctly-worded
+  // violation per roomless entry); every other kind keeps one conflict per
+  // (subject, room, kind) but still collects each offending cell's key.
+  const bySig = new Map<string, Conflict>();
   for (const entry of schedule) {
-    if (!entry.room_id) continue;
-    const room = inputs.rooms.get(entry.room_id);
-    const subject = inputs.subjects.get(entry.subject_id);
-    if (!room || !subject) continue;
-    const emit = (kind: ConflictKind, message: string) => {
-      const dedupe = `${entry.subject_id}|${entry.room_id}|${kind}`;
-      if (seen.has(dedupe)) return;
-      seen.add(dedupe);
-      found.push({ kind, message, entryKeys: [key(entry)] });
+    const emit = (kind: ConflictKind, message: string, perEntry = false) => {
+      const sig = `${entry.subject_id}|${entry.room_id}|${kind}${perEntry ? `|${key(entry)}` : ""}`;
+      const prior = bySig.get(sig);
+      if (!prior) bySig.set(sig, { kind, message, entryKeys: [key(entry)] });
+      else if (!prior.entryKeys.includes(key(entry))) prior.entryKeys.push(key(entry));
     };
+    if (!entry.room_id) {
+      emit(
+        "room-missing",
+        `Entry for '${entry.subject_id}' on ${entry.day} slot ${entry.slot} has no room assigned`,
+        true,
+      );
+      continue;
+    }
+    const room = inputs.rooms.get(entry.room_id);
+    if (!room) {
+      emit("room-unknown", `Entry for '${entry.subject_id}' uses unknown room '${entry.room_id}'`);
+      continue;
+    }
+    const subject = inputs.subjects.get(entry.subject_id);
+    if (!subject) continue;
     const pref = subject.preferredRoomType;
     if (pref && pref !== "any" && room.type !== pref && room.type !== "any") {
       emit(
@@ -128,5 +146,5 @@ function roomEligibility(inputs: ConflictInputs, schedule: ScheduleEntry[]): Con
       }
     }
   }
-  return found;
+  return [...bySig.values()];
 }

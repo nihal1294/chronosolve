@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { CalendarDays, Database, Edit2, Lock, Play, Unlock } from "lucide-react";
+import { CalendarDays, Database, Play } from "lucide-react";
 import { useWorkspace } from "../providers/problem-doc-provider";
 import { listEntities } from "../lib/problem-doc";
 import { displayedSelection } from "../lib/use-manual-edits";
@@ -26,6 +26,7 @@ import { ContextMenu, type MenuState } from "../components/ContextMenu";
 import { CenteredState } from "../components/CenteredState";
 import { ConflictStrip } from "../components/ConflictStrip";
 import { sessionDragItem, type DragItem } from "../lib/drag-rules";
+import { sessionMenu } from "../lib/session-menu";
 
 export function TimetableRoute() {
   const ws = useWorkspace();
@@ -109,34 +110,22 @@ export function TimetableRoute() {
   const openMenu = (event: React.MouseEvent, entry: ScheduleEntry) => {
     event.preventDefault();
     ws.setSelected(entry);
-    const locked = lockedKeys.has(scheduleKey(entry.subject_id, entry.day, entry.slot));
-    setMenu({
-      x: event.clientX,
-      y: event.clientY,
-      width: "w-64",
-      header: [entry.subject_id, entry.room_id ? roomName(entry.room_id) : null].filter(Boolean).join(" • "),
-      items: [
-        locked
-          ? {
-              label: "Unpin from slot",
-              icon: Unlock,
-              shortcut: "P",
-              onSelect: () => ws.locks.unpinBlock(entry),
-            }
-          : { label: "Pin to slot", icon: Lock, shortcut: "P", onSelect: () => ws.locks.pinBlock(entry) },
+    setMenu(
+      sessionMenu(
+        entry,
+        { x: event.clientX, y: event.clientY },
         {
-          label: "Edit course",
-          icon: Edit2,
-          shortcut: "⌘E",
-          onSelect: () => ws.editing.openEdit("subjects", entry.subject_id),
+          lockedKeys,
+          roomName,
+          pinBlock: ws.locks.pinBlock,
+          unpinBlock: ws.locks.unpinBlock,
+          openEdit: ws.editing.openEdit,
         },
-      ],
-    });
+      ),
+    );
   };
 
-  // The panel/highlight target survives only while its exact entry is still
-  // rendered - moving, resetting, or re-solving the selected block would
-  // otherwise leave a stale panel pinning the block's OLD slot (PR #36 R2).
+  // Selection survives only while its exact entry renders (stale-panel pin guard, PR #36 R2).
   const selected = displayedSelection(manual.displaySchedule, ws.selected);
   const gridProps = {
     days,
@@ -229,10 +218,16 @@ export function TimetableRoute() {
           </div>
         )}
         <ConflictStrip
-          moveCount={manual.overrides.length}
+          editCount={manual.overrides.length}
           conflicts={manual.conflicts}
           baseQuality={ws.result?.quality_score ?? null}
           editedQuality={ws.editedQuality}
+          unappliedCount={ws.unappliedCount}
+          canUndo={ws.canUndo}
+          canRedo={ws.canRedo}
+          onUndo={ws.undo}
+          onRedo={ws.redo}
+          onApply={ws.applyEdits}
           onReset={ws.resetManualEdits}
         />
         <DndProvider backend={HTML5Backend}>
@@ -246,7 +241,9 @@ export function TimetableRoute() {
         <SessionPanel
           entry={selected}
           subjectName={name(ws.subjectNames, selected.subject_id)}
-          roomName={roomName(selected.room_id)}
+          nameOf={roomName}
+          roomOptions={ws.roomOptionsFor(selected)}
+          onChangeRoom={(roomId) => ws.changeRoom(selected, roomId)}
           teacherNames={selected.teacher_ids.map((id) => name(teacherNames, id))}
           groupNames={selected.group_ids.map((id) => name(groupNames, id))}
           slotLabel={slotLabels[selected.slot] ?? String(selected.slot)}

@@ -10,8 +10,13 @@ class PreAssignment(BaseModel):
         subject_id: The subject to fix.
         day: The day name (must match a day in TimeStructure).
         slot: The slot number (1-indexed).
+        room_id: Optional room to hold the pinned session in (manual edits).
+            Must be compatible with the subject; for block subjects the pin
+            sits on the block start and room continuity carries it across
+            the block.
     """
 
     subject_id: str = Field(min_length=1)
     day: str = Field(min_length=1)
     slot: int = Field(gt=0)
+    room_id: str | None = None

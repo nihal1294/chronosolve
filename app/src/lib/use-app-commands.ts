@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isTauri } from "./env";
 import { type AppCommandDeps, buildActions, buildNav } from "./command-catalog";
+import { isEditable, matchesShortcut } from "./shortcuts";
 
 export type { Command } from "./command-catalog";
-
-const isEditable = (target: EventTarget | null): boolean =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 
 /** Command palette state + the single global keydown dispatcher. Bindings live
     on the commands so the palette, shortcut sheet, and handlers cannot drift. */
@@ -29,6 +26,8 @@ export function useAppCommands(deps: AppCommandDeps) {
       deps.navigate,
       deps.startTour,
       deps.toggleHints,
+      deps.undoEdit,
+      deps.redoEdit,
     ],
   );
 
@@ -52,8 +51,7 @@ export function useAppCommands(deps: AppCommandDeps) {
       const match = stateRef.current.commands.find(
         (command) =>
           command.shortcut &&
-          command.shortcut.meta === meta &&
-          command.shortcut.key === event.key.toLowerCase(),
+          matchesShortcut(command.shortcut, { meta, shift: event.shiftKey, key: event.key.toLowerCase() }),
       );
       if (match) {
         event.preventDefault();

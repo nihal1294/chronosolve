@@ -176,6 +176,140 @@ class TestPreAssignmentClashes:
         errors = [i for i in issues if i.severity == Severity.ERROR]
         assert any("t1" in e.message and "clashing" in e.message for e in errors)
 
+    def _room_clash_problem(self, *, no_clash: bool) -> TimetableProblem:
+        """Two disjoint subjects pinned into the SAME room at the same slot."""
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Mon"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T1"), Teacher(id="t2", name="T2")],
+            student_groups=[
+                StudentGroup(id="g1", name="G1", size=30),
+                StudentGroup(id="g2", name="G2", size=30),
+            ],
+            subjects=[
+                Subject(id="s1", name="S1", hours_per_week=1, teacher_ids=["t1"], group_ids=["g1"]),
+                Subject(id="s2", name="S2", hours_per_week=1, teacher_ids=["t2"], group_ids=["g2"]),
+            ],
+            rooms=[
+                Room(id="r1", name="R1", capacity=60, type="any"),
+                Room(id="r2", name="R2", capacity=60, type="any"),
+            ],
+            constraints=ConstraintsConfig(hard=HardConstraints(room_no_clash=no_clash)),
+            pre_assignments=[
+                PreAssignment(subject_id="s1", day="Mon", slot=1, room_id="r1"),
+                PreAssignment(subject_id="s2", day="Mon", slot=1, room_id="r1"),
+            ],
+        )
+
+    def test_same_room_clashing_pre_assignments(self) -> None:
+        """Two pins claiming one room at one slot would make the solve infeasible."""
+        issues = validate_problem(self._room_clash_problem(no_clash=True))
+        errors = [i for i in issues if i.severity == Severity.ERROR]
+        assert any("r1" in e.message and "clashing" in e.message for e in errors)
+
+    def test_room_pin_overlap_allowed_when_no_clash_off(self) -> None:
+        """With room_no_clash off the solver accepts sharing, so validation must too."""
+        issues = validate_problem(self._room_clash_problem(no_clash=False))
+        assert not any("clashing" in i.message and "Room" in i.message for i in issues)
+
+    def _block_problem(self, *, slots: tuple[int, int], teacher2: str = "t2") -> TimetableProblem:
+        """Two 2-hour block subjects pinned into room r1 at the given start slots."""
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Mon"], slots_per_day=6),
+            teachers=[Teacher(id="t1", name="T1"), Teacher(id="t2", name="T2")],
+            student_groups=[
+                StudentGroup(id="g1", name="G1", size=30),
+                StudentGroup(id="g2", name="G2", size=30),
+            ],
+            subjects=[
+                Subject(
+                    id="s1",
+                    name="S1",
+                    hours_per_week=2,
+                    consecutive_hours=2,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                ),
+                Subject(
+                    id="s2",
+                    name="S2",
+                    hours_per_week=2,
+                    consecutive_hours=2,
+                    teacher_ids=[teacher2],
+                    group_ids=["g2"],
+                ),
+            ],
+            rooms=[
+                Room(id="r1", name="R1", capacity=60, type="any"),
+                Room(id="r2", name="R2", capacity=60, type="any"),
+            ],
+            pre_assignments=[
+                PreAssignment(subject_id="s1", day="Mon", slot=slots[0], room_id="r1"),
+                PreAssignment(subject_id="s2", day="Mon", slot=slots[1], room_id="r1"),
+            ],
+        )
+
+    def test_overlapping_block_room_pins_clash(self) -> None:
+        """Blocks at slots 1 and 2 share slot 2, so the solve would be infeasible."""
+        issues = validate_problem(self._block_problem(slots=(1, 2)))
+        errors = [i for i in issues if i.severity == Severity.ERROR]
+        assert any(
+            "r1" in e.message and "slot 2" in e.message and "clashing" in e.message for e in errors
+        )
+
+    def test_overlapping_block_teacher_pins_clash(self) -> None:
+        """The same span expansion applies to teacher claims from block pins."""
+        problem = self._block_problem(slots=(1, 2), teacher2="t1")
+        issues = validate_problem(problem)
+        errors = [i for i in issues if i.severity == Severity.ERROR]
+        assert any(
+            "t1" in e.message and "slot 2" in e.message and "clashing" in e.message for e in errors
+        )
+
+    def test_disjoint_block_room_pins_are_clean(self) -> None:
+        """Blocks at slots 1 and 3 cover 1-2 and 3-4: no shared slot, no error."""
+        issues = validate_problem(self._block_problem(slots=(1, 3)))
+        assert not any("clashing" in i.message for i in issues)
+
+
+class TestPreAssignmentRooms:
+    def _problem(self, pinned_room: str) -> TimetableProblem:
+        """A lab-preferring subject pinned into `pinned_room` (lec or lab1)."""
+        return TimetableProblem(
+            time_structure=TimeStructure(days=["Mon"], slots_per_day=4),
+            teachers=[Teacher(id="t1", name="T1")],
+            student_groups=[StudentGroup(id="g1", name="G1", size=30)],
+            subjects=[
+                Subject(
+                    id="s1",
+                    name="S1",
+                    hours_per_week=1,
+                    teacher_ids=["t1"],
+                    group_ids=["g1"],
+                    preferred_room_type="lab",
+                ),
+            ],
+            rooms=[
+                Room(id="lec", name="Lecture", capacity=50, type="lecture"),
+                Room(id="lab1", name="Lab", capacity=30, type="lab"),
+            ],
+            pre_assignments=[
+                PreAssignment(subject_id="s1", day="Mon", slot=1, room_id=pinned_room)
+            ],
+        )
+
+    def test_incompatible_room_pin_errors(self) -> None:
+        """Solve would reject this pin (no room var exists), so validation names it."""
+        issues = validate_problem(self._problem("lec"))
+        errors = [i for i in issues if i.severity == Severity.ERROR]
+        assert any(
+            "s1" in e.message and "lec" in e.message and "not compatible" in e.message
+            for e in errors
+        )
+
+    def test_compatible_room_pin_is_clean(self) -> None:
+        issues = validate_problem(self._problem("lab1"))
+        assert not any("not compatible" in i.message for i in issues)
+
 
 class TestRoomCapacityWarnings:
     def test_group_exceeds_room_capacity(self) -> None:

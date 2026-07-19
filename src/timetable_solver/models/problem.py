@@ -63,6 +63,8 @@ def _collect_reference_errors(problem: "TimetableProblem") -> list[str]:
     for pa in problem.pre_assignments:
         if pa.subject_id not in subject_map:
             errors.append(f"PreAssignment: unknown subject_id {pa.subject_id!r}")
+        if pa.room_id is not None and pa.room_id not in room_ids:
+            errors.append(f"PreAssignment: unknown room_id {pa.room_id!r}")
         if pa.day not in days:
             errors.append(f"PreAssignment: unknown day {pa.day!r}")
             continue

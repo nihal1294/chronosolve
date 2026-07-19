@@ -148,11 +148,13 @@ export function setEntityField(
   return upsertEntity(doc, section, next);
 }
 
-/** One fixed placement: a subject pinned to a (day, slot). */
+/** One fixed placement: a subject pinned to a (day, slot), optionally in a
+    specific room. Pin IDENTITY is the slot triple; the room is an attribute. */
 export interface PinSlot {
   subjectId: string;
   day: string;
   slot: number;
+  roomId?: string;
 }
 
 const matchesPin = (value: unknown, pin: PinSlot): boolean => {
@@ -161,12 +163,21 @@ const matchesPin = (value: unknown, pin: PinSlot): boolean => {
   return entry.subject_id === pin.subjectId && entry.day === pin.day && entry.slot === pin.slot;
 };
 
-/** Pin a subject to a slot via pre_assignments; a no-op if already pinned. */
+/** Pin a subject to a slot via pre_assignments (upsert). A new pin appends;
+    an existing pin at the slot is replaced only when the requested room
+    differs - a bare re-pin (no roomId) keeps whatever room it carries. */
 export function pinAssignment(doc: ProblemDoc, pin: PinSlot): ProblemDoc {
   const list = Array.isArray(doc.pre_assignments) ? doc.pre_assignments : [];
-  if (list.some((entry) => matchesPin(entry, pin))) return { ...doc };
-  const entry = { subject_id: pin.subjectId, day: pin.day, slot: pin.slot };
-  return { ...doc, pre_assignments: [...list, entry] };
+  const index = list.findIndex((entry) => matchesPin(entry, pin));
+  if (index === -1) {
+    const entry = { subject_id: pin.subjectId, day: pin.day, slot: pin.slot };
+    const added = pin.roomId === undefined ? entry : { ...entry, room_id: pin.roomId };
+    return { ...doc, pre_assignments: [...list, added] };
+  }
+  const existing = list[index] as Record<string, unknown>;
+  if (pin.roomId === undefined || existing.room_id === pin.roomId) return { ...doc };
+  const updated = { ...existing, room_id: pin.roomId };
+  return { ...doc, pre_assignments: list.map((entry, i) => (i === index ? updated : entry)) };
 }
 
 /** Remove the exact (subject, day, slot) pin; every other entry survives. */

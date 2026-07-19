@@ -90,6 +90,19 @@ class TestTimetableProblem:
         )
         assert problem.pre_assignments[0].slot == 3
 
+    def test_pre_assignment_unknown_room_rejected(
+        self, minimal_time_structure: TimeStructure
+    ) -> None:
+        """A room pin must reference a defined room (M8c room-carrying pins)."""
+        with pytest.raises(ValidationError, match="unknown room_id"):
+            _problem(
+                minimal_time_structure,
+                rooms=[Room(id="r1", name="R1", capacity=30)],
+                pre_assignments=[
+                    PreAssignment(subject_id="s1", day="Monday", slot=1, room_id="ghost")
+                ],
+            )
+
     def test_duplicate_subject_id_rejected(self, minimal_time_structure: TimeStructure) -> None:
         """Solver variables key on subject IDs, so duplicates must be rejected."""
         with pytest.raises(ValidationError, match="Duplicate Subject id 's1'"):

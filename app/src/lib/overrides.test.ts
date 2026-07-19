@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyOverrides, overridesToPreAssignments, type ManualOverride } from "./overrides";
+import { applyOverrides, type ManualOverride } from "./overrides";
 import type { ScheduleEntry } from "./solver-client";
 
 const entry = (subject: string, day: string, slot: number, room: string | null = null): ScheduleEntry => ({
@@ -16,6 +16,13 @@ const move = (subject: string, from: [string, number], to: [string, number]): Ma
   subjectId: subject,
   from: { day: from[0], slot: from[1] },
   to: { day: to[0], slot: to[1] },
+});
+
+const room = (subject: string, at: [string, number], roomId: string): ManualOverride => ({
+  kind: "room",
+  subjectId: subject,
+  at: { day: at[0], slot: at[1] },
+  roomId,
 });
 
 const NO_BLOCKS = new Map<string, number>();
@@ -70,29 +77,36 @@ describe("applyOverrides", () => {
     expect(next).toContainEqual(entry("lab", "Wed", 4, "r2"));
     expect(next).toHaveLength(2);
   });
-});
 
-describe("overridesToPreAssignments", () => {
-  it("replaces the pin when the same occurrence is re-moved (chained)", () => {
-    const pins = overridesToPreAssignments([
-      move("math", ["Mon", 1], ["Tue", 2]),
-      move("lab", ["Mon", 3], ["Wed", 1]),
-      move("math", ["Tue", 2], ["Fri", 4]),
-    ]);
-    expect(pins).toEqual([
-      { subjectId: "lab", day: "Wed", slot: 1 },
-      { subjectId: "math", day: "Fri", slot: 4 },
-    ]);
+  it("rewrites the room on every covered block slot (room override, M8c)", () => {
+    const blocks = new Map([["lab", 2]]);
+    const schedule = [entry("lab", "Mon", 1, "r1"), entry("lab", "Mon", 2, "r2"), entry("eng", "Mon", 3)];
+    const next = applyOverrides(schedule, [room("lab", ["Mon", 1], "r9")], blocks);
+    expect(next).toContainEqual(entry("lab", "Mon", 1, "r9"));
+    expect(next).toContainEqual(entry("lab", "Mon", 2, "r9"));
+    expect(next).toContainEqual(entry("eng", "Mon", 3));
   });
 
-  it("keeps a separate pin for each moved occurrence of one subject (PR #34 R2)", () => {
-    const pins = overridesToPreAssignments([
-      move("math", ["Mon", 1], ["Tue", 2]),
-      move("math", ["Wed", 3], ["Thu", 4]),
-    ]);
-    expect(pins).toEqual([
-      { subjectId: "math", day: "Thu", slot: 4 },
-      { subjectId: "math", day: "Tue", slot: 2 },
-    ]);
+  it("retargets only the first occupant of a stacked key (room override)", () => {
+    const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
+    const next = applyOverrides(schedule, [room("math", ["Mon", 1], "r9")], NO_BLOCKS);
+    expect(next).toContainEqual(entry("math", "Mon", 1, "r9"));
+    expect(next).toContainEqual(entry("math", "Mon", 1, "r2"));
+    expect(next).toHaveLength(2);
+  });
+
+  it("returns the schedule identity when the room already matches", () => {
+    const schedule = [entry("math", "Mon", 1, "r1")];
+    expect(applyOverrides(schedule, [room("math", ["Mon", 1], "r1")], NO_BLOCKS)).toBe(schedule);
+  });
+
+  it("a move after a room change carries the new room (composition)", () => {
+    const schedule = [entry("math", "Mon", 1, "r1")];
+    const next = applyOverrides(
+      schedule,
+      [room("math", ["Mon", 1], "r9"), move("math", ["Mon", 1], ["Tue", 2])],
+      NO_BLOCKS,
+    );
+    expect(next).toEqual([entry("math", "Tue", 2, "r9")]);
   });
 });

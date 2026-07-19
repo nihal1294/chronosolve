@@ -126,6 +126,26 @@ describe("pinAssignment / unpinAssignment", () => {
     expect(unpinned.pre_assignments).toEqual([other, "malformed"]);
     expect(unpinAssignment(parseDoc(YAML), pin).pre_assignments).toBeUndefined();
   });
+
+  it("upserts the room on an existing pin (room-carrying pins, M8c)", () => {
+    const doc = pinAssignment(parseDoc(YAML), { ...pin, roomId: "r1" });
+    expect(doc.pre_assignments).toEqual([{ ...entry, room_id: "r1" }]);
+    const moved = pinAssignment(doc, { ...pin, roomId: "r2" });
+    expect(moved.pre_assignments).toEqual([{ ...entry, room_id: "r2" }]);
+    const same = pinAssignment(moved, { ...pin, roomId: "r2" });
+    expect(same.pre_assignments).toBe(moved.pre_assignments); // no-op keeps the list
+  });
+
+  it("a bare re-pin keeps the room an existing pin already carries", () => {
+    const doc = { pre_assignments: [{ ...entry, room_id: "r1" }] };
+    const repinned = pinAssignment(doc, pin);
+    expect(repinned.pre_assignments).toBe(doc.pre_assignments);
+  });
+
+  it("unpin removes a room-carrying pin by slot identity (room is an attribute)", () => {
+    const doc = { pre_assignments: [{ ...entry, room_id: "r1" }] };
+    expect(unpinAssignment(doc, pin).pre_assignments).toEqual([]);
+  });
 });
 
 describe("constraint readers", () => {

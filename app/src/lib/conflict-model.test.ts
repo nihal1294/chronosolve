@@ -29,7 +29,12 @@ describe("buildConflictInputs", () => {
       preferredRoomType: "lab",
       requiredTags: ["gpu"],
     });
-    expect(inputs.rooms.get("r1")).toEqual({ capacity: 20, type: "lab", tags: ["gpu"] });
+    expect(inputs.rooms.get("r1")).toEqual({
+      capacity: 20,
+      type: "lab",
+      tags: ["gpu"],
+      reservedFor: null,
+    });
     expect(inputs.groupSizes.get("g1")).toBe(30);
     expect(inputs.teacherUnavailable.get("t1")?.get("Mon")).toEqual(new Set([3, 4]));
     expect(inputs.groupUnavailable.get("g1")?.get("Tue")).toEqual(new Set([1]));
@@ -40,6 +45,24 @@ describe("buildConflictInputs", () => {
       respectAvailability: false,
       roomCapacity: true,
     });
+  });
+
+  it("intersects room_reservations per room (rule 24 mirror)", () => {
+    const inputs = buildConflictInputs({
+      ...DOC,
+      rooms: [...DOC.rooms, { id: "r2", name: "R2", capacity: 20, type: "lab", tags: [] }],
+      constraints: {
+        advanced: {
+          room_reservations: [
+            { room_id: "r1", subject_ids: ["cs", "bio"] },
+            { room_id: "r1", subject_ids: ["cs"] },
+          ],
+        },
+      },
+    });
+    // A subject must appear in EVERY entry for the room, so the sets intersect.
+    expect(inputs.rooms.get("r1")?.reservedFor).toEqual(new Set(["cs"]));
+    expect(inputs.rooms.get("r2")?.reservedFor).toBeNull();
   });
 
   it("yields empty structures and backend-default flags on a malformed doc", () => {

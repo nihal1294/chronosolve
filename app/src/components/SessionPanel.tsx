@@ -1,10 +1,16 @@
 import { Calendar, Edit2, Lock, Unlock, X } from "lucide-react";
+import type { RoomOption } from "../lib/room-eligibility";
 import type { ScheduleEntry } from "../lib/solver-client";
+import { RoomPicker } from "./RoomPicker";
 
 interface SessionPanelProps {
   entry: ScheduleEntry;
   subjectName: string;
-  roomName: string;
+  /** Room display name by id (used by the picker AND the no-rooms row). */
+  nameOf: (roomId: string | null) => string;
+  /** Picker model; empty when the doc defines no rooms (read-only row). */
+  roomOptions: RoomOption[];
+  onChangeRoom: (roomId: string) => void;
   teacherNames: string[];
   groupNames: string[];
   slotLabel: string;
@@ -26,7 +32,7 @@ function Property({ label, value }: { label: string; value: string }) {
 /** Contextual detail pane for the selected timetable block (per-route, not a
     global rail). Carries the pin/unpin + edit affordances. */
 export function SessionPanel(props: SessionPanelProps) {
-  const { entry, subjectName, roomName, teacherNames, groupNames, slotLabel, locked } = props;
+  const { entry, subjectName, nameOf, teacherNames, groupNames, slotLabel, locked } = props;
   return (
     <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-neutral-200 bg-neutral-50/50 dark:border-neutral-800 dark:bg-neutral-950/50">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-neutral-200 px-4 dark:border-neutral-800">
@@ -67,7 +73,19 @@ export function SessionPanel(props: SessionPanelProps) {
         </div>
 
         <div className="space-y-2">
-          <Property label="Room" value={roomName} />
+          {props.roomOptions.length > 0 ? (
+            <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-1 text-xs dark:border-neutral-800">
+              <span className="shrink-0 text-neutral-500 dark:text-neutral-400">Room</span>
+              <RoomPicker
+                value={entry.room_id}
+                options={props.roomOptions}
+                nameOf={nameOf}
+                onChange={props.onChangeRoom}
+              />
+            </div>
+          ) : (
+            <Property label="Room" value={nameOf(entry.room_id)} />
+          )}
           <Property label="Teachers" value={teacherNames.join(", ")} />
           <Property label="Groups" value={groupNames.join(", ")} />
         </div>

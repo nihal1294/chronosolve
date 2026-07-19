@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { SHORTCUTS, buildActions, buildNav, type AppCommandDeps } from "./command-catalog";
+import { buildActions, buildNav, type AppCommandDeps } from "./command-catalog";
+import { matchesShortcut, SHORTCUTS } from "./shortcuts";
 
 function deps(over: Partial<AppCommandDeps> = {}): AppCommandDeps {
   return {
@@ -15,6 +16,8 @@ function deps(over: Partial<AppCommandDeps> = {}): AppCommandDeps {
     navigate: vi.fn(),
     startTour: vi.fn(),
     toggleHints: vi.fn(),
+    undoEdit: vi.fn(),
+    redoEdit: vi.fn(),
     ...over,
   };
 }
@@ -99,6 +102,8 @@ describe("command catalog shortcuts", () => {
       "new",
       "open",
       "save",
+      "edit-undo",
+      "edit-redo",
       "nav-/settings",
       "toggle-help-hints",
     ]);
@@ -106,5 +111,44 @@ describe("command catalog shortcuts", () => {
       expect(spec.keys.length).toBeGreaterThan(0);
       expect(spec.shortcut.meta).toBe(true);
     }
+  });
+
+  it("undo/redo edit: ⌘Z / ⇧⌘Z run the session verbs, but restore text undo in editors", () => {
+    const undoEdit = vi.fn();
+    const redoEdit = vi.fn();
+    const byId = Object.fromEntries(
+      buildActions(deps({ undoEdit, redoEdit }), vi.fn()).map((c) => [c.id, c]),
+    );
+    expect(byId["edit-undo"].shortcut).toEqual({ meta: true, key: "z" });
+    expect(byId["edit-redo"].shortcut).toEqual({ meta: true, key: "z", shift: true });
+    // Nothing editable focused: the timetable session verbs run.
+    byId["edit-undo"].run();
+    byId["edit-redo"].run();
+    expect(undoEdit).toHaveBeenCalledOnce();
+    expect(redoEdit).toHaveBeenCalledOnce();
+    // An editable focused: the accelerator/dispatcher swallowed the keystroke,
+    // so the command restores the field's own text undo instead.
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    const execCommand = vi.fn();
+    document.execCommand = execCommand;
+    byId["edit-undo"].run();
+    byId["edit-redo"].run();
+    expect(execCommand).toHaveBeenNthCalledWith(1, "undo");
+    expect(execCommand).toHaveBeenNthCalledWith(2, "redo");
+    expect(undoEdit).toHaveBeenCalledOnce(); // unchanged
+    expect(redoEdit).toHaveBeenCalledOnce();
+    input.remove();
+  });
+
+  it("matchesShortcut discriminates shift exactly (⌘Z is not ⇧⌘Z)", () => {
+    const undo = { meta: true, key: "z" };
+    const redo = { meta: true, key: "z", shift: true };
+    expect(matchesShortcut(undo, { meta: true, shift: false, key: "z" })).toBe(true);
+    expect(matchesShortcut(undo, { meta: true, shift: true, key: "z" })).toBe(false);
+    expect(matchesShortcut(redo, { meta: true, shift: true, key: "z" })).toBe(true);
+    expect(matchesShortcut(redo, { meta: true, shift: false, key: "z" })).toBe(false);
+    expect(matchesShortcut(undo, { meta: false, shift: false, key: "z" })).toBe(false);
   });
 });

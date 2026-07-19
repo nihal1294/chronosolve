@@ -135,7 +135,11 @@ def add_group_max_hours(
 def add_pre_assignments(
     model: cp_model.CpModel, variables: SolverVariables, problem: TimetableProblem
 ) -> None:
-    """Fix pre-assigned slots. For block subjects the slot is the block start."""
+    """Fix pre-assigned slots (and rooms). Block slots are the block start.
+
+    A room pin naming an incompatible room raises ValueError - no room var
+    exists for it, and /solve skips validation, so fail clean, not KeyError.
+    """
     day_index = {day: i for i, day in enumerate(problem.time_structure.days)}
     subjects = {s.id: s for s in problem.subjects}
     for pre in problem.pre_assignments:
@@ -145,6 +149,14 @@ def add_pre_assignments(
             model.add(variables.block_starts[key] == 1)
         else:
             model.add(variables.assignments[key] == 1)
+        if pre.room_id is not None:
+            choice = variables.room_choices.get((*key, pre.room_id))
+            if choice is None:
+                raise ValueError(
+                    f"Pre-assignment pins {pre.subject_id!r} to room "
+                    f"{pre.room_id!r}, which is not compatible with the subject"
+                )
+            model.add(choice == 1)
 
 
 def _subject_assignment_vars(variables: SolverVariables, subject_id: str) -> list[cp_model.IntVar]:

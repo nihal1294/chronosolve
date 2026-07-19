@@ -38,6 +38,8 @@ export interface PreAssignment {
   subjectId: string;
   day: string;
   slot: number;
+  /** Room the pin holds the session in; absent = slot-only pin (M8c). */
+  roomId?: string;
 }
 
 export interface ProblemEntities {
@@ -123,6 +125,7 @@ export function parseEntities(problem: unknown): ProblemEntities {
         subjectId: asStr(raw.subject_id),
         day: asStr(raw.day),
         slot: asNum(raw.slot) ?? 0,
+        ...(typeof raw.room_id === "string" ? { roomId: raw.room_id } : {}),
       }))
       .filter((pin) => pin.subjectId !== "" && pin.day !== "" && pin.slot > 0),
     days: asStrList(time.days),

@@ -4,7 +4,8 @@
 //! command. Items that mirror a shortcut carry a native accelerator so macOS
 //! displays it; on desktop the JS dispatcher steps aside (see
 //! `use-app-commands.ts`) so each shortcut fires exactly once. Predefined items
-//! (Quit, the Edit group) keep their native accelerators and need no handling.
+//! (Quit, Edit's cut/copy/paste/select-all) keep their native accelerators and
+//! need no handling; Edit's Undo/Redo are custom since M8c (see below).
 
 use tauri::image::Image;
 use tauri::menu::{
@@ -52,9 +53,20 @@ pub fn install(app: &App) -> tauri::Result<()> {
         .text("import", "Import CSV…")
         .build()?;
 
+    // Undo/Redo are CUSTOM items (M8c): their ids dispatch through the webview
+    // like every other command, where the handler branches - text undo
+    // (execCommand) when an editable is focused, timetable session undo/redo
+    // otherwise. Predefined .undo()/.redo() would keep ⌘Z native-only and the
+    // timetable verbs unreachable from the keyboard on desktop.
+    let undo = MenuItemBuilder::with_id("edit-undo", "Undo")
+        .accelerator("CmdOrCtrl+Z")
+        .build(app)?;
+    let redo = MenuItemBuilder::with_id("edit-redo", "Redo")
+        .accelerator("CmdOrCtrl+Shift+Z")
+        .build(app)?;
     let edit_menu = SubmenuBuilder::new(app, "Edit")
-        .undo()
-        .redo()
+        .item(&undo)
+        .item(&redo)
         .separator()
         .cut()
         .copy()

@@ -40,6 +40,10 @@ pre_assignments:
   - subject_id: math
     day: Monday
     slot: 1
+  - subject_id: sci_lab
+    day: Tuesday
+    slot: 2
+    room_id: r101
 `;
 
 describe("parseEntities", () => {
@@ -67,7 +71,10 @@ describe("parseEntities", () => {
     expect(entities.days).toEqual(["Monday", "Tuesday"]);
     expect(entities.slotsPerDay).toBe(6);
     expect(entities.slotLabels[1]).toBe("9:00 - 9:55");
-    expect(entities.preAssignments).toEqual([{ subjectId: "math", day: "Monday", slot: 1 }]);
+    expect(entities.preAssignments).toEqual([
+      { subjectId: "math", day: "Monday", slot: 1 },
+      { subjectId: "sci_lab", day: "Tuesday", slot: 2, roomId: "r101" },
+    ]);
   });
 
   it("falls back to the id when a name is missing", () => {

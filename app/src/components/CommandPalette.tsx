@@ -31,6 +31,11 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   };
 
   const run = (command: Command) => {
+    // The palette unmounts asynchronously, so its search input is still the
+    // active element inside command.run() - blur first so commands that
+    // inspect document.activeElement (edit-undo/redo's editable fallback)
+    // see the real editing context, not the palette.
+    inputRef.current?.blur();
     onClose();
     command.run();
   };
