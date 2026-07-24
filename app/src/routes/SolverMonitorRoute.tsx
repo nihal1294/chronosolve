@@ -158,7 +158,12 @@ export function SolverMonitorRoute() {
             </div>
 
             <SolveAnalytics doc={ws.doc} result={result} entities={ws.entities} />
-            <ExportCard schedule={result.schedule} />
+            <ExportCard
+              schedule={result.schedule}
+              entities={ws.entities}
+              subjectNames={ws.subjectNames}
+              roomNames={ws.roomNames}
+            />
 
             <button onClick={() => navigate("/timetable")} className={`w-full ${primary}`}>
               <CalendarDays size={16} />
