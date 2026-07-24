@@ -13,6 +13,7 @@ export interface SlotTime {
 const LABEL_RANGE = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/;
 
 const FALLBACK_FIRST_HOUR = 8;
+const FALLBACK_LAST_HOUR = 23;
 const FALLBACK_MINUTES = 55;
 
 export function slotTimes(slot: number, labels: Record<number, string>): SlotTime {
@@ -23,6 +24,8 @@ export function slotTimes(slot: number, labels: Record<number, string>): SlotTim
       end: [Number(match[3]), Number(match[4])],
     };
   }
-  const hour = FALLBACK_FIRST_HOUR + slot - 1;
+  // Clamped: slot counts past midnight would otherwise emit an invalid
+  // 24+ hour in the ICS DTSTART/DTEND.
+  const hour = Math.min(FALLBACK_FIRST_HOUR + slot - 1, FALLBACK_LAST_HOUR);
   return { start: [hour, 0], end: [hour, FALLBACK_MINUTES] };
 }

@@ -78,6 +78,15 @@ describe("buildIcs", () => {
     expect(ics).toContain("UID:math-tue-2@chronosolve\r\n");
   });
 
+  it("stamps every event with a UTC DTSTAMP derived from the injected 'from'", () => {
+    const { ics } = buildIcs([entry("math", "Mon", 1), entry("eng", "Tue", 2)], opts());
+    const expected = `DTSTAMP:${SUNDAY.toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "")}\r\n`;
+    expect(ics.match(/DTSTAMP:/g)).toHaveLength(2);
+    expect(ics).toContain(expected);
+  });
+
   it("skips entries whose day is not a recognizable weekday and reports them", () => {
     const { ics, skipped } = buildIcs([entry("math", "Funday", 1), entry("math", "Mon", 1)], opts());
     expect(skipped).toEqual(["Funday"]);

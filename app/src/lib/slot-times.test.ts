@@ -22,4 +22,9 @@ describe("slotTimes", () => {
   it("falls back when the label exists but is not a time range", () => {
     expect(slotTimes(2, { 2: "Period two" })).toEqual({ start: [9, 0], end: [9, 55] });
   });
+
+  it("clamps the synthetic fallback so late slots stay a valid time of day", () => {
+    expect(slotTimes(16, {})).toEqual({ start: [23, 0], end: [23, 55] });
+    expect(slotTimes(20, {})).toEqual({ start: [23, 0], end: [23, 55] });
+  });
 });

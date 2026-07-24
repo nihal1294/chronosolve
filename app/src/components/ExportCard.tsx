@@ -85,7 +85,7 @@ export function ExportCard({ schedule, entities, subjectNames, roomNames }: Expo
         from: new Date(),
         labels: entities?.slotLabels ?? {},
         subjectName: (id) => subjectNames.get(id) ?? id,
-        roomName: (id) => (id === null ? "" : (roomNames.get(id) ?? id)),
+        roomName: (id) => roomNames.get(id) ?? id,
       });
       const saved = await saveTextFile(`${fileSlug(scope.name)}.ics`, ics);
       const skipNote = skipped.length > 0 ? ` (skipped unknown days: ${skipped.join(", ")})` : "";

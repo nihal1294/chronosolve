@@ -39,10 +39,11 @@ export function PrintReport({
     );
   }, [printSignal, onProblem]);
 
-  const groups = pivotByAxis(schedule, "class");
+  // Sections come from entities.groups, not the schedule pivot, so a class
+  // with no scheduled sessions still gets its (empty) grid in the report.
+  const sessionsByGroup = pivotByAxis(schedule, "class");
   const days = entities.days;
   const slots = Array.from({ length: entities.slotsPerDay }, (_, i) => i + 1);
-  const groupName = (id: string) => entities.groups.find((g) => g.id === id)?.name ?? id;
 
   const cell = (sessions: ScheduleEntry[], day: string, slot: number) => {
     const hits = sessions.filter((s) => s.day === day && s.slot === slot);
@@ -68,9 +69,12 @@ export function PrintReport({
   return createPortal(
     <div className="print-report bg-white p-8 text-neutral-900">
       <style>{printCss}</style>
-      {[...groups.entries()].map(([groupId, sessions], index) => (
-        <section key={groupId} className={index < groups.size - 1 ? "print-page-break mb-8" : "mb-8"}>
-          <h3 className="mb-2 text-base font-bold">{groupName(groupId)}</h3>
+      {entities.groups.map((group, index) => (
+        <section
+          key={group.id}
+          className={index < entities.groups.length - 1 ? "print-page-break mb-8" : "mb-8"}
+        >
+          <h3 className="mb-2 text-base font-bold">{group.name}</h3>
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr>
@@ -90,7 +94,7 @@ export function PrintReport({
                   </td>
                   {days.map((day) => (
                     <td key={day} className="border border-neutral-300 px-2 py-1 align-top">
-                      {cell(sessions, day, slot).map((line) => (
+                      {cell(sessionsByGroup.get(group.id) ?? [], day, slot).map((line) => (
                         <div key={line}>{line}</div>
                       ))}
                     </td>

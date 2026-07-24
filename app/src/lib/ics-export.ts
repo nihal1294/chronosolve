@@ -11,7 +11,7 @@ export interface IcsOptions {
   from: Date;
   labels: Record<number, string>;
   subjectName: (id: string) => string;
-  roomName: (id: string | null) => string;
+  roomName: (id: string) => string;
 }
 
 const WEEKS = 12;
@@ -35,6 +35,11 @@ const two = (n: number): string => String(n).padStart(2, "0");
 const stamp = (date: Date, [hour, minute]: [number, number]): string =>
   `${date.getFullYear()}${two(date.getMonth() + 1)}${two(date.getDate())}T${two(hour)}${two(minute)}00`;
 
+/** DTSTAMP is a required VEVENT property (RFC 5545 3.6.1) and must be UTC. */
+const utcStamp = (date: Date): string =>
+  `${date.getUTCFullYear()}${two(date.getUTCMonth() + 1)}${two(date.getUTCDate())}T` +
+  `${two(date.getUTCHours())}${two(date.getUTCMinutes())}${two(date.getUTCSeconds())}Z`;
+
 /** The next date on or after `from` falling on the given weekday. */
 const nextWeekday = (from: Date, weekday: number): Date => {
   const date = new Date(from);
@@ -44,10 +49,14 @@ const nextWeekday = (from: Date, weekday: number): Date => {
 
 const eventLines = (entry: ScheduleEntry, date: Date, opts: IcsOptions): string[] => {
   const { start, end } = slotTimes(entry.slot, opts.labels);
+  // (subject, day, slot) is unique here only because each export covers ONE
+  // teacher or group and the solver forbids double-booking them at a slot;
+  // a calendar scoped any wider (e.g. per room) would need a richer UID.
   const uid = `${entry.subject_id}-${entry.day.slice(0, 3).toLowerCase()}-${entry.slot}@chronosolve`;
   const lines = [
     "BEGIN:VEVENT",
     `UID:${escapeText(uid)}`,
+    `DTSTAMP:${utcStamp(opts.from)}`,
     `DTSTART:${stamp(date, start)}`,
     `DTEND:${stamp(date, end)}`,
     `RRULE:FREQ=WEEKLY;COUNT=${WEEKS}`,
