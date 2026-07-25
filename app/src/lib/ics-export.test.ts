@@ -108,6 +108,15 @@ describe("buildIcs", () => {
     expect(new Set(starts).size).toBe(5);
   });
 
+  it("escapes carriage returns so a name cannot break the line structure", () => {
+    const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ subjectName: () => "Lab\r\nPart two" }));
+    expect(ics).toContain("SUMMARY:Lab\\nPart two");
+    const bare = buildIcs([entry("math", "Mon", 1)], opts({ subjectName: () => "Lab\rPart" })).ics;
+    expect(bare).toContain("SUMMARY:Lab\\nPart");
+    // Nothing but the CRLF separators themselves may carry a carriage return.
+    expect(bare.split("\r\n").every((line) => !line.includes("\r"))).toBe(true);
+  });
+
   it("folds content lines longer than the 75-octet iCalendar limit", () => {
     const name = "Advanced Thermodynamics and Heat Transfer Laboratory Session B (Cohort 2)";
     const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ subjectName: () => name }));

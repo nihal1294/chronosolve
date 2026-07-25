@@ -29,8 +29,16 @@ const WEEKDAYS: Record<string, number> = {
   sat: 6,
 };
 
+/** RFC 5545 3.3.11: TEXT escapes backslash, semicolon and comma, and carries
+    line breaks only as the literal \n sequence. Every break form collapses to
+    one of those - a raw CR left in a name would otherwise sit inside a content
+    line and break the CRLF framing. */
 const escapeText = (value: string): string =>
-  value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  value
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r\n|\r|\n/g, "\\n");
 
 /** RFC 5545 3.1: a content line is at most 75 octets, longer values continue
     on the next line behind a single space. Subject and room names have no
