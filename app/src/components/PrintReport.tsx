@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { labelUniquely } from "../lib/export-naming";
 import { printPage } from "../lib/print-page";
 import { pivotByAxis } from "../lib/timetable-filters";
 import type { ProblemEntities } from "../lib/entities";
@@ -42,6 +43,9 @@ export function PrintReport({
   // Sections come from entities.groups, not the schedule pivot, so a class
   // with no scheduled sessions still gets its (empty) grid in the report.
   const sessionsByGroup = pivotByAxis(schedule, "class");
+  // A saved report cannot be asked which class a section belongs to, so classes
+  // sharing a name carry their id in the heading.
+  const groupLabel = labelUniquely(entities.groups);
   const days = entities.days;
   // Rows span the highest slot actually scheduled as well as the default
   // count, mirroring the Timetable route: a day whose slot_overrides exceed
@@ -78,7 +82,7 @@ export function PrintReport({
           key={group.id}
           className={index < entities.groups.length - 1 ? "print-page-break mb-8" : "mb-8"}
         >
-          <h3 className="mb-2 text-base font-bold">{group.name}</h3>
+          <h3 className="mb-2 text-base font-bold">{groupLabel(group)}</h3>
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr>

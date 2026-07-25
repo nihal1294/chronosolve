@@ -16,6 +16,7 @@ const ENTITIES: ProblemEntities = {
   groups: [
     { id: "g1", name: "Class A", size: null, department: "", semester: "" },
     { id: "g2", name: "Class B", size: null, department: "", semester: "" },
+    { id: "g3", name: "Class B", size: null, department: "", semester: "" },
   ],
   rooms: [],
   preAssignments: [],
@@ -71,9 +72,14 @@ describe("PrintReport", () => {
 
   it("renders a grid for every class, including ones with no scheduled sessions", () => {
     const report = render(SCHEDULE);
-    expect(report.querySelectorAll("section")).toHaveLength(2);
+    expect(report.querySelectorAll("section")).toHaveLength(3);
     expect(report.textContent).toContain("Class A");
     expect(report.textContent).toContain("Class B");
+  });
+
+  it("tells apart two classes that share a name, since a saved report cannot ask", () => {
+    const headings = [...render(SCHEDULE).querySelectorAll("h3")].map((h) => h.textContent);
+    expect(headings).toEqual(["Class A", "Class B (g2)", "Class B (g3)"]);
   });
 
   it("keeps sessions scheduled past the default slot count (per-day overrides)", () => {

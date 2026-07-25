@@ -1,7 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { Calendar, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { saveTextFile, toCsv } from "../lib/export-file";
-import { fileSlug, skipNote } from "../lib/export-naming";
+import { fileSlug, labelUniquely, skipNote } from "../lib/export-naming";
 import { buildIcs, icsSessionsFor } from "../lib/ics-export";
 import { PrintReport } from "./PrintReport";
 import type { ProblemEntities } from "../lib/entities";
@@ -51,10 +51,16 @@ interface IcsScope {
   name: string;
 }
 
-const icsScopes = (entities: ProblemEntities): IcsScope[] => [
-  ...entities.teachers.map((t): IcsScope => ({ kind: "teacher", id: t.id, name: t.name })),
-  ...entities.groups.map((g): IcsScope => ({ kind: "group", id: g.id, name: g.name })),
-];
+/** Names are labeled within their own kind, the row's Teacher/Class chip
+    already telling a teacher apart from a class of the same name. */
+const icsScopes = (entities: ProblemEntities): IcsScope[] => {
+  const teacher = labelUniquely(entities.teachers);
+  const group = labelUniquely(entities.groups);
+  return [
+    ...entities.teachers.map((t): IcsScope => ({ kind: "teacher", id: t.id, name: teacher(t) })),
+    ...entities.groups.map((g): IcsScope => ({ kind: "group", id: g.id, name: group(g) })),
+  ];
+};
 
 /** Publish & export card. CSV and ICS save through the native dialog (ICS
     expands a scope picker first); PDF opens the OS print dialog directly over

@@ -96,6 +96,7 @@ const LONG_DAY: ProblemEntities = {
     { id: "t1", name: "Ada", unavailable: "" },
     { id: "t2", name: "Grace", unavailable: "" },
     { id: "t3", name: "张伟", unavailable: "" },
+    { id: "t4", name: "Grace", unavailable: "" },
   ],
   slotsPerDay: 6,
   slotLabels: {},
@@ -167,6 +168,16 @@ describe("ExportCard calendar row", () => {
     const grace = await exportFor("Grace");
     expect(startOfSlot16(ada)).not.toBe("");
     expect(startOfSlot16(ada)).toBe(startOfSlot16(grace));
+  });
+
+  it("tells apart two teachers who share a name, in the picker and the filename", async () => {
+    await clickButton((text) => text.includes("iCal / calendar sync"));
+    const rows = [...document.querySelectorAll("button")].map((button) => button.textContent ?? "");
+    expect(rows.filter((text) => text.includes("Grace (t2)"))).toHaveLength(1);
+    expect(rows.filter((text) => text.includes("Grace (t4)"))).toHaveLength(1);
+    await clickButton((text) => text.trim().startsWith("Grace (t4)"));
+    const calls = mocks.saveTextFile.mock.calls;
+    expect(calls[calls.length - 1][0]).toBe("grace-t4.ics");
   });
 
   it("keeps a scope name that has nothing ASCII in it out of the filename slug", async () => {

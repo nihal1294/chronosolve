@@ -15,6 +15,16 @@ export function fileSlug(name: string, id: string): string {
   return slug(name) || slug(id) || "calendar";
 }
 
+/** Labels entities for a reader who cannot see their ids. Only ids are unique,
+    so two teachers may genuinely share a name; those get the id appended and
+    the rest keep the plain name, since an id helps nobody when the name is
+    already unambiguous. */
+export function labelUniquely<T extends { id: string; name: string }>(items: T[]): (item: T) => string {
+  const seen = new Map<string, number>();
+  for (const item of items) seen.set(item.name, (seen.get(item.name) ?? 0) + 1);
+  return (item) => ((seen.get(item.name) ?? 0) > 1 ? `${item.name} (${item.id})` : item.name);
+}
+
 /** Names what a calendar left out, so a short export is never silent: days that
     are not weekdays, and slots the labels left no room for. */
 export function skipNote(skipped: string[], unplaced: number[]): string {
