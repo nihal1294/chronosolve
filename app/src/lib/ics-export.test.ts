@@ -148,6 +148,26 @@ describe("buildIcs", () => {
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
   });
 
+  it("skips a day that only begins like a weekday rather than guessing it", () => {
+    // "Monday-A" is the shape a fortnightly timetable takes, and matching on the
+    // first three letters would land it on Monday next to "Monday-B", sharing a
+    // date and a UID with it.
+    const schedule = [entry("math", "Monkey", 1), entry("eng", "Monday-A", 1), entry("art", "Mon", 1)];
+    const { ics, skipped } = buildIcs(schedule, opts());
+    expect(skipped).toEqual(["Monkey", "Monday-A"]);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+  });
+
+  it("accepts the weekday spellings a timetable actually uses", () => {
+    const days = ["Tues", "Thurs", "Thur", "Weds", "Wednesday", "sun", " Fri "];
+    const { ics, skipped } = buildIcs(
+      days.map((day, index) => entry(`s${index}`, day, 1)),
+      opts(),
+    );
+    expect(skipped).toEqual([]);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(days.length);
+  });
+
   it("skips entries whose slot has no room left in the day and reports them", () => {
     const labels = { 1: "23:00 - 23:59" };
     const { ics, unplaced } = buildIcs(

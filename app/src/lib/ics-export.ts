@@ -18,15 +18,29 @@ export interface IcsOptions {
 
 const WEEKS = 12;
 
-/** Mon..Sun by 3-letter prefix, matching both "Mon" and "Monday" (Date.getDay order). */
+/** Weekday numbers (Date.getDay order) for the spellings a timetable writes,
+    matched whole rather than by leading letters: day names are free text, so a
+    fortnightly "Monday-A" would otherwise export as Monday and land on the same
+    date and UID as "Monday-B". Anything unlisted is reported, not guessed at. */
 const WEEKDAYS: Record<string, number> = {
   sun: 0,
+  sunday: 0,
   mon: 1,
+  monday: 1,
   tue: 2,
+  tues: 2,
+  tuesday: 2,
   wed: 3,
+  weds: 3,
+  wednesday: 3,
   thu: 4,
+  thur: 4,
+  thurs: 4,
+  thursday: 4,
   fri: 5,
+  friday: 5,
   sat: 6,
+  saturday: 6,
 };
 
 /** RFC 5545 3.3.11: TEXT escapes backslash, semicolon and comma, and carries
@@ -151,7 +165,7 @@ export function buildIcs(
   // would give the same slot different times.
   const slotCount = Math.max(opts.slotCount, ...sessions.map((entry) => entry.slot), 1);
   for (const entry of sessions) {
-    const weekday = WEEKDAYS[entry.day.slice(0, 3).toLowerCase()];
+    const weekday = WEEKDAYS[entry.day.trim().toLowerCase()];
     if (weekday === undefined) {
       if (!skipped.includes(entry.day)) skipped.push(entry.day);
       continue;
