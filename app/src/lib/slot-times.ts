@@ -1,8 +1,8 @@
 /** Wall-clock start/end for a slot, derived from the problem's optional
     slot_labels. Labels like "9:00 - 9:55" (the template's own example)
-    parse directly; anything else falls back to synthetic 55-minute
-    periods on the hour from 08:00, so an unlabeled timetable still
-    exports as a plausible calendar. */
+    parse directly; anything else falls back to synthetic periods running
+    hourly from 08:00, so an unlabeled timetable still exports as a
+    plausible calendar. */
 
 export interface SlotTime {
   /** [hour, minute] in local time (timezone handling is out of scope). */
@@ -12,11 +12,30 @@ export interface SlotTime {
 
 const LABEL_RANGE = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/;
 
-const FALLBACK_FIRST_HOUR = 8;
-const FALLBACK_LAST_HOUR = 23;
-const FALLBACK_MINUTES = 55;
+const DAY_START = 8 * 60;
+const DAY_END = 24 * 60;
+const LAST_MINUTE = 23 * 60 + 59;
+const PERIOD = 60;
+const LENGTH = 55;
+const GAP = PERIOD - LENGTH;
 
-export function slotTimes(slot: number, labels: Record<number, string>): SlotTime {
+const hourMinute = (minutes: number): [number, number] => [Math.floor(minutes / 60), minutes % 60];
+
+/** Synthetic period for a slot with no usable label: hourly from 08:00,
+    compressed to a shorter cadence once a day holds more slots than whole
+    hours remain before midnight. Without that, every slot past the 16th
+    would land on the same 23:00 range and export as overlapping,
+    indistinguishable events. */
+function syntheticTime(slot: number, slotCount: number): SlotTime {
+  const period = Math.max(1, Math.min(PERIOD, Math.floor((DAY_END - DAY_START) / Math.max(slotCount, slot))));
+  const start = Math.min(DAY_START + (slot - 1) * period, LAST_MINUTE - 1);
+  const end = Math.min(start + Math.max(1, Math.min(LENGTH, period - GAP)), LAST_MINUTE);
+  return { start: hourMinute(start), end: hourMinute(end) };
+}
+
+/** `slotCount` is how many slots the day holds; it only affects unlabeled
+    slots, and defaults to treating this slot as the day's last. */
+export function slotTimes(slot: number, labels: Record<number, string>, slotCount = slot): SlotTime {
   const match = labels[slot]?.trim().match(LABEL_RANGE);
   if (match) {
     const [startHour, startMinute, endHour, endMinute] = match.slice(1).map(Number);
@@ -28,8 +47,5 @@ export function slotTimes(slot: number, labels: Record<number, string>): SlotTim
       return { start: [startHour, startMinute], end: [endHour, endMinute] };
     }
   }
-  // Clamped: slot counts past midnight would otherwise emit an invalid
-  // 24+ hour in the ICS DTSTART/DTEND.
-  const hour = Math.min(FALLBACK_FIRST_HOUR + slot - 1, FALLBACK_LAST_HOUR);
-  return { start: [hour, 0], end: [hour, FALLBACK_MINUTES] };
+  return syntheticTime(slot, slotCount);
 }

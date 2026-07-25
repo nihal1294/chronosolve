@@ -17,6 +17,7 @@ const SUNDAY = new Date(2026, 6, 19);
 const opts = (overrides: Partial<IcsOptions> = {}): IcsOptions => ({
   from: SUNDAY,
   labels: { 1: "9:00 - 9:55" },
+  slotCount: 8,
   subjectName: (id) => (id === "math" ? "Mathematics" : id),
   roomName: (id) => (id === "r1" ? "Room 101" : (id ?? "")),
   ...overrides,
@@ -97,6 +98,14 @@ describe("buildIcs", () => {
       .replace(/\.\d{3}/, "")}\r\n`;
     expect(ics.match(/DTSTAMP:/g)).toHaveLength(2);
     expect(ics).toContain(expected);
+  });
+
+  it("gives unlabeled sessions of a long day distinct start times", () => {
+    const sessions = [16, 17, 18, 19, 20].map((slot) => entry("math", "Mon", slot));
+    const { ics } = buildIcs(sessions, opts({ labels: {}, slotCount: 20 }));
+    const starts = [...ics.matchAll(/DTSTART:(\d{8}T\d{6})/g)].map((match) => match[1]);
+    expect(starts).toHaveLength(5);
+    expect(new Set(starts).size).toBe(5);
   });
 
   it("skips entries whose day is not a recognizable weekday and reports them", () => {

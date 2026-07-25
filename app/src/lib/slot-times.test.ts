@@ -33,8 +33,19 @@ describe("slotTimes", () => {
     expect(slotTimes(2, { 2: "09:99 - 10:99" })).toEqual({ start: [9, 0], end: [9, 55] });
   });
 
-  it("clamps the synthetic fallback so late slots stay a valid time of day", () => {
-    expect(slotTimes(16, {})).toEqual({ start: [23, 0], end: [23, 55] });
-    expect(slotTimes(20, {})).toEqual({ start: [23, 0], end: [23, 55] });
+  it("keeps the hourly cadence for a day that fits in the hours from 08:00", () => {
+    expect(slotTimes(1, {}, 8)).toEqual({ start: [8, 0], end: [8, 55] });
+    expect(slotTimes(16, {}, 16)).toEqual({ start: [23, 0], end: [23, 55] });
+  });
+
+  it("compresses the fallback so a long day keeps every slot distinct and valid", () => {
+    const times = [16, 17, 18, 19, 20].map((slot) => slotTimes(slot, {}, 20));
+    const starts = times.map(({ start }) => start[0] * 60 + start[1]);
+    expect(new Set(starts).size).toBe(starts.length);
+    expect([...starts]).toEqual([...starts].sort((a, b) => a - b));
+    for (const { start, end } of times) {
+      expect(end[0]).toBeLessThanOrEqual(23);
+      expect(end[0] * 60 + end[1]).toBeGreaterThan(start[0] * 60 + start[1]);
+    }
   });
 });

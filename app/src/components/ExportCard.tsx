@@ -84,6 +84,7 @@ export function ExportCard({ schedule, entities, subjectNames, roomNames }: Expo
       const { ics, skipped } = buildIcs(icsSessionsFor(schedule, scope.kind, scope.id), {
         from: new Date(),
         labels: entities?.slotLabels ?? {},
+        slotCount: entities?.slotsPerDay ?? 0,
         subjectName: (id) => subjectNames.get(id) ?? id,
         roomName: (id) => roomNames.get(id) ?? id,
       });

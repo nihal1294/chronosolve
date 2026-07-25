@@ -10,6 +10,8 @@ export interface IcsOptions {
   /** "Today" for the next-weekday anchor (injected so tests are deterministic). */
   from: Date;
   labels: Record<number, string>;
+  /** Slots the day holds; only shapes the synthetic times of unlabeled slots. */
+  slotCount: number;
   subjectName: (id: string) => string;
   roomName: (id: string) => string;
 }
@@ -50,8 +52,8 @@ const nextWeekday = (from: Date, weekday: number): Date => {
 const sameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-const eventLines = (entry: ScheduleEntry, anchor: Date, opts: IcsOptions): string[] => {
-  const { start, end } = slotTimes(entry.slot, opts.labels);
+const eventLines = (entry: ScheduleEntry, anchor: Date, opts: IcsOptions, slotCount: number): string[] => {
+  const { start, end } = slotTimes(entry.slot, opts.labels, slotCount);
   // A same-day session whose start already passed anchors to next week, so
   // COUNT covers upcoming occurrences instead of one past plus the rest.
   const date = new Date(anchor);
@@ -91,13 +93,17 @@ export function icsSessionsFor(
 export function buildIcs(sessions: ScheduleEntry[], opts: IcsOptions): { ics: string; skipped: string[] } {
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ChronoSolve//Timetable//EN"];
   const skipped: string[] = [];
+  // One cadence for the whole file: per-day slot_overrides can push sessions
+  // past the configured slots_per_day, and mixing cadences within a calendar
+  // would give the same slot different times.
+  const slotCount = Math.max(opts.slotCount, ...sessions.map((entry) => entry.slot), 1);
   for (const entry of sessions) {
     const weekday = WEEKDAYS[entry.day.slice(0, 3).toLowerCase()];
     if (weekday === undefined) {
       if (!skipped.includes(entry.day)) skipped.push(entry.day);
       continue;
     }
-    lines.push(...eventLines(entry, nextWeekday(opts.from, weekday), opts));
+    lines.push(...eventLines(entry, nextWeekday(opts.from, weekday), opts, slotCount));
   }
   lines.push("END:VCALENDAR");
   return { ics: `${lines.join("\r\n")}\r\n`, skipped };
