@@ -159,7 +159,10 @@ export function SolverMonitorRoute() {
 
             <SolveAnalytics doc={ws.doc} result={result} entities={ws.entities} />
             <ExportCard
-              schedule={result.schedule}
+              // The edited timetable, not the raw solve: manual moves and room
+              // changes live in the workspace session, so exporting
+              // result.schedule would publish what the screen no longer shows.
+              schedule={ws.manual.displaySchedule}
               entities={ws.entities}
               subjectNames={ws.subjectNames}
               roomNames={ws.roomNames}

@@ -108,6 +108,19 @@ describe("buildIcs", () => {
     expect(new Set(starts).size).toBe(5);
   });
 
+  it("folds content lines longer than the 75-octet iCalendar limit", () => {
+    const name = "Advanced Thermodynamics and Heat Transfer Laboratory Session B (Cohort 2)";
+    const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ subjectName: () => name }));
+    const encoder = new TextEncoder();
+    for (const line of ics.split("\r\n")) {
+      expect(encoder.encode(line).length).toBeLessThanOrEqual(75);
+    }
+    // Continuation lines are marked by a single leading space, and unfolding
+    // (dropping CRLF + that space) must give the original value back.
+    expect(ics).toContain("\r\n ");
+    expect(ics.replace(/\r\n /g, "")).toContain(`SUMMARY:${name}`);
+  });
+
   it("skips entries whose day is not a recognizable weekday and reports them", () => {
     const { ics, skipped } = buildIcs([entry("math", "Funday", 1), entry("math", "Mon", 1)], opts());
     expect(skipped).toEqual(["Funday"]);

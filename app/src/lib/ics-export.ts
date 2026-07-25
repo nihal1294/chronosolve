@@ -32,6 +32,34 @@ const WEEKDAYS: Record<string, number> = {
 const escapeText = (value: string): string =>
   value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 
+/** RFC 5545 3.1: a content line is at most 75 octets, longer values continue
+    on the next line behind a single space. Subject and room names have no
+    length limit, so a plain SUMMARY can exceed that on its own. Splitting
+    counts UTF-8 octets and never divides a character. */
+const OCTET_LIMIT = 75;
+
+const foldLine = (line: string): string => {
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= OCTET_LIMIT) return line;
+  const parts: string[] = [];
+  let current = "";
+  let octets = 0;
+  for (const character of line) {
+    const size = encoder.encode(character).length;
+    // Continuation lines spend one octet on their leading space.
+    const limit = parts.length === 0 ? OCTET_LIMIT : OCTET_LIMIT - 1;
+    if (octets + size > limit) {
+      parts.push(current);
+      current = "";
+      octets = 0;
+    }
+    current += character;
+    octets += size;
+  }
+  parts.push(current);
+  return parts.join("\r\n ");
+};
+
 const two = (n: number): string => String(n).padStart(2, "0");
 
 const stamp = (date: Date, [hour, minute]: [number, number]): string =>
@@ -111,5 +139,5 @@ export function buildIcs(sessions: ScheduleEntry[], opts: IcsOptions): { ics: st
     lines.push(...eventLines(entry, nextWeekday(opts.from, weekday), opts, slotCount));
   }
   lines.push("END:VCALENDAR");
-  return { ics: `${lines.join("\r\n")}\r\n`, skipped };
+  return { ics: `${lines.map(foldLine).join("\r\n")}\r\n`, skipped };
 }

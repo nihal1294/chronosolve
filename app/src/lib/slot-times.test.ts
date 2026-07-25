@@ -38,6 +38,16 @@ describe("slotTimes", () => {
     expect(slotTimes(16, {}, 16)).toEqual({ start: [23, 0], end: [23, 55] });
   });
 
+  it("starts an unlabeled slot after its labeled neighbour rather than colliding", () => {
+    const labels = { 1: "09:00 - 09:55" };
+    expect(slotTimes(1, labels, 6)).toEqual({ start: [9, 0], end: [9, 55] });
+    expect(slotTimes(2, labels, 6)).toEqual({ start: [10, 0], end: [10, 55] });
+  });
+
+  it("resumes from the day start when the labels begin later", () => {
+    expect(slotTimes(1, { 2: "09:00 - 09:55" }, 6)).toEqual({ start: [8, 0], end: [8, 55] });
+  });
+
   it("compresses the fallback so a long day keeps every slot distinct and valid", () => {
     const times = [16, 17, 18, 19, 20].map((slot) => slotTimes(slot, {}, 20));
     const starts = times.map(({ start }) => start[0] * 60 + start[1]);
