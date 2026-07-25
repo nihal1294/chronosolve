@@ -147,4 +147,17 @@ describe("buildIcs", () => {
     expect(skipped).toEqual(["Funday"]);
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
   });
+
+  it("skips entries whose slot has no room left in the day and reports them", () => {
+    const labels = { 1: "23:00 - 23:59" };
+    const { ics, unplaced } = buildIcs(
+      [entry("math", "Mon", 1), entry("eng", "Mon", 2), entry("art", "Mon", 3)],
+      opts({ labels, slotCount: 3 }),
+    );
+    // Slot 1 is labeled and exports; nothing is left of the day for 2 and 3, so
+    // they are reported rather than stacked on the last minute before midnight.
+    expect(unplaced).toEqual([2, 3]);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    expect(ics).toContain("DTSTART:20260720T230000");
+  });
 });

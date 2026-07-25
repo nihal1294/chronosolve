@@ -1,6 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { Calendar, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { saveTextFile, toCsv } from "../lib/export-file";
+import { fileSlug, skipNote } from "../lib/export-naming";
 import { buildIcs, icsSessionsFor } from "../lib/ics-export";
 import { PrintReport } from "./PrintReport";
 import type { ProblemEntities } from "../lib/entities";
@@ -55,19 +56,6 @@ const icsScopes = (entities: ProblemEntities): IcsScope[] => [
   ...entities.groups.map((g): IcsScope => ({ kind: "group", id: g.id, name: g.name })),
 ];
 
-/** Filename for the save dialog. Keeps letters and digits from any script, so a
-    teacher named 张伟 gets their name rather than the "-.ics" dotfile an
-    ASCII-only slug leaves behind, and falls back to the id for a name that
-    carries no letters at all. */
-const fileSlug = ({ name, id }: IcsScope): string => {
-  const slug = (value: string): string =>
-    value
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\p{M}]+/gu, "-")
-      .replace(/^-+|-+$/g, "");
-  return slug(name) || slug(id) || "calendar";
-};
-
 /** Publish & export card. CSV and ICS save through the native dialog (ICS
     expands a scope picker first); PDF opens the OS print dialog directly over
     a hidden print-only report. */
@@ -98,16 +86,15 @@ export function ExportCard({ schedule, entities, subjectNames, roomNames }: Expo
   const exportIcs = async (scope: IcsScope) => {
     setPickingIcs(false);
     try {
-      const { ics, skipped } = buildIcs(icsSessionsFor(schedule, scope.kind, scope.id), {
+      const { ics, skipped, unplaced } = buildIcs(icsSessionsFor(schedule, scope.kind, scope.id), {
         from: new Date(),
         labels: entities?.slotLabels ?? {},
         slotCount,
         subjectName: (id) => subjectNames.get(id) ?? id,
         roomName: (id) => roomNames.get(id) ?? id,
       });
-      const saved = await saveTextFile(`${fileSlug(scope)}.ics`, ics);
-      const skipNote = skipped.length > 0 ? ` (skipped unknown days: ${skipped.join(", ")})` : "";
-      report(saved ? `Calendar for ${scope.name} saved.${skipNote}` : "");
+      const saved = await saveTextFile(`${fileSlug(scope.name, scope.id)}.ics`, ics);
+      report(saved ? `Calendar for ${scope.name} saved.${skipNote(skipped, unplaced)}` : "");
     } catch (problem) {
       failed(problem);
     }

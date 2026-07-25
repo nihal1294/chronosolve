@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { slotTimes } from "./slot-times";
+import { slotTimes, type SlotTime } from "./slot-times";
+
+/** Every slot in these cases has room left in the day, so null is the bug. */
+const placed = (time: SlotTime | null): SlotTime => {
+  if (time === null) throw new Error("expected this slot to have a time of day");
+  return time;
+};
 
 describe("slotTimes", () => {
   it("parses a 'H:MM - H:MM' slot label into start and end", () => {
@@ -52,18 +58,28 @@ describe("slotTimes", () => {
     // Slot 1's label starts an hour after the day would, so the 19 slots after
     // it have less room than an even split of 08:00-midnight assumes. Splitting
     // the whole day runs the last of them into each other at the clamp.
-    const times = [17, 18, 19, 20].map((slot) => slotTimes(slot, { 1: "09:00 - 09:55" }, 20));
+    const times = [17, 18, 19, 20].map((slot) => placed(slotTimes(slot, { 1: "09:00 - 09:55" }, 20)));
     const minutes = ([hour, minute]: [number, number]) => hour * 60 + minute;
     for (const [index, { end }] of times.slice(0, -1).entries()) {
       expect(minutes(end)).toBeLessThanOrEqual(minutes(times[index + 1].start));
     }
   });
 
+  it("gives up on a slot once the labels have spent the whole day", () => {
+    // A period ending at 23:59 leaves nothing for the periods after it, and a
+    // slot may not run past midnight. Reporting no time is honest; inventing
+    // one would put every remaining slot on top of the last minute of the day.
+    const labels = { 1: "23:00 - 23:59" };
+    expect(slotTimes(1, labels, 4)).toEqual({ start: [23, 0], end: [23, 59] });
+    expect(slotTimes(2, labels, 4)).toBeNull();
+    expect(slotTimes(4, labels, 4)).toBeNull();
+  });
+
   // Broad guard: the fallback arithmetic has sprung a leak at each of the day's
   // edges in turn (invalid hours, a shared 23:00, then overlap after a label),
   // so sweep the shapes rather than adding one case per leak. The exhausted day
-  // - a label that itself runs to 23:59 - is left out on purpose: no time is
-  // left to share out, and a slot may not spill past midnight.
+  // is in the sweep too now: it may place nothing, but what it does place has
+  // to obey the same rules.
   it("keeps every slot ordered, non-overlapping and a real time of day", () => {
     const shapes: Record<number, string>[] = [
       {},
@@ -71,6 +87,7 @@ describe("slotTimes", () => {
       { 1: "09:00 - 09:55" },
       { 1: "12:00 - 12:55" },
       { 1: "20:00 - 20:55" },
+      { 1: "23:00 - 23:59" },
       { 5: "14:00 - 14:55" },
       { 1: "09:00 - 09:55", 4: "13:00 - 13:55" },
     ];
@@ -78,12 +95,14 @@ describe("slotTimes", () => {
     const broken: string[] = [];
     for (const [shape, labels] of shapes.entries()) {
       for (const count of [1, 6, 8, 12, 16, 17, 20, 24, 30]) {
-        const times = Array.from({ length: count }, (_, i) => slotTimes(i + 1, labels, count));
-        times.forEach((time, index) => {
-          const at = `shape ${shape}/${count} slots/slot ${index + 1}`;
+        const placed = Array.from({ length: count }, (_, i) => slotTimes(i + 1, labels, count)).filter(
+          (time) => time !== null,
+        );
+        placed.forEach((time, index) => {
+          const at = `shape ${shape}/${count} slots/placed ${index + 1}`;
           if (minutes(time.end) <= minutes(time.start)) broken.push(`${at}: ends before it starts`);
           if (time.end[0] > 23) broken.push(`${at}: past midnight`);
-          if (index > 0 && minutes(times[index - 1].end) > minutes(time.start)) {
+          if (index > 0 && minutes(placed[index - 1].end) > minutes(time.start)) {
             broken.push(`${at}: overlaps the slot before it`);
           }
         });
@@ -93,7 +112,7 @@ describe("slotTimes", () => {
   });
 
   it("compresses the fallback so a long day keeps every slot distinct and valid", () => {
-    const times = [16, 17, 18, 19, 20].map((slot) => slotTimes(slot, {}, 20));
+    const times = [16, 17, 18, 19, 20].map((slot) => placed(slotTimes(slot, {}, 20)));
     const starts = times.map(({ start }) => start[0] * 60 + start[1]);
     expect(new Set(starts).size).toBe(starts.length);
     expect([...starts]).toEqual([...starts].sort((a, b) => a - b));

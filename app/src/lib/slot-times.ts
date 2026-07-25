@@ -44,8 +44,10 @@ const cadence = (from: number, slotsLeft: number): { period: number; length: num
 };
 
 /** `slotCount` is how many slots the day holds; it only shapes unlabeled
-    slots, and defaults to treating this slot as the day's last. */
-export function slotTimes(slot: number, labels: Record<number, string>, slotCount = slot): SlotTime {
+    slots, and defaults to treating this slot as the day's last. Null means the
+    slot has no time: the labels reached the end of the day before it did, and a
+    slot may neither run past midnight nor sit on top of the one before it. */
+export function slotTimes(slot: number, labels: Record<number, string>, slotCount = slot): SlotTime | null {
   const total = Math.max(slotCount, slot, 1);
   // Walk the day so an unlabeled slot begins after whatever precedes it,
   // labeled or not, instead of restarting at 08:00 and overlapping it.
@@ -59,15 +61,15 @@ export function slotTimes(slot: number, labels: Record<number, string>, slotCoun
     }
     // Derived here rather than once up front: a label can leave the slots after
     // it less of the day than an even split of the whole day would give them,
-    // which used to run the last few together at the end-of-day clamp. Labels
-    // that consume the day outright leave nothing to share out - the clamp is
-    // all that is left then, since a slot may not spill past midnight.
+    // which used to run the last few together at the end of the day.
     const { period, length } = cadence(cursor, Math.max(total - index + 1, 1));
-    const start = Math.min(cursor, LAST_MINUTE - 1);
     if (index === slot) {
-      return { start: hourMinute(start), end: hourMinute(Math.min(start + length, LAST_MINUTE)) };
+      if (cursor > LAST_MINUTE - 1) return null;
+      return { start: hourMinute(cursor), end: hourMinute(Math.min(cursor + length, LAST_MINUTE)) };
     }
-    cursor = start + period;
+    // Kept walking even once the day is spent: a later slot may carry a label
+    // of its own, and a label is always honoured whatever precedes it.
+    cursor += period;
   }
   return { start: hourMinute(DAY_START), end: hourMinute(DAY_START + LENGTH) };
 }

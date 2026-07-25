@@ -85,8 +85,16 @@ const nextWeekday = (from: Date, weekday: number): Date => {
   return date;
 };
 
-const eventLines = (entry: ScheduleEntry, anchor: Date, opts: IcsOptions, slotCount: number): string[] => {
-  const { start, end } = slotTimes(entry.slot, opts.labels, slotCount);
+/** Null when the slot has no time of day to sit at (see slotTimes). */
+const eventLines = (
+  entry: ScheduleEntry,
+  anchor: Date,
+  opts: IcsOptions,
+  slotCount: number,
+): string[] | null => {
+  const times = slotTimes(entry.slot, opts.labels, slotCount);
+  if (times === null) return null;
+  const { start, end } = times;
   // A session whose start already passed anchors to next week, so COUNT covers
   // upcoming occurrences instead of one past plus the rest. Compared as whole
   // timestamps: minute-only arithmetic kept a start that passed seconds ago,
@@ -129,9 +137,15 @@ export function icsSessionsFor(
   return schedule.filter((entry) => (kind === "teacher" ? entry.teacher_ids : entry.group_ids).includes(id));
 }
 
-export function buildIcs(sessions: ScheduleEntry[], opts: IcsOptions): { ics: string; skipped: string[] } {
+/** `skipped` lists days that are not weekdays, `unplaced` slots the labels left
+    no room for; both are reported rather than guessed at or dropped in silence. */
+export function buildIcs(
+  sessions: ScheduleEntry[],
+  opts: IcsOptions,
+): { ics: string; skipped: string[]; unplaced: number[] } {
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ChronoSolve//Timetable//EN"];
   const skipped: string[] = [];
+  const unplaced: number[] = [];
   // One cadence for the whole file: per-day slot_overrides can push sessions
   // past the configured slots_per_day, and mixing cadences within a calendar
   // would give the same slot different times.
@@ -142,8 +156,17 @@ export function buildIcs(sessions: ScheduleEntry[], opts: IcsOptions): { ics: st
       if (!skipped.includes(entry.day)) skipped.push(entry.day);
       continue;
     }
-    lines.push(...eventLines(entry, nextWeekday(opts.from, weekday), opts, slotCount));
+    const event = eventLines(entry, nextWeekday(opts.from, weekday), opts, slotCount);
+    if (event === null) {
+      if (!unplaced.includes(entry.slot)) unplaced.push(entry.slot);
+      continue;
+    }
+    lines.push(...event);
   }
   lines.push("END:VCALENDAR");
-  return { ics: `${lines.map(foldLine).join("\r\n")}\r\n`, skipped };
+  return {
+    ics: `${lines.map(foldLine).join("\r\n")}\r\n`,
+    skipped,
+    unplaced: unplaced.sort((a, b) => a - b),
+  };
 }
