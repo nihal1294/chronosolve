@@ -43,7 +43,11 @@ export function PrintReport({
   // with no scheduled sessions still gets its (empty) grid in the report.
   const sessionsByGroup = pivotByAxis(schedule, "class");
   const days = entities.days;
-  const slots = Array.from({ length: entities.slotsPerDay }, (_, i) => i + 1);
+  // Rows span the highest slot actually scheduled as well as the default
+  // count, mirroring the Timetable route: a day whose slot_overrides exceed
+  // slots_per_day would otherwise drop its late sessions from the report.
+  const lastSlot = Math.max(entities.slotsPerDay, ...schedule.map((entry) => entry.slot));
+  const slots = Array.from({ length: lastSlot }, (_, i) => i + 1);
 
   const cell = (sessions: ScheduleEntry[], day: string, slot: number) => {
     const hits = sessions.filter((s) => s.day === day && s.slot === slot);

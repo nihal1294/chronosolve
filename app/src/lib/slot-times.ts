@@ -20,9 +20,11 @@ export function slotTimes(slot: number, labels: Record<number, string>): SlotTim
   const match = labels[slot]?.trim().match(LABEL_RANGE);
   if (match) {
     const [startHour, startMinute, endHour, endMinute] = match.slice(1).map(Number);
-    // Range-checked: a typo like "24:00 - 25:00" or "09:99" would otherwise
-    // flow into an invalid ICS DATE-TIME, so it falls back instead.
-    if (startHour <= 23 && endHour <= 23 && startMinute <= 59 && endMinute <= 59) {
+    // Range-checked, and the end must follow the start: a typo like
+    // "24:00 - 25:00", "09:99", or "10:00 - 09:00" would otherwise flow into
+    // an invalid ICS DATE-TIME (or a DTEND at/before DTSTART).
+    const valid = startHour <= 23 && endHour <= 23 && startMinute <= 59 && endMinute <= 59;
+    if (valid && endHour * 60 + endMinute > startHour * 60 + startMinute) {
       return { start: [startHour, startMinute], end: [endHour, endMinute] };
     }
   }

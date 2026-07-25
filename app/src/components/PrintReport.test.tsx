@@ -39,15 +39,11 @@ describe("PrintReport", () => {
   let host: HTMLDivElement;
   let root: Root;
 
-  beforeEach(() => {
-    window.print = vi.fn<() => void>();
-    host = document.createElement("div");
-    document.body.appendChild(host);
-    root = createRoot(host);
+  const render = (schedule: ScheduleEntry[]) => {
     act(() => {
       root.render(
         <PrintReport
-          schedule={SCHEDULE}
+          schedule={schedule}
           entities={ENTITIES}
           subjectNames={new Map()}
           roomNames={new Map()}
@@ -56,6 +52,16 @@ describe("PrintReport", () => {
         />,
       );
     });
+    const report = document.querySelector(".print-report");
+    if (report === null) throw new Error("report portal not rendered");
+    return report;
+  };
+
+  beforeEach(() => {
+    window.print = vi.fn<() => void>();
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
   });
 
   afterEach(() => {
@@ -64,10 +70,16 @@ describe("PrintReport", () => {
   });
 
   it("renders a grid for every class, including ones with no scheduled sessions", () => {
-    const report = document.querySelector(".print-report");
-    expect(report).not.toBeNull();
-    expect(report?.querySelectorAll("section")).toHaveLength(2);
-    expect(report?.textContent).toContain("Class A");
-    expect(report?.textContent).toContain("Class B");
+    const report = render(SCHEDULE);
+    expect(report.querySelectorAll("section")).toHaveLength(2);
+    expect(report.textContent).toContain("Class A");
+    expect(report.textContent).toContain("Class B");
+  });
+
+  it("keeps sessions scheduled past the default slot count (per-day overrides)", () => {
+    const late: ScheduleEntry = { ...SCHEDULE[0], subject_id: "late-lab", slot: 5 };
+    const report = render([...SCHEDULE, late]);
+    expect(report.querySelectorAll("section")[0].querySelectorAll("tbody tr")).toHaveLength(5);
+    expect(report.textContent).toContain("late-lab");
   });
 });

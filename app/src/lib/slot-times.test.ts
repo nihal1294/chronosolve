@@ -23,6 +23,11 @@ describe("slotTimes", () => {
     expect(slotTimes(2, { 2: "Period two" })).toEqual({ start: [9, 0], end: [9, 55] });
   });
 
+  it("falls back when a label's range ends at or before it starts", () => {
+    expect(slotTimes(2, { 2: "10:00 - 09:00" })).toEqual({ start: [9, 0], end: [9, 55] });
+    expect(slotTimes(2, { 2: "10:00 - 10:00" })).toEqual({ start: [9, 0], end: [9, 55] });
+  });
+
   it("falls back when a label's numbers are out of range for a time of day", () => {
     expect(slotTimes(2, { 2: "24:00 - 25:00" })).toEqual({ start: [9, 0], end: [9, 55] });
     expect(slotTimes(2, { 2: "09:99 - 10:99" })).toEqual({ start: [9, 0], end: [9, 55] });
