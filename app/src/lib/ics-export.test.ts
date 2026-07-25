@@ -52,6 +52,18 @@ describe("buildIcs", () => {
     expect(ics).toContain("DTEND:20260720T095500\r\n");
   });
 
+  it("anchors a same-day session to next week when its start has already passed", () => {
+    const mondayAfternoon = new Date(2026, 6, 20, 15, 0);
+    const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ from: mondayAfternoon }));
+    expect(ics).toContain("DTSTART:20260727T090000\r\n");
+  });
+
+  it("keeps a same-day session that has not started yet", () => {
+    const mondayMorning = new Date(2026, 6, 20, 8, 30);
+    const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ from: mondayMorning }));
+    expect(ics).toContain("DTSTART:20260720T090000\r\n");
+  });
+
   it("accepts full weekday names and repeats weekly for 12 weeks", () => {
     const { ics } = buildIcs([entry("math", "Wednesday", 1)], opts());
     expect(ics).toContain("DTSTART:20260722T090000\r\n");

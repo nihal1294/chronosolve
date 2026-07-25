@@ -19,10 +19,12 @@ const FALLBACK_MINUTES = 55;
 export function slotTimes(slot: number, labels: Record<number, string>): SlotTime {
   const match = labels[slot]?.trim().match(LABEL_RANGE);
   if (match) {
-    return {
-      start: [Number(match[1]), Number(match[2])],
-      end: [Number(match[3]), Number(match[4])],
-    };
+    const [startHour, startMinute, endHour, endMinute] = match.slice(1).map(Number);
+    // Range-checked: a typo like "24:00 - 25:00" or "09:99" would otherwise
+    // flow into an invalid ICS DATE-TIME, so it falls back instead.
+    if (startHour <= 23 && endHour <= 23 && startMinute <= 59 && endMinute <= 59) {
+      return { start: [startHour, startMinute], end: [endHour, endMinute] };
+    }
   }
   // Clamped: slot counts past midnight would otherwise emit an invalid
   // 24+ hour in the ICS DTSTART/DTEND.

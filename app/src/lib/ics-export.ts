@@ -47,8 +47,20 @@ const nextWeekday = (from: Date, weekday: number): Date => {
   return date;
 };
 
-const eventLines = (entry: ScheduleEntry, date: Date, opts: IcsOptions): string[] => {
+const sameDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const eventLines = (entry: ScheduleEntry, anchor: Date, opts: IcsOptions): string[] => {
   const { start, end } = slotTimes(entry.slot, opts.labels);
+  // A same-day session whose start already passed anchors to next week, so
+  // COUNT covers upcoming occurrences instead of one past plus the rest.
+  const date = new Date(anchor);
+  if (
+    sameDay(anchor, opts.from) &&
+    start[0] * 60 + start[1] < opts.from.getHours() * 60 + opts.from.getMinutes()
+  ) {
+    date.setDate(date.getDate() + 7);
+  }
   // (subject, day, slot) is unique here only because each export covers ONE
   // teacher or group and the solver forbids double-booking them at a slot;
   // a calendar scoped any wider (e.g. per room) would need a richer UID.
