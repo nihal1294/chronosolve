@@ -36,17 +36,17 @@ const parseLabel = (label: string | undefined): SlotTime | null => {
   return totalMinutes(end) > totalMinutes(start) ? { start, end } : null;
 };
 
-/** Synthetic slots run hourly, compressed once a day holds more slots than
-    whole hours remain before midnight so they stay distinct. */
-const cadence = (slotCount: number): { period: number; length: number } => {
-  const period = Math.max(1, Math.min(PERIOD, Math.floor((DAY_END - DAY_START) / slotCount)));
+/** Synthetic slots run hourly, compressed to share out whatever is left of the
+    day when that many whole hours do not remain before midnight. */
+const cadence = (from: number, slotsLeft: number): { period: number; length: number } => {
+  const period = Math.max(1, Math.min(PERIOD, Math.floor((DAY_END - from) / slotsLeft)));
   return { period, length: Math.max(1, Math.min(LENGTH, period - GAP)) };
 };
 
 /** `slotCount` is how many slots the day holds; it only shapes unlabeled
     slots, and defaults to treating this slot as the day's last. */
 export function slotTimes(slot: number, labels: Record<number, string>, slotCount = slot): SlotTime {
-  const { period, length } = cadence(Math.max(slotCount, slot, 1));
+  const total = Math.max(slotCount, slot, 1);
   // Walk the day so an unlabeled slot begins after whatever precedes it,
   // labeled or not, instead of restarting at 08:00 and overlapping it.
   let cursor = DAY_START;
@@ -57,11 +57,17 @@ export function slotTimes(slot: number, labels: Record<number, string>, slotCoun
       cursor = totalMinutes(labeled.end) + GAP;
       continue;
     }
+    // Derived here rather than once up front: a label can leave the slots after
+    // it less of the day than an even split of the whole day would give them,
+    // which used to run the last few together at the end-of-day clamp. Labels
+    // that consume the day outright leave nothing to share out - the clamp is
+    // all that is left then, since a slot may not spill past midnight.
+    const { period, length } = cadence(cursor, Math.max(total - index + 1, 1));
     const start = Math.min(cursor, LAST_MINUTE - 1);
     if (index === slot) {
       return { start: hourMinute(start), end: hourMinute(Math.min(start + length, LAST_MINUTE)) };
     }
     cursor = start + period;
   }
-  return { start: hourMinute(DAY_START), end: hourMinute(DAY_START + length) };
+  return { start: hourMinute(DAY_START), end: hourMinute(DAY_START + LENGTH) };
 }

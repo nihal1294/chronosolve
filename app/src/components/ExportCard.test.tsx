@@ -95,6 +95,7 @@ const LONG_DAY: ProblemEntities = {
   teachers: [
     { id: "t1", name: "Ada", unavailable: "" },
     { id: "t2", name: "Grace", unavailable: "" },
+    { id: "t3", name: "张伟", unavailable: "" },
   ],
   slotsPerDay: 6,
   slotLabels: {},
@@ -166,6 +167,14 @@ describe("ExportCard calendar row", () => {
     const grace = await exportFor("Grace");
     expect(startOfSlot16(ada)).not.toBe("");
     expect(startOfSlot16(ada)).toBe(startOfSlot16(grace));
+  });
+
+  it("keeps a scope name that has nothing ASCII in it out of the filename slug", async () => {
+    await clickButton((text) => text.includes("iCal / calendar sync"));
+    await clickButton((text) => text.trim().startsWith("张伟"));
+    const calls = mocks.saveTextFile.mock.calls;
+    const [filename] = calls[calls.length - 1];
+    expect(filename).toBe("张伟.ics");
   });
 
   // Deliberate: a lesson keeps one UID across every scope that attends it, so

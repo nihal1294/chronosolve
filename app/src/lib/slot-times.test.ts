@@ -48,6 +48,50 @@ describe("slotTimes", () => {
     expect(slotTimes(1, { 2: "09:00 - 09:55" }, 6)).toEqual({ start: [8, 0], end: [8, 55] });
   });
 
+  it("shares out the time a labeled slot leaves rather than the whole day", () => {
+    // Slot 1's label starts an hour after the day would, so the 19 slots after
+    // it have less room than an even split of 08:00-midnight assumes. Splitting
+    // the whole day runs the last of them into each other at the clamp.
+    const times = [17, 18, 19, 20].map((slot) => slotTimes(slot, { 1: "09:00 - 09:55" }, 20));
+    const minutes = ([hour, minute]: [number, number]) => hour * 60 + minute;
+    for (const [index, { end }] of times.slice(0, -1).entries()) {
+      expect(minutes(end)).toBeLessThanOrEqual(minutes(times[index + 1].start));
+    }
+  });
+
+  // Broad guard: the fallback arithmetic has sprung a leak at each of the day's
+  // edges in turn (invalid hours, a shared 23:00, then overlap after a label),
+  // so sweep the shapes rather than adding one case per leak. The exhausted day
+  // - a label that itself runs to 23:59 - is left out on purpose: no time is
+  // left to share out, and a slot may not spill past midnight.
+  it("keeps every slot ordered, non-overlapping and a real time of day", () => {
+    const shapes: Record<number, string>[] = [
+      {},
+      { 1: "08:00 - 08:55" },
+      { 1: "09:00 - 09:55" },
+      { 1: "12:00 - 12:55" },
+      { 1: "20:00 - 20:55" },
+      { 5: "14:00 - 14:55" },
+      { 1: "09:00 - 09:55", 4: "13:00 - 13:55" },
+    ];
+    const minutes = ([hour, minute]: [number, number]) => hour * 60 + minute;
+    const broken: string[] = [];
+    for (const [shape, labels] of shapes.entries()) {
+      for (const count of [1, 6, 8, 12, 16, 17, 20, 24, 30]) {
+        const times = Array.from({ length: count }, (_, i) => slotTimes(i + 1, labels, count));
+        times.forEach((time, index) => {
+          const at = `shape ${shape}/${count} slots/slot ${index + 1}`;
+          if (minutes(time.end) <= minutes(time.start)) broken.push(`${at}: ends before it starts`);
+          if (time.end[0] > 23) broken.push(`${at}: past midnight`);
+          if (index > 0 && minutes(times[index - 1].end) > minutes(time.start)) {
+            broken.push(`${at}: overlaps the slot before it`);
+          }
+        });
+      }
+    }
+    expect(broken.slice(0, 10)).toEqual([]);
+  });
+
   it("compresses the fallback so a long day keeps every slot distinct and valid", () => {
     const times = [16, 17, 18, 19, 20].map((slot) => slotTimes(slot, {}, 20));
     const starts = times.map(({ start }) => start[0] * 60 + start[1]);

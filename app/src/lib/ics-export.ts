@@ -85,18 +85,16 @@ const nextWeekday = (from: Date, weekday: number): Date => {
   return date;
 };
 
-const sameDay = (a: Date, b: Date): boolean =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
 const eventLines = (entry: ScheduleEntry, anchor: Date, opts: IcsOptions, slotCount: number): string[] => {
   const { start, end } = slotTimes(entry.slot, opts.labels, slotCount);
-  // A same-day session whose start already passed anchors to next week, so
-  // COUNT covers upcoming occurrences instead of one past plus the rest.
+  // A session whose start already passed anchors to next week, so COUNT covers
+  // upcoming occurrences instead of one past plus the rest. Compared as whole
+  // timestamps: minute-only arithmetic kept a start that passed seconds ago,
+  // and the anchor is never earlier than `from`, so only today can be behind.
   const date = new Date(anchor);
-  if (
-    sameDay(anchor, opts.from) &&
-    start[0] * 60 + start[1] < opts.from.getHours() * 60 + opts.from.getMinutes()
-  ) {
+  const startsAt = new Date(anchor);
+  startsAt.setHours(start[0], start[1], 0, 0);
+  if (startsAt.getTime() < opts.from.getTime()) {
     date.setDate(date.getDate() + 7);
   }
   // Deliberately scope-independent: (subject, day, slot) identifies the lesson

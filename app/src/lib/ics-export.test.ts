@@ -59,6 +59,18 @@ describe("buildIcs", () => {
     expect(ics).toContain("DTSTART:20260727T090000\r\n");
   });
 
+  it("treats a start that passed within the current minute as passed", () => {
+    const justAfterNine = new Date(2026, 6, 20, 9, 0, 30);
+    const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ from: justAfterNine }));
+    expect(ics).toContain("DTSTART:20260727T090000\r\n");
+  });
+
+  it("keeps a session starting this very second on today's date", () => {
+    const nineExactly = new Date(2026, 6, 20, 9, 0, 0);
+    const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ from: nineExactly }));
+    expect(ics).toContain("DTSTART:20260720T090000\r\n");
+  });
+
   it("keeps a same-day session that has not started yet", () => {
     const mondayMorning = new Date(2026, 6, 20, 8, 30);
     const { ics } = buildIcs([entry("math", "Mon", 1)], opts({ from: mondayMorning }));

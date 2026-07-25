@@ -55,7 +55,18 @@ const icsScopes = (entities: ProblemEntities): IcsScope[] => [
   ...entities.groups.map((g): IcsScope => ({ kind: "group", id: g.id, name: g.name })),
 ];
 
-const fileSlug = (name: string): string => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+/** Filename for the save dialog. Keeps letters and digits from any script, so a
+    teacher named 张伟 gets their name rather than the "-.ics" dotfile an
+    ASCII-only slug leaves behind, and falls back to the id for a name that
+    carries no letters at all. */
+const fileSlug = ({ name, id }: IcsScope): string => {
+  const slug = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\p{M}]+/gu, "-")
+      .replace(/^-+|-+$/g, "");
+  return slug(name) || slug(id) || "calendar";
+};
 
 /** Publish & export card. CSV and ICS save through the native dialog (ICS
     expands a scope picker first); PDF opens the OS print dialog directly over
@@ -94,7 +105,7 @@ export function ExportCard({ schedule, entities, subjectNames, roomNames }: Expo
         subjectName: (id) => subjectNames.get(id) ?? id,
         roomName: (id) => roomNames.get(id) ?? id,
       });
-      const saved = await saveTextFile(`${fileSlug(scope.name)}.ics`, ics);
+      const saved = await saveTextFile(`${fileSlug(scope)}.ics`, ics);
       const skipNote = skipped.length > 0 ? ` (skipped unknown days: ${skipped.join(", ")})` : "";
       report(saved ? `Calendar for ${scope.name} saved.${skipNote}` : "");
     } catch (problem) {
