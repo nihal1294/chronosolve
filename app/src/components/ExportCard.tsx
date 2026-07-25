@@ -1,6 +1,10 @@
 import { useState, type ComponentType } from "react";
 import { Calendar, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { saveTextFile, toCsv } from "../lib/export-file";
+import { fileSlug, labelUniquely, skipNote } from "../lib/export-naming";
+import { buildIcs, icsSessionsFor } from "../lib/ics-export";
+import { PrintReport } from "./PrintReport";
+import type { ProblemEntities } from "../lib/entities";
 import type { ScheduleEntry } from "../lib/solver-client";
 
 interface ExportRowSpec {
@@ -16,8 +20,7 @@ const PDF_ROW: ExportRowSpec = {
   icon: FileText,
   chip: "bg-red-500/10 text-red-600 dark:text-red-400",
   title: "Master PDF report",
-  caption: "Printable grid for all groups",
-  disabledReason: "Planned - needs a report renderer",
+  caption: "Save one grid per class as PDF",
 };
 
 const CSV_ROW: ExportRowSpec = {
@@ -31,21 +34,75 @@ const ICS_ROW: ExportRowSpec = {
   icon: Calendar,
   chip: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
   title: "iCal / calendar sync",
-  caption: "ICS per teacher or group",
-  disabledReason: "Planned - sessions carry no calendar dates yet",
+  caption: "Weekly events for a teacher or class (12 weeks)",
 };
 
-/** Publish & export card. Only CSV is live; PDF and ICS render disabled with
-    the reason in their tooltip. */
-export function ExportCard({ schedule }: { schedule: ScheduleEntry[] }) {
+interface ExportCardProps {
+  schedule: ScheduleEntry[];
+  entities: ProblemEntities | null;
+  subjectNames: Map<string, string>;
+  roomNames: Map<string, string>;
+}
+
+/** One pickable calendar scope: a teacher or a student group. */
+interface IcsScope {
+  kind: "teacher" | "group";
+  id: string;
+  name: string;
+}
+
+/** Names are labeled within their own kind, the row's Teacher/Class chip
+    already telling a teacher apart from a class of the same name. */
+const icsScopes = (entities: ProblemEntities): IcsScope[] => {
+  const teacher = labelUniquely(entities.teachers);
+  const group = labelUniquely(entities.groups);
+  return [
+    ...entities.teachers.map((t): IcsScope => ({ kind: "teacher", id: t.id, name: teacher(t) })),
+    ...entities.groups.map((g): IcsScope => ({ kind: "group", id: g.id, name: group(g) })),
+  ];
+};
+
+/** Publish & export card. CSV and ICS save through the native dialog (ICS
+    expands a scope picker first); PDF opens the OS print dialog directly over
+    a hidden print-only report. */
+export function ExportCard({ schedule, entities, subjectNames, roomNames }: ExportCardProps) {
   const [note, setNote] = useState<string | null>(null);
+  const [pickingIcs, setPickingIcs] = useState(false);
+  const [printSignal, setPrintSignal] = useState(0);
+
+  const report = (message: string) => setNote(message);
+  const failed = (problem: unknown) =>
+    report(`Export failed: ${problem instanceof Error ? problem.message : String(problem)}`);
+
+  // Timetable-wide, so unlabeled slots get the same synthetic time in every
+  // calendar: a per-scope count would place a shared session at one time in
+  // its teacher's file and another in its class's. Reads the schedule rather
+  // than slots_per_day because per-day slot_overrides can run past it.
+  const slotCount = Math.max(entities?.slotsPerDay ?? 0, ...schedule.map((entry) => entry.slot), 0);
 
   const exportCsv = async () => {
     try {
       const saved = await saveTextFile("schedule.csv", toCsv(schedule));
-      setNote(saved ? "CSV saved." : null);
+      report(saved ? "CSV saved." : "");
     } catch (problem) {
-      setNote(`Export failed: ${problem instanceof Error ? problem.message : String(problem)}`);
+      failed(problem);
+    }
+  };
+
+  const exportIcs = async (scope: IcsScope) => {
+    setPickingIcs(false);
+    try {
+      const { ics, skipped, unplaced } = buildIcs(icsSessionsFor(schedule, scope.kind, scope.id), {
+        from: new Date(),
+        labels: entities?.slotLabels ?? {},
+        slotCount,
+        subjectName: (id) => subjectNames.get(id) ?? id,
+        roomName: (id) => roomNames.get(id) ?? id,
+      });
+      const saved = await saveTextFile(`${fileSlug(scope.name, scope.id)}.ics`, ics);
+      report(saved ? `Calendar for ${scope.name} saved.${skipNote(skipped, unplaced)}` : "");
+    } catch (problem) {
+      failed(problem);
     }
   };
 
@@ -57,10 +114,44 @@ export function ExportCard({ schedule }: { schedule: ScheduleEntry[] }) {
       </p>
       <div className="space-y-3">
         <ExportRow spec={CSV_ROW} onRun={exportCsv} />
-        <ExportRow spec={PDF_ROW} />
-        <ExportRow spec={ICS_ROW} />
+        <ExportRow
+          spec={entities ? PDF_ROW : { ...PDF_ROW, disabledReason: "Load a problem to build the report" }}
+          onRun={() => setPrintSignal((tick) => tick + 1)}
+        />
+        <ExportRow
+          spec={
+            entities ? ICS_ROW : { ...ICS_ROW, disabledReason: "Load a problem to pick a calendar scope" }
+          }
+          onRun={() => setPickingIcs((was) => !was)}
+        />
+        {pickingIcs && entities && (
+          <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-neutral-200 p-2 dark:border-neutral-800">
+            {icsScopes(entities).map((scope) => (
+              <button
+                key={`${scope.kind}|${scope.id}`}
+                onClick={() => exportIcs(scope)}
+                className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              >
+                <span>{scope.name}</span>
+                <span className="text-[10px] uppercase tracking-wide text-neutral-400">
+                  {scope.kind === "teacher" ? "Teacher" : "Class"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {note && <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">{note}</p>}
+      {printSignal > 0 && entities && (
+        <PrintReport
+          schedule={schedule}
+          entities={entities}
+          subjectNames={subjectNames}
+          roomNames={roomNames}
+          printSignal={printSignal}
+          onProblem={(message) => report(`Export failed: ${message}`)}
+        />
+      )}
     </div>
   );
 }

@@ -139,12 +139,6 @@ The left sidebar follows the workflow top to bottom:
 
 A ⌘K command palette and keyboard shortcuts drive every action, and the whole app supports light and dark themes. New here? On first launch a welcome card offers a quick guided tour or a self-guided look around, and you can reopen either later from the **Help** menu - replay the tour, or press ⌘/ to toggle ambient hints that label whatever is on screen.
 
-## Status & Roadmap
-
-Both halves are feature-complete: the solver (CP-SAT core, advanced rule engine, independent quality scorer, CLI, streaming sidecar) and the desktop app (the full workflow from data entry through solving to direct timetable editing, packaged as a self-contained macOS `.dmg`).
-
-**Next:** PDF / calendar (ICS) export, and adding or removing individual sessions from the timetable editor.
-
 ## Background
 
 ChronoSolve grew out of [an earlier final-year engineering project](https://github.com/nihal1294/timetable) I built with my team. That version produced working timetables, but under a deadline we never got to properly tackle the hard part: timetabling is an NP-hard constraint problem, and our solution fit our own college's case rather than the general one.

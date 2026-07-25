@@ -1,6 +1,13 @@
 mod menu;
 mod sidecar;
 
+/// Open the native print dialog for the webview. WKWebView ignores the
+/// JavaScript `window.print()`, so the frontend invokes this instead.
+#[tauri::command]
+fn print_page(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.print().map_err(|problem| problem.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -9,7 +16,8 @@ pub fn run() {
         .manage(sidecar::SidecarState::default())
         .invoke_handler(tauri::generate_handler![
             sidecar::solver_port,
-            menu::set_menu_states
+            menu::set_menu_states,
+            print_page
         ])
         .setup(|app| {
             sidecar::spawn_sidecar(app.handle())?;
