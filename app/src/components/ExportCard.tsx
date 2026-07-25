@@ -69,6 +69,12 @@ export function ExportCard({ schedule, entities, subjectNames, roomNames }: Expo
   const failed = (problem: unknown) =>
     report(`Export failed: ${problem instanceof Error ? problem.message : String(problem)}`);
 
+  // Timetable-wide, so unlabeled slots get the same synthetic time in every
+  // calendar: a per-scope count would place a shared session at one time in
+  // its teacher's file and another in its class's. Reads the schedule rather
+  // than slots_per_day because per-day slot_overrides can run past it.
+  const slotCount = Math.max(entities?.slotsPerDay ?? 0, ...schedule.map((entry) => entry.slot), 0);
+
   const exportCsv = async () => {
     try {
       const saved = await saveTextFile("schedule.csv", toCsv(schedule));
@@ -84,7 +90,7 @@ export function ExportCard({ schedule, entities, subjectNames, roomNames }: Expo
       const { ics, skipped } = buildIcs(icsSessionsFor(schedule, scope.kind, scope.id), {
         from: new Date(),
         labels: entities?.slotLabels ?? {},
-        slotCount: entities?.slotsPerDay ?? 0,
+        slotCount,
         subjectName: (id) => subjectNames.get(id) ?? id,
         roomName: (id) => roomNames.get(id) ?? id,
       });

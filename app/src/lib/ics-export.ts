@@ -63,9 +63,14 @@ const eventLines = (entry: ScheduleEntry, anchor: Date, opts: IcsOptions, slotCo
   ) {
     date.setDate(date.getDate() + 7);
   }
-  // (subject, day, slot) is unique here only because each export covers ONE
-  // teacher or group and the solver forbids double-booking them at a slot;
-  // a calendar scoped any wider (e.g. per room) would need a richer UID.
+  // Deliberately scope-independent: (subject, day, slot) identifies the lesson
+  // itself, so a teacher's and a class's calendars carry ONE UID for a session
+  // they share and a calendar holding both shows one meeting, not a duplicate
+  // per attendee. It is unique within a problem because the solver forbids
+  // double-booking a teacher or group at a slot. It is NOT unique across
+  // separate problem files that reuse subject ids at the same day and slot;
+  // distinguishing those would need a stable problem identity, which the
+  // document has no notion of today.
   const uid = `${entry.subject_id}-${entry.day.slice(0, 3).toLowerCase()}-${entry.slot}@chronosolve`;
   const lines = [
     "BEGIN:VEVENT",
