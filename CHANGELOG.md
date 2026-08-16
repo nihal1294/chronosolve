@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/nihal1294/chronosolve/compare/v0.8.0...v0.9.0) (2026-08-16)
+
+
+### Features
+
+* **app:** calendar (ICS) export and printable master PDF report ([#40](https://github.com/nihal1294/chronosolve/issues/40)) ([0005358](https://github.com/nihal1294/chronosolve/commit/0005358ce734d104ef5eb06ad08f2bb6e51f9b3a))
+* **app:** unplace a session and hand it back to the scheduler ([#46](https://github.com/nihal1294/chronosolve/issues/46)) ([1208e33](https://github.com/nihal1294/chronosolve/commit/1208e335562188694fe02cddbba717e8837cb661))
+
 ## [0.8.0](https://github.com/nihal1294/chronosolve/compare/v0.7.0...v0.8.0) (2026-07-19)
 
 
