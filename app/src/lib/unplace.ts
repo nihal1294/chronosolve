@@ -25,11 +25,24 @@ export function appendUnplace(
   blockSizes: ReadonlyMap<string, number>,
   lockedKeys: ReadonlySet<string>,
 ): ManualOverride[] {
-  if (lockedKeys.has(scheduleKey(entry.subject_id, entry.day, entry.slot))) return overrides;
+  const ownKey = scheduleKey(entry.subject_id, entry.day, entry.slot);
+  if (lockedKeys.has(ownKey)) return overrides;
   const anchor = blockAnchor(displaySchedule, entry, blockSizes);
+  // The entry's object identity cannot go into the override - the log replays
+  // from the BASE schedule, which rebuilds these objects - so record its
+  // position among the entries sharing its slot instead. That is what tells
+  // applyUnplace which card was clicked when a stack shares one key.
+  const occurrence = displaySchedule
+    .filter((other) => scheduleKey(other.subject_id, other.day, other.slot) === ownKey)
+    .indexOf(entry);
   return [
     ...overrides,
-    { kind: "unplace", subjectId: entry.subject_id, at: { day: anchor.day, slot: anchor.slot } },
+    {
+      kind: "unplace",
+      subjectId: entry.subject_id,
+      at: { day: anchor.day, slot: anchor.slot },
+      ...(occurrence > 0 ? { occurrence } : {}),
+    },
   ];
 }
 

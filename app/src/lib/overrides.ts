@@ -28,6 +28,13 @@ export interface UnplaceOverride {
   kind: "unplace";
   subjectId: string;
   at: { day: string; slot: number };
+  /** Which occupant of that slot, when occurrences of one subject are stacked
+      there. The grid renders a card per occupant and either is selectable, so
+      without this the second card's Unplace removed the first. Absent means
+      the only (or first) occupant. Costs nothing downstream BECAUSE an unplace
+      writes no pin - pre_assignments are keyed subject|day|slot and could not
+      carry it, which is why move and room cannot be fixed the same way. */
+  occurrence?: number;
 }
 
 export type ManualOverride = MoveOverride | RoomOverride | UnplaceOverride;
@@ -108,17 +115,24 @@ function applyUnplace(
   const size = blockSizes.get(unplace.subjectId) ?? 1;
   const slotKey = (i: number) => scheduleKey(unplace.subjectId, unplace.at.day, unplace.at.slot + i);
   const targetKeys = new Set(Array.from({ length: size }, (_, i) => slotKey(i)));
-  // Drop ONE entry per covered key, matching applyMove's stacked-occurrence
-  // rule: a second occupant of the same key stays, so unplacing removes the
-  // occurrence the user acted on and not every session sharing its slot.
+  // Drop ONE entry per covered key: the occupant the user selected, counted in
+  // render order (the grid stacks a cell's entries in schedule order). Other
+  // occupants of the same key stay, so unplacing removes the occurrence acted
+  // on and not every session sharing its slot. A block takes the same position
+  // at each of its slots, both halves of a stack having been placed whole.
   // Identity return when nothing matched - the override is stale (the block is
   // no longer at `at`), the same way applyMove ignores a stale source.
-  const dropped = new Set<string>();
+  const target = unplace.occurrence ?? 0;
+  const seen = new Map<string, number>();
+  let dropped = 0;
   const kept = schedule.filter((entry) => {
     const key = scheduleKey(entry.subject_id, entry.day, entry.slot);
-    if (!targetKeys.has(key) || dropped.has(key)) return true;
-    dropped.add(key);
+    if (!targetKeys.has(key)) return true;
+    const index = seen.get(key) ?? 0;
+    seen.set(key, index + 1);
+    if (index !== target) return true;
+    dropped += 1;
     return false;
   });
-  return dropped.size === 0 ? schedule : kept;
+  return dropped === 0 ? schedule : kept;
 }

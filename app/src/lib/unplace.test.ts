@@ -38,6 +38,26 @@ describe("appendUnplace", () => {
     expect(applyOverrides(display, next, blocks)).toEqual([]);
   });
 
+  it("records WHICH occupant of a stacked slot was selected", () => {
+    // Identity is not carried into the override (it must survive replay from
+    // the base schedule), so the position among same-key entries is what
+    // tells applyUnplace which card the user actually clicked.
+    const display = [
+      { ...entry("math", "Mon", 1), room_id: "r1" },
+      { ...entry("math", "Mon", 1), room_id: "r2" },
+    ];
+    expect(appendUnplace([], display, display[1], NO_BLOCKS, NO_LOCKS)).toEqual([
+      { kind: "unplace", subjectId: "math", at: { day: "Mon", slot: 1 }, occurrence: 1 },
+    ]);
+  });
+
+  it("omits the occurrence for the ordinary lone-session case", () => {
+    const display = [entry("math", "Mon", 1)];
+    expect(appendUnplace([], display, display[0], NO_BLOCKS, NO_LOCKS)).toEqual([
+      { kind: "unplace", subjectId: "math", at: { day: "Mon", slot: 1 } },
+    ]);
+  });
+
   it("refuses a pinned session with a list-identity return (unpin first)", () => {
     const overrides: ManualOverride[] = [];
     const display = [entry("math", "Mon", 1)];

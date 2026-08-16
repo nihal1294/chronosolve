@@ -25,10 +25,11 @@ const room = (subject: string, at: [string, number], roomId: string): ManualOver
   roomId,
 });
 
-const unplace = (subject: string, at: [string, number]): ManualOverride => ({
+const unplace = (subject: string, at: [string, number], occurrence?: number): ManualOverride => ({
   kind: "unplace",
   subjectId: subject,
   at: { day: at[0], slot: at[1] },
+  ...(occurrence === undefined ? {} : { occurrence }),
 });
 
 const NO_BLOCKS = new Map<string, number>();
@@ -133,6 +134,36 @@ describe("applyOverrides", () => {
     const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
     const next = applyOverrides(schedule, [unplace("math", ["Mon", 1])], NO_BLOCKS);
     expect(next).toEqual([entry("math", "Mon", 1, "r2")]);
+  });
+
+  it("unplaces the SELECTED occupant of a stack, not always the first", () => {
+    // Two occurrences of one subject can share a slot (drag one onto the
+    // other), the grid renders a card for each, and either is selectable.
+    // Without the occurrence index the second card's Unplace removed the
+    // first - the wrong card vanished.
+    const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
+    expect(applyOverrides(schedule, [unplace("math", ["Mon", 1], 1)], NO_BLOCKS)).toEqual([
+      entry("math", "Mon", 1, "r1"),
+    ]);
+  });
+
+  it("unplaces the selected occupant at every slot a stacked block covers", () => {
+    const blocks = new Map([["lab", 2]]);
+    const schedule = [
+      entry("lab", "Mon", 1, "r1"),
+      entry("lab", "Mon", 1, "r2"),
+      entry("lab", "Mon", 2, "r1"),
+      entry("lab", "Mon", 2, "r2"),
+    ];
+    expect(applyOverrides(schedule, [unplace("lab", ["Mon", 1], 1)], blocks)).toEqual([
+      entry("lab", "Mon", 1, "r1"),
+      entry("lab", "Mon", 2, "r1"),
+    ]);
+  });
+
+  it("returns the schedule identity when the occurrence index has no occupant", () => {
+    const schedule = [entry("math", "Mon", 1, "r1")];
+    expect(applyOverrides(schedule, [unplace("math", ["Mon", 1], 3)], NO_BLOCKS)).toBe(schedule);
   });
 
   it("returns the schedule identity for a stale unplace (block no longer there)", () => {
