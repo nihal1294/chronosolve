@@ -1,4 +1,4 @@
-import { Calendar, Edit2, Lock, Unlock, X } from "lucide-react";
+import { Calendar, Edit2, Lock, PackageOpen, Unlock, X } from "lucide-react";
 import type { RoomOption } from "../lib/room-eligibility";
 import type { ScheduleEntry } from "../lib/solver-client";
 import { RoomPicker } from "./RoomPicker";
@@ -17,6 +17,7 @@ interface SessionPanelProps {
   locked: boolean;
   onClose: () => void;
   onToggleLock: () => void;
+  onUnplace: () => void;
   onEdit: () => void;
 }
 
@@ -98,6 +99,19 @@ export function SessionPanel(props: SessionPanelProps) {
             {locked ? <Unlock size={14} /> : <Lock size={14} />}
             {locked ? "Unpin from slot" : "Pin to this slot"}
           </button>
+          {/* Hidden while pinned, mirroring the verb's own refusal: a pinned
+              session is a hard pre-assignment, so offering the action would
+              promise something unplaceSession declines. Unpin first. */}
+          {!locked && (
+            <button
+              onClick={props.onUnplace}
+              title="Take this session off the grid and let the scheduler re-place it"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 dark:border-neutral-800 dark:hover:bg-white/5"
+            >
+              <PackageOpen size={14} />
+              Unplace
+            </button>
+          )}
           <button
             onClick={props.onEdit}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 dark:border-neutral-800 dark:hover:bg-white/5"

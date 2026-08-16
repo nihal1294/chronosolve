@@ -6,6 +6,7 @@ import { CalendarDays, Database, Play } from "lucide-react";
 import { useWorkspace } from "../providers/problem-doc-provider";
 import { listEntities } from "../lib/problem-doc";
 import { displayedSelection } from "../lib/use-manual-edits";
+import { unplacedLabel } from "../lib/unplace";
 import { scheduleKey } from "../lib/grid";
 import type { ScheduleEntry } from "../lib/solver-client";
 import {
@@ -99,6 +100,14 @@ export function TimetableRoute() {
   const slotLabels = entities?.slotLabels ?? {};
   const lockedKeys = ws.locks.lockedKeys;
   const roomName = (id: string | null) => (id ? name(ws.roomNames, id) : "-");
+  const unplacedRows = manual.unplaced.map((item) => ({
+    index: item.index,
+    label: unplacedLabel(
+      item,
+      name(ws.subjectNames, item.subjectId),
+      slotLabels[item.slot] ?? `slot ${item.slot}`,
+    ),
+  }));
 
   const secondary = (entry: ScheduleEntry) =>
     perspective === "teacher" || perspective === "room"
@@ -223,6 +232,9 @@ export function TimetableRoute() {
           baseQuality={ws.result?.quality_score ?? null}
           editedQuality={ws.editedQuality}
           unappliedCount={ws.unappliedCount}
+          canApply={ws.canApply}
+          unplaced={unplacedRows}
+          onPutBack={(index) => manual.removeUnplaceAt(index)}
           busy={ws.busy}
           canUndo={ws.canUndo}
           canRedo={ws.canRedo}
@@ -255,6 +267,7 @@ export function TimetableRoute() {
           locked={lockedKeys.has(scheduleKey(selected.subject_id, selected.day, selected.slot))}
           onClose={() => ws.setSelected(null)}
           onToggleLock={() => ws.locks.toggleLock(selected)}
+          onUnplace={() => manual.unplaceSession(selected, lockedKeys)}
           onEdit={() => ws.editing.openEdit("subjects", selected.subject_id)}
         />
       )}

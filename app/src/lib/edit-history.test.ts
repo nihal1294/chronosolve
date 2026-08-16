@@ -30,9 +30,17 @@ const roomOverride: ManualOverride = {
   roomId: "r9",
 };
 
+const unplaceOverride: ManualOverride = {
+  kind: "unplace",
+  subjectId: "math",
+  at: { day: "Wed", slot: 3 },
+};
+
 const MOVE: EditAction = { kind: "move", override: moveOverride };
 const LOCK: EditAction = { kind: "lock", pin: { subjectId: "eng", day: "Wed", slot: 3 }, wasLocked: false };
 const ROOM: EditAction = { kind: "room", override: roomOverride };
+const UNPLACE: EditAction = { kind: "unplace", override: unplaceOverride };
+const PUTBACK: EditAction = { kind: "putback", removed: unplaceOverride, index: 1 };
 
 describe("edit history (pure LIFO, M8c)", () => {
   it("undoes interleaved actions in reverse push order", () => {
@@ -114,6 +122,8 @@ const harness = (doc: ProblemDoc | null) => {
     doc,
     popOverride: () => log.push("pop"),
     pushOverride: (override) => log.push(`push:${override.kind}`),
+    removeUnplaceAt: (index) => log.push(`remove:${index}`),
+    insertOverride: (override, index) => log.push(`insert:${override.kind}@${index}`),
     applyDocEdit: (next) => {
       written = next;
     },
@@ -194,5 +204,58 @@ describe("invertAction / replayAction (doc-level executors)", () => {
     const h = harness({});
     replayAction({ kind: "apply", added: [], replaced: [], removed: [] }, h.exec);
     expect(h.log).toEqual(["reapply"]);
+  });
+});
+
+describe("unplace + putback executors (M10)", () => {
+  it("undoing an unplace pops the log tail, like move and room", () => {
+    const h = harness({});
+    invertAction(UNPLACE, h.exec);
+    expect(h.log).toEqual(["pop"]);
+  });
+
+  it("redoing an unplace re-appends the recorded override", () => {
+    const h = harness({});
+    replayAction(UNPLACE, h.exec);
+    expect(h.log).toEqual(["push:unplace"]);
+  });
+
+  it("undoing a Put back re-inserts the override AT ITS ORIGINAL INDEX", () => {
+    // The invariant this guards: every other verb appends, so undo is "pop the
+    // tail". Put back removes from the MIDDLE, so re-inserting anywhere else
+    // reorders the log and the replay produces a different schedule - with
+    // nothing raising an error.
+    const h = harness({});
+    invertAction(PUTBACK, h.exec);
+    expect(h.log).toEqual(["insert:unplace@1"]);
+  });
+
+  it("redoing a Put back removes at that index again", () => {
+    const h = harness({});
+    replayAction(PUTBACK, h.exec);
+    expect(h.log).toEqual(["remove:1"]);
+  });
+
+  it("neither kind touches the doc", () => {
+    const h = harness({});
+    invertAction(UNPLACE, h.exec);
+    replayAction(UNPLACE, h.exec);
+    invertAction(PUTBACK, h.exec);
+    replayAction(PUTBACK, h.exec);
+    expect(h.pins()).toBeNull();
+  });
+
+  it("stays LIFO alongside the existing kinds", () => {
+    let history = [MOVE, UNPLACE, PUTBACK].reduce(pushAction, EMPTY_HISTORY);
+    const popped: EditAction[] = [];
+    for (let i = 0; i < 3; i++) {
+      const step = undoStep(history);
+      if (!step) break;
+      history = step.history;
+      popped.push(step.action);
+    }
+    expect(popped).toEqual([PUTBACK, UNPLACE, MOVE]);
+    expect(canUndo(history)).toBe(false);
+    expect(canRedo(history)).toBe(true);
   });
 });

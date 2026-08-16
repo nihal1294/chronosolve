@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyPins,
   applyPlan,
+  hasUnappliedEdits,
   overridesToPreAssignments,
   pinDiff,
   planApplyDoc,
@@ -21,6 +22,12 @@ const room = (subject: string, at: [string, number], roomId: string): ManualOver
   subjectId: subject,
   at: { day: at[0], slot: at[1] },
   roomId,
+});
+
+const unplace = (subject: string, at: [string, number]): ManualOverride => ({
+  kind: "unplace",
+  subjectId: subject,
+  at: { day: at[0], slot: at[1] },
 });
 
 describe("overridesToPreAssignments", () => {
@@ -220,5 +227,71 @@ describe("pinDiff (edit-history apply payload)", () => {
   it("a room-upsert onto a roomless pin records the bare prior (undo re-pins bare)", () => {
     const doc = { pre_assignments: [{ subject_id: "eng", day: "Tue", slot: 2 }] };
     expect(pinDiff(doc, pins).replaced).toEqual([{ subjectId: "eng", day: "Tue", slot: 2 }]);
+  });
+});
+
+describe("applyPlan + unplace (hand the occurrence back to the scheduler)", () => {
+  it("writes no pin for an unplaced session", () => {
+    const { pins, stale } = applyPlan({}, [unplace("math", ["Mon", 1])]);
+    expect(pins).toEqual([]);
+    expect(stale).toEqual([]);
+  });
+
+  it("cancels the pin a move chain had landed on that slot", () => {
+    const { pins } = applyPlan({}, [move("math", ["Mon", 1], ["Tue", 2]), unplace("math", ["Tue", 2])]);
+    expect(pins).toEqual([]);
+  });
+
+  it("marks a ROOMLESS doc pin at that occurrence stale (Apply removes it)", () => {
+    const doc = { pre_assignments: [{ subject_id: "math", day: "Mon", slot: 1 }] };
+    const { pins, stale } = applyPlan(doc, [unplace("math", ["Mon", 1])]);
+    expect(pins).toEqual([]);
+    expect(stale).toEqual([{ subjectId: "math", day: "Mon", slot: 1 }]);
+  });
+
+  it("marks a room-carrying doc pin at that occurrence stale", () => {
+    const doc = { pre_assignments: [{ subject_id: "math", day: "Mon", slot: 1, room_id: "r7" }] };
+    const { stale } = applyPlan(doc, [unplace("math", ["Mon", 1])]);
+    expect(stale).toEqual([{ subjectId: "math", day: "Mon", slot: 1, roomId: "r7" }]);
+  });
+
+  it("leaves another occurrence of the same subject pinned", () => {
+    const doc = {
+      pre_assignments: [
+        { subject_id: "math", day: "Mon", slot: 1 },
+        { subject_id: "math", day: "Wed", slot: 3 },
+      ],
+    };
+    const { stale } = applyPlan(doc, [unplace("math", ["Mon", 1])]);
+    expect(stale).toEqual([{ subjectId: "math", day: "Mon", slot: 1 }]);
+  });
+
+  it("planApplyDoc drops the pin from the doc the scheduler reads", () => {
+    const doc = { pre_assignments: [{ subject_id: "math", day: "Mon", slot: 1, room_id: "r7" }] };
+    const { next } = planApplyDoc(doc, [unplace("math", ["Mon", 1])]);
+    expect(next.pre_assignments).toEqual([]);
+  });
+});
+
+describe("hasUnappliedEdits (the Apply gate)", () => {
+  const pinnedDoc = { pre_assignments: [{ subject_id: "math", day: "Mon", slot: 1 }] };
+
+  it("is true for an unplace whose doc pin must come off, though NO pin is written", () => {
+    // The regression this guards: unappliedPinCount counts PINS, and an unplace
+    // writes none - gating Apply on the count alone leaves the button disabled
+    // with a real doc change pending.
+    expect(unappliedPinCount(pinnedDoc, [unplace("math", ["Mon", 1])])).toBe(0);
+    expect(hasUnappliedEdits(pinnedDoc, [unplace("math", ["Mon", 1])])).toBe(true);
+  });
+
+  it("is false when the occurrence carried no doc pin (nothing to write)", () => {
+    expect(hasUnappliedEdits({}, [unplace("math", ["Mon", 1])])).toBe(false);
+  });
+
+  it("agrees with planApplyDoc's identity rule on the existing verbs", () => {
+    expect(hasUnappliedEdits(pinnedDoc, [])).toBe(false);
+    expect(hasUnappliedEdits(pinnedDoc, [move("math", ["Mon", 1], ["Tue", 2])])).toBe(true);
+    const roundTrip = [move("math", ["Mon", 1], ["Tue", 2]), move("math", ["Tue", 2], ["Mon", 1])];
+    expect(hasUnappliedEdits(pinnedDoc, roundTrip)).toBe(false);
   });
 });

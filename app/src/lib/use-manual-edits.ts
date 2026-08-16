@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react";
 import { applyOverrides, type ManualOverride } from "./overrides";
+import {
+  appendUnplace,
+  insertOverrideAt,
+  removeUnplaceAt as removeAt,
+  unplacedList,
+  type UnplacedItem,
+} from "./unplace";
 import { buildConflictInputs } from "./conflict-model";
 import { findConflicts, type Conflict } from "./conflicts";
 import { blockAnchor, scheduleKey } from "./grid";
@@ -110,9 +117,22 @@ export interface ManualEdits {
   /** Reassign the room for the block covering `entry` (session-level).
       Same return contract as moveSession. */
   roomSession: (entry: ScheduleEntry, roomId: string) => ManualOverride | null;
-  /** Undo/redo primitives: drop / re-append the override log tail verbatim. */
+  /** Take the block covering `entry` off the grid. Same return contract as
+      moveSession; null also when the session is PINNED (unpin first).
+      `lockedKeys` is passed in rather than read from a lock hook: locks are
+      derived FROM displaySchedule, so this hook cannot depend on them. */
+  unplaceSession: (entry: ScheduleEntry, lockedKeys: ReadonlySet<string>) => ManualOverride | null;
+  /** Put back: drop the unplace at `index`, returning it so history can record
+      the index it needs to re-insert at. Null when that index holds no
+      unplace. */
+  removeUnplaceAt: (index: number) => ManualOverride | null;
+  /** What is currently off the grid (the ConflictStrip tray). */
+  unplaced: UnplacedItem[];
+  /** Undo/redo primitives: drop / re-append the override log tail verbatim,
+      and - for Put back alone - re-insert at a given position. */
   popOverride: () => void;
   pushOverride: (override: ManualOverride) => void;
+  insertOverride: (override: ManualOverride, index: number) => void;
   resetEdits: () => void;
 }
 
@@ -137,6 +157,7 @@ export function useManualEdits(
     [doc, displaySchedule],
   );
   const conflictKeys = useMemo(() => new Set(conflicts.flatMap((c) => c.entryKeys)), [conflicts]);
+  const unplaced = useMemo(() => unplacedList(overrides), [overrides]);
 
   // Verbs hand back what they appended (null = no-op identity return from
   // the pure append) so callers push history only for real changes.
@@ -149,16 +170,31 @@ export function useManualEdits(
     record(appendMove(overrides, displaySchedule, entry, to, blockSizes));
   const roomSession = (entry: ScheduleEntry, roomId: string) =>
     record(appendRoom(overrides, displaySchedule, entry, roomId, blockSizes));
+  const unplaceSession = (entry: ScheduleEntry, lockedKeys: ReadonlySet<string>) =>
+    record(appendUnplace(overrides, displaySchedule, entry, blockSizes, lockedKeys));
+  // Put back does NOT go through `record`: that helper reports the log TAIL as
+  // what changed, and this removes from the middle.
+  const removeUnplaceAt = (index: number) => {
+    const step = removeAt(overrides, index);
+    if (!step) return null;
+    setState({ base: schedule, moves: step.next });
+    return step.removed;
+  };
 
   return {
     overrides,
     displaySchedule,
     conflicts,
     conflictKeys,
+    unplaced,
     moveSession,
     roomSession,
+    unplaceSession,
+    removeUnplaceAt,
     popOverride: () => setState({ base: schedule, moves: overrides.slice(0, -1) }),
     pushOverride: (override) => setState({ base: schedule, moves: [...overrides, override] }),
+    insertOverride: (override, index) =>
+      setState({ base: schedule, moves: insertOverrideAt(overrides, override, index) }),
     resetEdits: () => setState(null),
   };
 }

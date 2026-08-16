@@ -14,13 +14,14 @@ import {
   type HistoryExec,
   type HistoryState,
 } from "./edit-history";
-import { pinDiff, planApplyDoc, unappliedPinCount } from "./apply-edits";
+import { hasUnappliedEdits, pinDiff, planApplyDoc, unappliedPinCount } from "./apply-edits";
+import { recordingEdits } from "./recording-verbs";
 import type { ProblemDoc } from "./problem-doc";
 import type { ProblemEntities } from "./entities";
 import { eligibleRooms, type RoomOption } from "./room-eligibility";
 import type { ScheduleEntry } from "./solver-client";
 import { subjectBlockSizes, useTimelineLocks } from "./use-timeline-locks";
-import { useManualEdits, withoutDanglingPins, type ManualEdits } from "./use-manual-edits";
+import { useManualEdits, withoutDanglingPins } from "./use-manual-edits";
 import { useEditedQuality } from "./use-edited-quality";
 
 /** Doc-write callbacks the session layer composes over (grouped so the hook
@@ -56,22 +57,7 @@ export function useEditSession(
   const record = (action: EditAction) =>
     setHistState({ base: schedule, history: pushAction(history, action) });
 
-  // Session verbs push history ONLY when the override log actually grew (a
-  // no-op drop or re-pick returns null) - otherwise the history tail and the
-  // log misalign and undo pops a REAL override for a no-op action.
-  const manual: ManualEdits = {
-    ...edits,
-    moveSession: (entry, to) => {
-      const override = edits.moveSession(entry, to);
-      if (override) record({ kind: "move", override });
-      return override;
-    },
-    roomSession: (entry, roomId) => {
-      const override = edits.roomSession(entry, roomId);
-      if (override) record({ kind: "room", override });
-      return override;
-    },
-  };
+  const manual = recordingEdits(edits, record);
 
   // Locks resolve the block anchor, then these wrappers capture the action -
   // and, before an unpin deletes it, the pin's room - ahead of the doc write.
@@ -119,6 +105,12 @@ export function useEditSession(
     () => (doc ? unappliedPinCount(doc, edits.overrides) : 0),
     [doc, edits.overrides],
   );
+  // The Apply GATE is separate from that badge count: an unplace writes no pin
+  // but does remove one, so the count can sit at 0 with a doc change pending.
+  const canApply = useMemo(
+    () => (doc ? hasUnappliedEdits(doc, edits.overrides) : false),
+    [doc, edits.overrides],
+  );
   // Both write paths share the doc-aware plan: stale pins (a move left the
   // slot) come OFF before the destination pins go on, so a moved doc pin is
   // relocated - never doubled into an unsolvable two-slot requirement.
@@ -146,10 +138,14 @@ export function useEditSession(
     return next;
   };
 
+  // Every member wires to the RAW hook, never to `manual`: undo and redo move
+  // the override log without recording new history.
   const exec: HistoryExec = {
     doc,
     popOverride: edits.popOverride,
     pushOverride: edits.pushOverride,
+    removeUnplaceAt: edits.removeUnplaceAt,
+    insertOverride: edits.insertOverride,
     applyDocEdit: io.applyDocEdit,
     reapply,
   };
@@ -175,6 +171,7 @@ export function useEditSession(
     roomOptionsFor,
     changeRoom,
     unappliedCount,
+    canApply,
     applyEdits,
     applyForReSolve,
     undo,

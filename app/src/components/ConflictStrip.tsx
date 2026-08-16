@@ -11,6 +11,7 @@ import {
   Undo2,
 } from "lucide-react";
 import type { Conflict } from "../lib/conflicts";
+import { UnplacedList, type UnplacedRow } from "./UnplacedList";
 
 const ICON_BUTTON =
   "rounded-lg border border-neutral-300 p-1.5 text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800";
@@ -22,8 +23,15 @@ export interface ConflictStripProps {
   baseQuality: number | null;
   /** Re-priced quality of the edited schedule (null while in flight). */
   editedQuality: number | null;
-  /** Session pins the doc does not carry yet (0 disables Apply). */
+  /** Session pins the doc does not carry yet (the Apply badge number). */
   unappliedCount: number;
+  /** Apply has a doc change to write. NOT `unappliedCount > 0`: an unplace
+      writes no pin but does remove one, so the count can sit at 0 with a real
+      doc change pending. */
+  canApply: boolean;
+  /** Sessions currently off the grid, formatted by the route. */
+  unplaced: UnplacedRow[];
+  onPutBack: (index: number) => void;
   /** A solve is running (disables the re-run verb). */
   busy: boolean;
   canUndo: boolean;
@@ -45,6 +53,9 @@ export function ConflictStrip({
   baseQuality,
   editedQuality,
   unappliedCount,
+  canApply,
+  unplaced,
+  onPutBack,
   busy,
   canUndo,
   canRedo,
@@ -56,7 +67,8 @@ export function ConflictStrip({
 }: ConflictStripProps) {
   const [open, setOpen] = useState(false);
   // Stays visible while undo state remains: a fully undone session (0 edits)
-  // still needs its Redo button reachable.
+  // still needs its Redo button reachable. An unplace IS an override, so
+  // editCount already keeps the strip mounted while the tray has rows.
   if (editCount === 0 && conflicts.length === 0 && !canUndo && !canRedo) return null;
   const conflicted = conflicts.length > 0;
   const frame = conflicted ? "border-rose-500/40 bg-rose-500/5" : "border-indigo-500/30 bg-indigo-500/5";
@@ -111,7 +123,7 @@ export function ConflictStrip({
         </button>
         <button
           onClick={onApply}
-          disabled={unappliedCount === 0}
+          disabled={!canApply}
           className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-400/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-500/10 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent dark:border-indigo-500/40 dark:text-indigo-300"
         >
           <Pin size={12} />
@@ -138,6 +150,7 @@ export function ConflictStrip({
           ))}
         </ul>
       )}
+      <UnplacedList rows={unplaced} onPutBack={onPutBack} />
     </div>
   );
 }

@@ -25,6 +25,12 @@ const room = (subject: string, at: [string, number], roomId: string): ManualOver
   roomId,
 });
 
+const unplace = (subject: string, at: [string, number]): ManualOverride => ({
+  kind: "unplace",
+  subjectId: subject,
+  at: { day: at[0], slot: at[1] },
+});
+
 const NO_BLOCKS = new Map<string, number>();
 
 describe("applyOverrides", () => {
@@ -108,5 +114,39 @@ describe("applyOverrides", () => {
       NO_BLOCKS,
     );
     expect(next).toEqual([entry("math", "Tue", 2, "r9")]);
+  });
+
+  it("takes a single-slot session off the grid and leaves the rest (M10)", () => {
+    const schedule = [entry("math", "Mon", 1, "r1"), entry("eng", "Mon", 2)];
+    const next = applyOverrides(schedule, [unplace("math", ["Mon", 1])], NO_BLOCKS);
+    expect(next).toEqual([entry("eng", "Mon", 2)]);
+  });
+
+  it("takes the whole block off the grid, not just the anchor slot", () => {
+    const blocks = new Map([["lab", 2]]);
+    const schedule = [entry("lab", "Mon", 1, "r2"), entry("lab", "Mon", 2, "r2"), entry("eng", "Mon", 3)];
+    const next = applyOverrides(schedule, [unplace("lab", ["Mon", 1])], blocks);
+    expect(next).toEqual([entry("eng", "Mon", 3)]);
+  });
+
+  it("drops one occurrence out of a stack, leaving the other in place", () => {
+    const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
+    const next = applyOverrides(schedule, [unplace("math", ["Mon", 1])], NO_BLOCKS);
+    expect(next).toEqual([entry("math", "Mon", 1, "r2")]);
+  });
+
+  it("returns the schedule identity for a stale unplace (block no longer there)", () => {
+    const schedule = [entry("math", "Mon", 1)];
+    expect(applyOverrides(schedule, [unplace("math", ["Fri", 4])], NO_BLOCKS)).toBe(schedule);
+  });
+
+  it("composes after a move: the unplace anchors at the moved-to slot", () => {
+    const schedule = [entry("math", "Mon", 1), entry("eng", "Tue", 2)];
+    const next = applyOverrides(
+      schedule,
+      [move("math", ["Mon", 1], ["Wed", 3]), unplace("math", ["Wed", 3])],
+      NO_BLOCKS,
+    );
+    expect(next).toEqual([entry("eng", "Tue", 2)]);
   });
 });
