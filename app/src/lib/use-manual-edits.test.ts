@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  activeMoves,
-  appendMove,
-  appendRoom,
-  displayedSelection,
-  withoutDanglingPins,
-  type MoveState,
-} from "./use-manual-edits";
+import { activeMoves, appendMove, appendRoom, displayedSelection, type MoveState } from "./use-manual-edits";
 import { applyOverrides, type ManualOverride } from "./overrides";
+import { appendUnplace, removeUnplaceAt } from "./unplace";
 import { buildConflictInputs } from "./conflict-model";
 import { findConflicts } from "./conflicts";
 import type { ScheduleEntry } from "./solver-client";
@@ -112,29 +106,6 @@ describe("displayedSelection (stale panel target after a drag, PR #36 round 2)",
   });
 });
 
-describe("withoutDanglingPins (Reset edits reverts pin-after-move, PR #36 review)", () => {
-  const schedule = [entry("math", "Mon", 2)];
-  const matching = { subject_id: "math", day: "Mon", slot: 2 };
-  const dangling = { subject_id: "math", day: "Fri", slot: 4 };
-
-  it("drops pins matching no schedule slot, keeping the rest", () => {
-    const doc = { pre_assignments: [matching, dangling, "malformed"] };
-    expect(withoutDanglingPins(doc, schedule).pre_assignments).toEqual([matching, "malformed"]);
-  });
-
-  it("returns the doc unchanged (same reference) when nothing dangles", () => {
-    const allMatching = { pre_assignments: [matching] };
-    const noPins = {};
-    expect(withoutDanglingPins(allMatching, schedule)).toBe(allMatching);
-    expect(withoutDanglingPins(noPins, schedule)).toBe(noPins);
-  });
-
-  it("prunes nothing against an empty schedule (no result to compare with)", () => {
-    const doc = { pre_assignments: [dangling] };
-    expect(withoutDanglingPins(doc, [])).toBe(doc);
-  });
-});
-
 describe("move -> conflict composition (the drag-and-see-what-breaks contract)", () => {
   const doc = {
     time_structure: { days: ["Mon", "Tue"], slots_per_day: 4 },
@@ -156,5 +127,34 @@ describe("move -> conflict composition (the drag-and-see-what-breaks contract)",
     const conflicts = findConflicts(buildConflictInputs(doc), display);
     expect(conflicts.map((c) => c.kind)).toEqual(["teacher-double-book"]);
     expect(new Set(conflicts[0].entryKeys)).toEqual(new Set(["math|Mon|2", "eng|Mon|2"]));
+  });
+
+  it("unplacing one side of a double-book clears it", () => {
+    const base = [entry("math", "Mon", 1), entry("eng", "Mon", 2)];
+    const moved = appendMove([], base, base[0], { day: "Mon", slot: 2 }, NO_BLOCKS);
+    const clashing = applyOverrides(base, moved, NO_BLOCKS);
+    expect(findConflicts(buildConflictInputs(doc), clashing)).toHaveLength(1);
+
+    const log = appendUnplace(moved, clashing, clashing[0], NO_BLOCKS, new Set<string>());
+    const display = applyOverrides(base, log, NO_BLOCKS);
+    expect(findConflicts(buildConflictInputs(doc), display)).toEqual([]);
+  });
+
+  it("puts a session back onto a slot another moved into, stacked, and reports the clash", () => {
+    // The M10 edge case: Put back never refuses because the slot filled up
+    // behind it - the mirror shows what broke, matching drag's own
+    // "drop and see what breaks" rule.
+    const base = [entry("math", "Mon", 1), entry("eng", "Tue", 2)];
+    const unplaced = appendUnplace([], base, base[0], NO_BLOCKS, new Set<string>());
+    const withoutMath = applyOverrides(base, unplaced, NO_BLOCKS);
+    const log = appendMove(unplaced, withoutMath, withoutMath[0], { day: "Mon", slot: 1 }, NO_BLOCKS);
+    expect(findConflicts(buildConflictInputs(doc), applyOverrides(base, log, NO_BLOCKS))).toEqual([]);
+
+    // Put back drops the unplace from the MIDDLE of the log; math returns to
+    // Mon 1, which eng now occupies.
+    const step = removeUnplaceAt(log, 0);
+    const conflicts = findConflicts(buildConflictInputs(doc), applyOverrides(base, step!.next, NO_BLOCKS));
+    expect(conflicts.map((c) => c.kind)).toEqual(["teacher-double-book"]);
+    expect(new Set(conflicts[0].entryKeys)).toEqual(new Set(["math|Mon|1", "eng|Mon|1"]));
   });
 });

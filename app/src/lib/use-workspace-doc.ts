@@ -11,6 +11,7 @@ import { isTauri, useProblemFile } from "./use-problem-file";
 import { useEntityEditing } from "./use-entity-editing";
 import { useEntityNames } from "./use-entity-names";
 import { useEditSession } from "./use-edit-session";
+import { saveWarnings } from "./save-warnings";
 
 /** Is there user work the first-run template bootstrap must not clobber? A parsed
  *  doc OR a non-empty (possibly malformed) yamlText draft both count - the latter
@@ -116,12 +117,11 @@ export function useWorkspaceDoc() {
 
   // Saving with unapplied session edits writes a problem that will re-solve
   // away from what the screen shows - warn, then save anyway (never block).
+  // Unplaced sessions warn on their own count: they produce no pin, so the
+  // pin count alone would stay silent while the edit really does vanish.
   const saveFile = () => {
-    const count = session.unappliedCount;
-    if (count > 0) {
-      toast.warning(
-        `${count} session ${count === 1 ? "edit is" : "edits are"} not applied - Apply edits writes them into the problem`,
-      );
+    for (const warning of saveWarnings(session.unappliedCount, session.manual.unplaced.length)) {
+      toast.warning(warning);
     }
     return file.saveFile();
   };

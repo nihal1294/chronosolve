@@ -13,12 +13,33 @@ export interface DragItem {
   size: number;
 }
 
-/** Geometric drop legality only. Conflicts (double-book, availability, room)
-    never block a drop - mode A is "drop and see what breaks" (M8 design). */
-export function canDropSession(item: DragItem, day: string, slot: number, maxSlot: number): boolean {
-  if (slot + item.size - 1 > maxSlot) return false; // block would overflow the day
-  if (day === item.anchorDay && slot === item.anchorSlot) return false; // self-drop
-  return true;
+/** Drop legality: geometry, plus the one-session-per-(subject, day, slot) rule
+    the rest of the system is built on. CONFLICTS still never block a drop -
+    mode A is "drop and see what breaks" (M8 design) - so landing on another
+    subject stays legal and the conflict checker paints it.
+
+    Stacking a subject on ITSELF is different in kind from a conflict: the
+    solver models one boolean per (subject, day, slot) and pre_assignments key
+    on that same triple, so no solve can produce it and no problem file can
+    store it. Allowing it only gives the block-anchor maths an occupied run it
+    cannot decompose and the pin plan two occupants for one key. `occupied` is
+    every "subject|day|slot" the DISPLAY schedule fills (not the one grid being
+    rendered - a room perspective splits a subject's occurrences across grids). */
+export function canDropSession(
+  item: DragItem,
+  to: { day: string; slot: number },
+  maxSlot: number,
+  occupied: ReadonlySet<string>,
+): boolean {
+  if (to.slot + item.size - 1 > maxSlot) return false; // block would overflow the day
+  if (to.day === item.anchorDay && to.slot === item.anchorSlot) return false; // self-drop
+  const subject = item.entry.subject_id;
+  const covers = (day: string, start: number) =>
+    Array.from({ length: item.size }, (_, i) => scheduleKey(subject, day, start + i));
+  // The block's own hours are what is moving, so a slide into its own
+  // footprint (1-2 onto 2-3) is not a second occurrence.
+  const own = new Set(covers(item.anchorDay, item.anchorSlot));
+  return covers(to.day, to.slot).every((key) => own.has(key) || !occupied.has(key));
 }
 
 /** The DragItem for grabbing `entry`, or null when it must not move: a pinned

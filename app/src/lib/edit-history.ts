@@ -8,10 +8,16 @@ import type { ScheduleEntry } from "./solver-client";
     popped entry is unrecoverable), lock keeps the pin as written (with the
     room it carried, so undoing an unpin restores it), apply keeps what it
     added, the PRIOR versions of pins it overwrote, and the doc pins it
-    removed because a move had left them behind. */
+    removed because a move had left them behind.
+
+    putback keeps the override AND the index it sat at: it is the one verb that
+    removes from the middle of the log rather than appending, so undo has to
+    re-insert in place or the replay produces a different schedule. */
 export type EditAction =
   | { kind: "move"; override: ManualOverride }
   | { kind: "room"; override: ManualOverride }
+  | { kind: "unplace"; override: ManualOverride }
+  | { kind: "putback"; removed: ManualOverride; index: number }
   | { kind: "lock"; pin: PinSlot; wasLocked: boolean }
   | { kind: "apply"; added: PinSlot[]; replaced: PinSlot[]; removed: PinSlot[] };
 
@@ -81,8 +87,19 @@ export interface HistoryExec {
   doc: ProblemDoc | null;
   popOverride: () => void;
   pushOverride: (override: ManualOverride) => void;
+  removeUnplaceAt: (index: number) => void;
+  insertOverride: (override: ManualOverride, index: number) => void;
   applyDocEdit: (next: ProblemDoc) => void;
   reapply: () => void;
+}
+
+type AppendAction = Extract<EditAction, { kind: "move" | "room" | "unplace" }>;
+
+/** The kinds that put an override on the log TAIL - undo pops it, redo
+    re-appends it. A type predicate rather than a plain boolean so the
+    executors narrow past them to the kinds that write the doc. */
+function isAppend(action: EditAction): action is AppendAction {
+  return action.kind === "move" || action.kind === "room" || action.kind === "unplace";
 }
 
 /** Run `action`'s inverse. Session kinds only touch the override log (a push
@@ -90,7 +107,8 @@ export interface HistoryExec {
     apply invert at the DOC level, because io-level pin/unpin take a schedule
     entry and would drop the restored room. */
 export function invertAction(action: EditAction, exec: HistoryExec): void {
-  if (action.kind === "move" || action.kind === "room") return exec.popOverride();
+  if (isAppend(action)) return exec.popOverride();
+  if (action.kind === "putback") return exec.insertOverride(action.removed, action.index);
   if (!exec.doc) return;
   if (action.kind === "lock") {
     return exec.applyDocEdit(
@@ -108,7 +126,8 @@ export function invertAction(action: EditAction, exec: HistoryExec): void {
 
 /** Replay `action` after an undo (the redo executor). */
 export function replayAction(action: EditAction, exec: HistoryExec): void {
-  if (action.kind === "move" || action.kind === "room") return exec.pushOverride(action.override);
+  if (isAppend(action)) return exec.pushOverride(action.override);
+  if (action.kind === "putback") return exec.removeUnplaceAt(action.index);
   // reapply() recomputes from live overrides instead of replaying the stored
   // added/replaced pins. Sound ONLY because history is strictly LIFO: an apply
   // can be redone solely when every action recorded after it has been undone

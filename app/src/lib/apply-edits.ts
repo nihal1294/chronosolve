@@ -26,6 +26,15 @@ export function applyPlan(
   const pins = new Map<string, PreAssignment>();
   const stale = new Map<string, PinSlot>();
   for (const o of overrides) {
+    if (o.kind === "unplace") {
+      const key = at(o.subjectId, o.at.day, o.at.slot);
+      const docPrior = docPinAt(doc, o.subjectId, o.at.day, o.at.slot);
+      // Cancel every decision about this occurrence: no pin of our own, and
+      // the doc's pin comes off, which is what leaves the scheduler free.
+      if (docPrior) stale.set(key, docPrior);
+      pins.delete(key);
+      continue;
+    }
     if (o.kind === "room") {
       pins.set(at(o.subjectId, o.at.day, o.at.slot), {
         subjectId: o.subjectId,
@@ -49,7 +58,11 @@ export function applyPlan(
     });
   }
   for (const [key, pin] of stale) {
-    if (pins.get(key)?.roomId === pin.roomId) stale.delete(key);
+    const kept = pins.get(key);
+    // Only a pin actually written back at that key cancels its removal. An
+    // unplace DELETES the pin, and for a roomless doc pin `undefined ===
+    // undefined` would otherwise read as "unchanged" and leave it in the doc.
+    if (kept && kept.roomId === pin.roomId) stale.delete(key);
   }
   const ordered = [...pins.values()].sort(
     (a, b) => a.subjectId.localeCompare(b.subjectId) || a.day.localeCompare(b.day) || a.slot - b.slot,
@@ -129,4 +142,13 @@ export function pinDiff(doc: ProblemDoc, pins: PinSlot[]): { added: PinSlot[]; r
 export function unappliedPinCount(doc: ProblemDoc, overrides: ManualOverride[]): number {
   const { added, replaced } = pinDiff(doc, applyPlan(doc, overrides).pins);
   return added.length + replaced.length;
+}
+
+/** Whether Apply still has a doc change to write - planApplyDoc's own identity
+    rule, so the button can never sit disabled while a change is pending.
+    unappliedPinCount counts PINS and stays the badge number; an unplace writes
+    no pin (it only removes the doc pin the occurrence carried), so the count
+    alone is not a sound gate. */
+export function hasUnappliedEdits(doc: ProblemDoc, overrides: ManualOverride[]): boolean {
+  return planApplyDoc(doc, overrides).next !== doc;
 }

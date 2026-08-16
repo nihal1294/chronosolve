@@ -32,7 +32,7 @@ Run the solver and watch it converge live; cancel anytime. An optional **Polish 
 
 ## 5. Timetable
 
-View the solved schedule by class, teacher, or room - or a master overview. Filter by type, department, or semester to focus any slice - then edit it directly: drag a session to a new slot, reassign its room, and lock what must stay. Conflicts flag instantly and the quality score re-prices as you edit; apply your edits into the problem, undo/redo any step, or re-run the scheduler around your locks to rebuild everything else.
+View the solved schedule by class, teacher, or room - or a master overview. Filter by type, department, or semester to focus any slice - then edit it directly: drag a session to a new slot, reassign its room, and lock what must stay. Not sure where something belongs? Unplace it - the session leaves the grid and is listed as unplaced, and the next run is free to put those hours anywhere (until then the score reports the missing hours, because the timetable really is short). Put it back at any time. Conflicts flag instantly and the quality score re-prices as you edit; apply your edits into the problem, undo/redo any step, or re-run the scheduler around your locks to rebuild everything else.
 
 ![ChronoSolve Timetable - solved weekly grid by section](../assets/screenshots/timetable.png)
 

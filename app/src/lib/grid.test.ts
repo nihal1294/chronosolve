@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockAnchor, expandLockedKeys, pivotByGroup, scheduleKey } from "./grid";
+import { blockAnchor, expandLockedKeys, hasStackedOccurrence, pivotByGroup, scheduleKey } from "./grid";
 import type { ScheduleEntry } from "./solver-client";
 
 const entry = (over: Partial<ScheduleEntry>): ScheduleEntry => ({
@@ -79,5 +79,19 @@ describe("expandLockedKeys", () => {
     const locked = expandLockedKeys(schedule, new Set([scheduleKey("math", "Monday", 3)]), new Map());
     expect(locked.has(scheduleKey("math", "Monday", 3))).toBe(true);
     expect(locked.size).toBe(1);
+  });
+});
+
+describe("hasStackedOccurrence", () => {
+  it("is false for a schedule with one session per subject and slot", () => {
+    expect(hasStackedOccurrence([entry({}), entry({ slot: 2 }), entry({ subject_id: "sci" })])).toBe(false);
+  });
+
+  it("is false when DIFFERENT subjects share a slot (an ordinary conflict)", () => {
+    expect(hasStackedOccurrence([entry({}), entry({ subject_id: "sci" })])).toBe(false);
+  });
+
+  it("is true when one subject holds a slot twice", () => {
+    expect(hasStackedOccurrence([entry({}), entry({ room_id: "r2" })])).toBe(true);
   });
 });

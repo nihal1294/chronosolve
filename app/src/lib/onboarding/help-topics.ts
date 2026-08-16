@@ -110,7 +110,7 @@ export const TOUR_TOPICS: HelpTopic[] = [
     route: "/timetable",
     title: "4. View and edit your timetable",
     blurb:
-      "Your solved schedule appears here - view it by class, teacher or room, filter it, then drag sessions, change rooms, and lock what must stay. Re-run the scheduler anytime to rebuild everything around your locks.",
+      "Your solved schedule appears here - view it by class, teacher or room, filter it, then drag sessions, change rooms, and lock what must stay. Unplace a session to hand that decision back, and re-run the scheduler anytime to rebuild everything around your locks.",
     side: "over",
     tourOrder: 6,
   },
