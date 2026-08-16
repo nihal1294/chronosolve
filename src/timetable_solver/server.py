@@ -27,7 +27,7 @@ from timetable_solver.solver.annealing import RefineHooks
 from timetable_solver.validation.validator import Severity
 
 # release-please keeps this in sync with the app version on each release.
-VERSION = "0.8.0"  # x-release-please-version
+VERSION = "0.9.0"  # x-release-please-version
 
 app = FastAPI(title="ChronoSolve Solver", version=VERSION)
 # Origins: vite dev (localhost:1420), packaged Tauri webviews - macOS/Linux use
