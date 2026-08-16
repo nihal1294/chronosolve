@@ -23,8 +23,8 @@ afterEach(() => {
 });
 
 const ROWS = [
-  { index: 1, label: "Mathematics - was Wed 09:00 - 09:55" },
-  { index: 3, label: "Physics Lab - was Thu slot 2" },
+  { index: 1, label: "Mathematics - was Wed 09:00 - 09:55", blocked: false },
+  { index: 3, label: "Physics Lab - was Thu slot 2", blocked: false },
 ];
 
 describe("UnplacedList", () => {
@@ -47,5 +47,25 @@ describe("UnplacedList", () => {
     expect(buttons).toHaveLength(2);
     act(() => buttons[1].click());
     expect(onPutBack).toHaveBeenCalledWith(3);
+  });
+});
+
+describe("UnplacedList - blocked rows", () => {
+  const BLOCKED = [{ index: 1, label: "Mathematics - was Wed 09:00 - 09:55", blocked: true }];
+
+  it("disables Put back when the slot took another session of that subject", () => {
+    const onPutBack = vi.fn();
+    act(() => root.render(<UnplacedList rows={BLOCKED} onPutBack={onPutBack} />));
+    const button = container.querySelector("button")!;
+    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(button.getAttribute("title")).toContain("move it first");
+    act(() => button.click());
+    expect(onPutBack).not.toHaveBeenCalled();
+  });
+
+  it("still lists the row so the session is never silently lost", () => {
+    act(() => root.render(<UnplacedList rows={BLOCKED} onPutBack={() => {}} />));
+    expect(container.textContent).toContain("Unplaced (1)");
+    expect(container.textContent).toContain("Mathematics - was Wed 09:00 - 09:55");
   });
 });

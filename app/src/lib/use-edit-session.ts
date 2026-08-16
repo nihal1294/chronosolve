@@ -21,7 +21,8 @@ import type { ProblemEntities } from "./entities";
 import { eligibleRooms, type RoomOption } from "./room-eligibility";
 import type { ScheduleEntry } from "./solver-client";
 import { subjectBlockSizes, useTimelineLocks } from "./use-timeline-locks";
-import { useManualEdits, withoutDanglingPins } from "./use-manual-edits";
+import { useManualEdits } from "./use-manual-edits";
+import { withoutDanglingPins } from "./dangling-pins";
 import { useEditedQuality } from "./use-edited-quality";
 
 /** Doc-write callbacks the session layer composes over (grouped so the hook

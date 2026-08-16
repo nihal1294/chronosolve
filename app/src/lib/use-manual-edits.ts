@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { applyOverrides, type ManualOverride } from "./overrides";
 import {
   appendUnplace,
+  canPutBack,
   insertOverrideAt,
   removeUnplaceAt as removeAt,
   unplacedList,
@@ -9,7 +10,7 @@ import {
 } from "./unplace";
 import { buildConflictInputs } from "./conflict-model";
 import { findConflicts, type Conflict } from "./conflicts";
-import { blockAnchor, scheduleKey } from "./grid";
+import { blockAnchor } from "./grid";
 import type { ProblemDoc } from "./problem-doc";
 import type { ScheduleEntry } from "./solver-client";
 
@@ -73,36 +74,6 @@ export function displayedSelection(
   return selected !== null && displaySchedule.includes(selected) ? selected : null;
 }
 
-/** A raw pre_assignments entry's schedule key, or null when it is not one. */
-const pinKey = (value: unknown): string | null => {
-  if (typeof value !== "object" || value === null) return null;
-  const entry = value as Record<string, unknown>;
-  if (typeof entry.subject_id !== "string") return null;
-  if (typeof entry.day !== "string" || typeof entry.slot !== "number") return null;
-  return scheduleKey(entry.subject_id, entry.day, entry.slot);
-};
-
-/** The doc minus pins that match no schedule slot - what a reverted edit
-    session leaves behind after pin-after-move (invisible on the grid, yet
-    re-applying the move as a hard pre-assignment on the next solve). A pin
-    whose slot IS occupied in the base - even by another occurrence of the
-    same subject - deliberately stays: pins are occurrence-agnostic
-    subject|day|slot booleans, and such a pin renders as a visible pinned
-    block after reset (one click from unpin), unlike the dangling case.
-    Returns the SAME doc when nothing dangles so callers can skip a no-op
-    doc write; an empty schedule prunes nothing (there is no result to
-    compare against); malformed entries always survive (doc round-trip). */
-export function withoutDanglingPins(doc: ProblemDoc, schedule: ScheduleEntry[]): ProblemDoc {
-  const list = Array.isArray(doc.pre_assignments) ? (doc.pre_assignments as unknown[]) : [];
-  if (list.length === 0 || schedule.length === 0) return doc;
-  const placed = new Set(schedule.map((s) => scheduleKey(s.subject_id, s.day, s.slot)));
-  const kept = list.filter((entry) => {
-    const key = pinKey(entry);
-    return key === null || placed.has(key);
-  });
-  return kept.length === list.length ? doc : { ...doc, pre_assignments: kept };
-}
-
 export interface ManualEdits {
   overrides: ManualOverride[];
   /** Base schedule with every override applied - what the Timetable renders. */
@@ -124,7 +95,8 @@ export interface ManualEdits {
   unplaceSession: (entry: ScheduleEntry, lockedKeys: ReadonlySet<string>) => ManualOverride | null;
   /** Put back: drop the unplace at `index`, returning it so history can record
       the index it needs to re-insert at. Null when that index holds no
-      unplace. */
+      unplace, or when returning the session would stack it on another
+      occurrence of the same subject (the row is disabled for that case). */
   removeUnplaceAt: (index: number) => ManualOverride | null;
   /** What is currently off the grid (the ConflictStrip tray). */
   unplaced: UnplacedItem[];
@@ -157,7 +129,10 @@ export function useManualEdits(
     [doc, displaySchedule],
   );
   const conflictKeys = useMemo(() => new Set(conflicts.flatMap((c) => c.entryKeys)), [conflicts]);
-  const unplaced = useMemo(() => unplacedList(overrides), [overrides]);
+  const unplaced = useMemo(
+    () => unplacedList(overrides, schedule, blockSizes),
+    [overrides, schedule, blockSizes],
+  );
 
   // Verbs hand back what they appended (null = no-op identity return from
   // the pure append) so callers push history only for real changes.
@@ -175,6 +150,9 @@ export function useManualEdits(
   // Put back does NOT go through `record`: that helper reports the log TAIL as
   // what changed, and this removes from the middle.
   const removeUnplaceAt = (index: number) => {
+    // Guarded here as well as disabled in the tray: the verb is the invariant's
+    // enforcement point, the disabled row is only the affordance.
+    if (!canPutBack(overrides, index, schedule, blockSizes)) return null;
     const step = removeAt(overrides, index);
     if (!step) return null;
     setState({ base: schedule, moves: step.next });

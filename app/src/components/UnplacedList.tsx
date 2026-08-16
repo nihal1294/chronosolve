@@ -7,6 +7,9 @@ import { CornerUpLeft, PackageOpen } from "lucide-react";
 export interface UnplacedRow {
   index: number;
   label: string;
+  /** Another occurrence of this subject now holds the slot it left, and one
+      subject cannot hold a slot twice - move that one first. */
+  blocked: boolean;
 }
 
 interface UnplacedListProps {
@@ -31,7 +34,13 @@ export function UnplacedList({ rows, onPutBack }: UnplacedListProps) {
             <span className="text-neutral-700 dark:text-neutral-300">{row.label}</span>
             <button
               onClick={() => onPutBack(row.index)}
-              className="inline-flex items-center gap-1 rounded-md border border-neutral-300 px-1.5 py-0.5 font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              disabled={row.blocked}
+              title={
+                row.blocked
+                  ? "Another session of this subject now holds that slot - move it first"
+                  : undefined
+              }
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-300 px-1.5 py-0.5 font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:disabled:hover:bg-transparent"
             >
               <CornerUpLeft size={11} />
               Put back

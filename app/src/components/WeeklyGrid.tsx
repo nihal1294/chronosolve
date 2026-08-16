@@ -15,6 +15,10 @@ interface WeeklyGridProps {
   lockedKeys: Set<string>;
   /** "subject|day|slot" keys of entries the conflict checker flagged. */
   conflictKeys: Set<string>;
+  /** Every "subject|day|slot" the WHOLE display schedule fills, not just this
+      grid's slice - a room perspective splits one subject's occurrences across
+      grids, and the drop rule has to see all of them. */
+  occupiedKeys: Set<string>;
   selected: ScheduleEntry | null;
   /** Second line on each block (room, groups, ...), chosen by the route. */
   secondary: (entry: ScheduleEntry) => string;
@@ -26,28 +30,31 @@ interface WeeklyGridProps {
 }
 
 /** Drop target wrapping one (day, slot) cell. Legal hover targets highlight;
-    legality is geometric only (canDropSession) - conflicts never block. */
+    legality is canDropSession's - conflicts never block, but a subject may not
+    land on another occurrence of itself. */
 function CellDrop({
   day,
   slot,
   maxSlot,
+  occupiedKeys,
   onMove,
   children,
 }: {
   day: string;
   slot: number;
   maxSlot: number;
+  occupiedKeys: Set<string>;
   onMove: (item: DragItem, day: string, slot: number) => void;
   children: React.ReactNode;
 }) {
   const [{ isOver, canDrop }, drop] = useDrop(
     () => ({
       accept: SESSION_DND_TYPE,
-      canDrop: (item: DragItem) => canDropSession(item, day, slot, maxSlot),
+      canDrop: (item: DragItem) => canDropSession(item, { day, slot }, maxSlot, occupiedKeys),
       drop: (item: DragItem) => onMove(item, day, slot),
       collect: (monitor) => ({ isOver: monitor.isOver(), canDrop: monitor.canDrop() }),
     }),
-    [day, slot, maxSlot, onMove],
+    [day, slot, maxSlot, occupiedKeys, onMove],
   );
   return (
     <div
@@ -70,6 +77,7 @@ export function WeeklyGrid({
   slotLabels,
   lockedKeys,
   conflictKeys,
+  occupiedKeys,
   selected,
   secondary,
   dragSpec,
@@ -116,7 +124,13 @@ export function WeeklyGrid({
                 const entries = cell.get(`${day}|${slot}`) ?? [];
                 return (
                   <td key={day} className="align-top">
-                    <CellDrop day={day} slot={slot} maxSlot={maxSlot} onMove={onMove}>
+                    <CellDrop
+                      day={day}
+                      slot={slot}
+                      maxSlot={maxSlot}
+                      occupiedKeys={occupiedKeys}
+                      onMove={onMove}
+                    >
                       {entries.length === 0 ? (
                         <div className="h-10 rounded-md border border-dashed border-neutral-200 dark:border-neutral-800" />
                       ) : (

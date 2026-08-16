@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  activeMoves,
-  appendMove,
-  appendRoom,
-  displayedSelection,
-  withoutDanglingPins,
-  type MoveState,
-} from "./use-manual-edits";
+import { activeMoves, appendMove, appendRoom, displayedSelection, type MoveState } from "./use-manual-edits";
 import { applyOverrides, type ManualOverride } from "./overrides";
 import { appendUnplace, removeUnplaceAt } from "./unplace";
 import { buildConflictInputs } from "./conflict-model";
@@ -110,29 +103,6 @@ describe("displayedSelection (stale panel target after a drag, PR #36 round 2)",
     const display = applyOverrides(base, moves, NO_BLOCKS);
     expect(displayedSelection(display, base[0])).toBeNull(); // math moved: replaced object
     expect(displayedSelection(display, base[1])).toBe(base[1]); // eng untouched: same object
-  });
-});
-
-describe("withoutDanglingPins (Reset edits reverts pin-after-move, PR #36 review)", () => {
-  const schedule = [entry("math", "Mon", 2)];
-  const matching = { subject_id: "math", day: "Mon", slot: 2 };
-  const dangling = { subject_id: "math", day: "Fri", slot: 4 };
-
-  it("drops pins matching no schedule slot, keeping the rest", () => {
-    const doc = { pre_assignments: [matching, dangling, "malformed"] };
-    expect(withoutDanglingPins(doc, schedule).pre_assignments).toEqual([matching, "malformed"]);
-  });
-
-  it("returns the doc unchanged (same reference) when nothing dangles", () => {
-    const allMatching = { pre_assignments: [matching] };
-    const noPins = {};
-    expect(withoutDanglingPins(allMatching, schedule)).toBe(allMatching);
-    expect(withoutDanglingPins(noPins, schedule)).toBe(noPins);
-  });
-
-  it("prunes nothing against an empty schedule (no result to compare with)", () => {
-    const doc = { pre_assignments: [dangling] };
-    expect(withoutDanglingPins(doc, [])).toBe(doc);
   });
 });
 

@@ -1,16 +1,19 @@
-import { blockAnchor, scheduleKey } from "./grid";
-import type { ManualOverride, UnplaceOverride } from "./overrides";
+import { blockAnchor, hasStackedOccurrence, scheduleKey } from "./grid";
+import { applyOverrides, type ManualOverride, type UnplaceOverride } from "./overrides";
 import type { ScheduleEntry } from "./solver-client";
 
 /** One row of the "Unplaced" tray: the override's POSITION in the log (what
     Put back removes - the same unplace can recur after an undo/redo cycle, so
     object identity is not a stable handle) plus where the occurrence sat when
-    it left the grid. */
+    it left the grid, and whether it can go back at all. */
 export interface UnplacedItem {
   index: number;
   subjectId: string;
   day: string;
   slot: number;
+  /** True when the slot it left has since taken another occurrence of the same
+      subject, so returning it would stack them (see canPutBack). */
+  blocked: boolean;
 }
 
 /** The override list after taking `entry`'s block off the grid (anchor
@@ -25,24 +28,14 @@ export function appendUnplace(
   blockSizes: ReadonlyMap<string, number>,
   lockedKeys: ReadonlySet<string>,
 ): ManualOverride[] {
-  const ownKey = scheduleKey(entry.subject_id, entry.day, entry.slot);
-  if (lockedKeys.has(ownKey)) return overrides;
+  if (lockedKeys.has(scheduleKey(entry.subject_id, entry.day, entry.slot))) return overrides;
+  // (subject, day, slot) identifies the occurrence on its own: one subject
+  // never holds a slot twice, so the anchor needs no tie-breaker and neither
+  // does the pin plan that reads the same triple.
   const anchor = blockAnchor(displaySchedule, entry, blockSizes);
-  // The entry's object identity cannot go into the override - the log replays
-  // from the BASE schedule, which rebuilds these objects - so record its
-  // position among the entries sharing its slot instead. That is what tells
-  // applyUnplace which card was clicked when a stack shares one key.
-  const occurrence = displaySchedule
-    .filter((other) => scheduleKey(other.subject_id, other.day, other.slot) === ownKey)
-    .indexOf(entry);
   return [
     ...overrides,
-    {
-      kind: "unplace",
-      subjectId: entry.subject_id,
-      at: { day: anchor.day, slot: anchor.slot },
-      ...(occurrence > 0 ? { occurrence } : {}),
-    },
+    { kind: "unplace", subjectId: entry.subject_id, at: { day: anchor.day, slot: anchor.slot } },
   ];
 }
 
@@ -70,11 +63,40 @@ export function insertOverrideAt(
   return [...overrides.slice(0, index), override, ...overrides.slice(index)];
 }
 
+/** Whether the unplace at `index` can be put back. Every other verb appends
+    and undo pops the tail, so Put back is the ONLY edit that removes from the
+    middle of the log - and therefore the only one that can seat a returning
+    occurrence on top of one that moved into its slot behind it. Answered by
+    replaying the log without that unplace rather than by inspecting the
+    current display, so a move the removal re-activates is caught too. */
+export function canPutBack(
+  overrides: ManualOverride[],
+  index: number,
+  base: ScheduleEntry[],
+  blockSizes: ReadonlyMap<string, number>,
+): boolean {
+  const step = removeUnplaceAt(overrides, index);
+  if (!step) return false;
+  return !hasStackedOccurrence(applyOverrides(base, step.next, blockSizes));
+}
+
 /** The tray contents: every unplace still in the log, carrying its index. */
-export function unplacedList(overrides: ManualOverride[]): UnplacedItem[] {
+export function unplacedList(
+  overrides: ManualOverride[],
+  base: ScheduleEntry[],
+  blockSizes: ReadonlyMap<string, number>,
+): UnplacedItem[] {
   return overrides.flatMap((override, index) =>
     override.kind === "unplace"
-      ? [{ index, subjectId: override.subjectId, day: override.at.day, slot: override.at.slot }]
+      ? [
+          {
+            index,
+            subjectId: override.subjectId,
+            day: override.at.day,
+            slot: override.at.slot,
+            blocked: !canPutBack(overrides, index, base, blockSizes),
+          },
+        ]
       : [],
   );
 }

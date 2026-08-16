@@ -25,11 +25,10 @@ const room = (subject: string, at: [string, number], roomId: string): ManualOver
   roomId,
 });
 
-const unplace = (subject: string, at: [string, number], occurrence?: number): ManualOverride => ({
+const unplace = (subject: string, at: [string, number]): ManualOverride => ({
   kind: "unplace",
   subjectId: subject,
   at: { day: at[0], slot: at[1] },
-  ...(occurrence === undefined ? {} : { occurrence }),
 });
 
 const NO_BLOCKS = new Map<string, number>();
@@ -130,40 +129,16 @@ describe("applyOverrides", () => {
     expect(next).toEqual([entry("eng", "Mon", 3)]);
   });
 
-  it("drops one occurrence out of a stack, leaving the other in place", () => {
+  it("drops ONE entry per covered key, matching applyMove's rule", () => {
+    // Defensive: one subject holding a slot twice is refused at both doors
+    // (canDropSession, canPutBack) and cannot come from a solve, so this
+    // exists to pin the shared "one per key" rule rather than to describe a
+    // reachable screen. The pin plan reads these keys the same way, which is
+    // why the display and the saved problem cannot disagree about which
+    // occurrence left.
     const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
     const next = applyOverrides(schedule, [unplace("math", ["Mon", 1])], NO_BLOCKS);
     expect(next).toEqual([entry("math", "Mon", 1, "r2")]);
-  });
-
-  it("unplaces the SELECTED occupant of a stack, not always the first", () => {
-    // Two occurrences of one subject can share a slot (drag one onto the
-    // other), the grid renders a card for each, and either is selectable.
-    // Without the occurrence index the second card's Unplace removed the
-    // first - the wrong card vanished.
-    const schedule = [entry("math", "Mon", 1, "r1"), entry("math", "Mon", 1, "r2")];
-    expect(applyOverrides(schedule, [unplace("math", ["Mon", 1], 1)], NO_BLOCKS)).toEqual([
-      entry("math", "Mon", 1, "r1"),
-    ]);
-  });
-
-  it("unplaces the selected occupant at every slot a stacked block covers", () => {
-    const blocks = new Map([["lab", 2]]);
-    const schedule = [
-      entry("lab", "Mon", 1, "r1"),
-      entry("lab", "Mon", 1, "r2"),
-      entry("lab", "Mon", 2, "r1"),
-      entry("lab", "Mon", 2, "r2"),
-    ];
-    expect(applyOverrides(schedule, [unplace("lab", ["Mon", 1], 1)], blocks)).toEqual([
-      entry("lab", "Mon", 1, "r1"),
-      entry("lab", "Mon", 2, "r1"),
-    ]);
-  });
-
-  it("returns the schedule identity when the occurrence index has no occupant", () => {
-    const schedule = [entry("math", "Mon", 1, "r1")];
-    expect(applyOverrides(schedule, [unplace("math", ["Mon", 1], 3)], NO_BLOCKS)).toBe(schedule);
   });
 
   it("returns the schedule identity for a stale unplace (block no longer there)", () => {

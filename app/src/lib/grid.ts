@@ -32,6 +32,22 @@ export function countScheduled(schedule: ScheduleEntry[]): Map<string, number> {
 export const scheduleKey = (subjectId: string, day: string, slot: number): string =>
   `${subjectId}|${day}|${slot}`;
 
+/** Whether any slot holds two occurrences of ONE subject - the invariant the
+    whole system rests on. The solver creates a single boolean per (subject,
+    day, slot), so no solve can emit this, and pre_assignments key on the same
+    triple, so no problem file can store it. Two DIFFERENT subjects sharing a
+    slot is an ordinary conflict and stays false here: that one is legal to
+    show, merely wrong, and the conflict checker prices it. */
+export function hasStackedOccurrence(schedule: ScheduleEntry[]): boolean {
+  const seen = new Set<string>();
+  for (const entry of schedule) {
+    const key = scheduleKey(entry.subject_id, entry.day, entry.slot);
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
 /** The entry starting the consecutive-hours block that covers `entry`.
 
     The solver emits one ScheduleEntry per occupied slot, but a

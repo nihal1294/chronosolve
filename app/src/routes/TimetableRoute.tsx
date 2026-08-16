@@ -102,6 +102,7 @@ export function TimetableRoute() {
   const roomName = (id: string | null) => (id ? name(ws.roomNames, id) : "-");
   const unplacedRows = manual.unplaced.map((item) => ({
     index: item.index,
+    blocked: item.blocked,
     label: unplacedLabel(
       item,
       name(ws.subjectNames, item.subjectId),
@@ -142,6 +143,10 @@ export function TimetableRoute() {
     slotLabels,
     lockedKeys,
     conflictKeys: manual.conflictKeys,
+    // From the WHOLE display schedule, never the per-grid slice: the drop rule
+    // must see every occurrence of a subject, and a room perspective splits
+    // them across grids.
+    occupiedKeys: new Set(manual.displaySchedule.map((e) => scheduleKey(e.subject_id, e.day, e.slot))),
     dragSpec: (entry: ScheduleEntry) =>
       sessionDragItem(entry, lockedKeys, manual.displaySchedule, ws.blockSizes),
     onMove: (item: DragItem, day: string, slot: number) => manual.moveSession(item.entry, { day, slot }),
